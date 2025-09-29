@@ -16,7 +16,9 @@ function generateHTML(nodes, connections) {
     html += '    ' + template.htmlStructure.containerOpen + '\n';
 
     for (const node of nodes) {
-        html += `        <div class="node" id="${node.id}" data-label="${node.label}">${node.label}</div>\n`;
+        const hasChildren = connections.some(conn => conn.from === node.id);
+        const collapseButton = hasChildren ? '<span class="collapse-button" onclick="toggleNodeCollapse(\'' + node.id + '\')">▼</span>' : '';
+        html += `        <div class="node" id="${node.id}" data-label="${node.label}" data-has-children="${hasChildren}">${node.label}${collapseButton}</div>\n`;
     }
 
     html += '    ' + template.htmlStructure.containerClose + '\n';
@@ -38,7 +40,83 @@ function getJavaScriptContent(nodes, connections) {
         // Import hierarchical layout
         ${getHierarchicalLayoutCode()}
 
+        // Collapse functionality
+        const collapseManager = {
+            collapsedNodes: new Set(),
+            childrenMap: new Map(),
+
+            init: function() {
+                connections.forEach(conn => {
+                    if (!this.childrenMap.has(conn.from)) {
+                        this.childrenMap.set(conn.from, []);
+                    }
+                    this.childrenMap.get(conn.from).push(conn.to);
+                });
+            },
+
+            isCollapsed: function(nodeId) {
+                return this.collapsedNodes.has(nodeId);
+            },
+
+            canCollapse: function(nodeId) {
+                return this.childrenMap.has(nodeId) && this.childrenMap.get(nodeId).length > 0;
+            },
+
+            toggleCollapse: function(nodeId) {
+                if (this.canCollapse(nodeId)) {
+                    const nodeElement = document.getElementById(nodeId);
+                    const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                    if (this.collapsedNodes.has(nodeId)) {
+                        this.collapsedNodes.delete(nodeId);
+                        nodeElement.classList.remove('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▼';
+                    } else {
+                        this.collapsedNodes.add(nodeId);
+                        nodeElement.classList.add('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▲';
+                    }
+
+                    this.updateVisibility();
+                    setTimeout(() => {
+                        createCSSLines(connections, null);
+                    }, 50);
+                }
+            },
+
+            isVisible: function(nodeId) {
+                const isRoot = !connections.some(conn => conn.to === nodeId);
+                if (isRoot) return true;
+
+                const parentConnection = connections.find(conn => conn.to === nodeId);
+                if (!parentConnection) return true;
+
+                if (this.isCollapsed(parentConnection.from)) return false;
+
+                return this.isVisible(parentConnection.from);
+            },
+
+            updateVisibility: function() {
+                nodes.forEach(node => {
+                    const element = document.getElementById(node.id);
+                    if (element) {
+                        if (this.isVisible(node.id)) {
+                            element.classList.remove('hidden');
+                        } else {
+                            element.classList.add('hidden');
+                        }
+                    }
+                });
+            }
+        };
+
+        function toggleNodeCollapse(nodeId) {
+            collapseManager.toggleCollapse(nodeId);
+        }
+
         window.onload = function() {
+            collapseManager.init();
+
             const nodePositions = hierarchicalLayout(nodes, connections, calculateAllNodeWidths);
 
             // コンテナの高さを動的に設定
@@ -169,10 +247,12 @@ function getHierarchicalLayoutCode() {
                     level.forEach(node => {
                         const element = document.getElementById(node.id);
                         if (element) {
+                            const nodeWidth = nodeWidthMap.get(node.label);
                             element.style.left = currentX + 'px';
                             element.style.top = y + 'px';
-                            nodePositions.set(node.id, { x: currentX, y: y, width: nodeWidthMap.get(node.label) });
-                            currentX += nodeWidthMap.get(node.label) + fixedSpacing;
+                            element.style.width = nodeWidth + 'px';
+                            nodePositions.set(node.id, { x: currentX, y: y, width: nodeWidth });
+                            currentX += nodeWidth + fixedSpacing;
                         }
                     });
                 } else {
@@ -181,6 +261,7 @@ function getHierarchicalLayoutCode() {
                     level.forEach(node => {
                         const element = document.getElementById(node.id);
                         if (element) {
+                            const nodeWidth = nodeWidthMap.get(node.label);
                             const parentId = connections.find(conn => conn.to === node.id)?.from;
                             if (parentId && nodePositions.has(parentId)) {
                                 const parentPos = nodePositions.get(parentId);
@@ -201,14 +282,16 @@ function getHierarchicalLayoutCode() {
 
                                 element.style.left = startX + 'px';
                                 element.style.top = y + 'px';
-                                nodePositions.set(node.id, { x: startX, y: y, width: nodeWidthMap.get(node.label) });
+                                element.style.width = nodeWidth + 'px';
+                                nodePositions.set(node.id, { x: startX, y: y, width: nodeWidth });
 
-                                levelMaxX = Math.max(levelMaxX, startX + nodeWidthMap.get(node.label) + fixedSpacing);
+                                levelMaxX = Math.max(levelMaxX, startX + nodeWidth + fixedSpacing);
                             } else {
                                 element.style.left = levelMaxX + 'px';
                                 element.style.top = y + 'px';
-                                nodePositions.set(node.id, { x: levelMaxX, y: y, width: nodeWidthMap.get(node.label) });
-                                levelMaxX += nodeWidthMap.get(node.label) + fixedSpacing;
+                                element.style.width = nodeWidth + 'px';
+                                nodePositions.set(node.id, { x: levelMaxX, y: y, width: nodeWidth });
+                                levelMaxX += nodeWidth + fixedSpacing;
                             }
                         }
                     });
@@ -240,7 +323,10 @@ function getHierarchicalLayoutCode() {
                 const fromElement = document.getElementById(conn.from);
                 const toElement = document.getElementById(conn.to);
 
-                if (fromElement && toElement) {
+                // 両端のノードが存在し、かつ表示されている場合のみ接続線を描画
+                if (fromElement && toElement &&
+                    !fromElement.classList.contains('hidden') &&
+                    !toElement.classList.contains('hidden')) {
                     const fromRect = {
                         left: fromElement.offsetLeft,
                         top: fromElement.offsetTop,
@@ -281,6 +367,24 @@ function getHierarchicalLayoutCode() {
     `;
 }
 
+function generateHTMLWithCollapse(nodes, connections) {
+    const html = `<html>
+<head>
+<style>
+    .collapse-button { cursor: pointer; }
+    .collapsed-node {
+        box-shadow: 2px 2px 4px rgba(0,0,0,0.3),
+                    4px 4px 8px rgba(0,0,0,0.2);
+    }
+</style>
+</head>
+<body>
+</body>
+</html>`;
+    return html;
+}
+
 module.exports = {
-    generateHTML
+    generateHTML,
+    generateHTMLWithCollapse
 };
