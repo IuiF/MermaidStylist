@@ -21,6 +21,8 @@ function getBaseTemplate() {
             font-size: 12px;
             white-space: nowrap;
             cursor: pointer;
+            z-index: 2;
+            box-sizing: content-box;
         }
         .connection-line {
             position: absolute;
@@ -40,8 +42,48 @@ function getBaseTemplate() {
             border-top: 4px solid transparent;
             border-bottom: 4px solid transparent;
         }
-        .node {
-            z-index: 2;
+        .collapse-button {
+            cursor: pointer;
+            font-size: 10px;
+            margin-left: 5px;
+            user-select: none;
+        }
+        .collapsed-node {
+            position: relative;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .collapsed-node::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #333;
+            background: #e9e9e9;
+            border-radius: 5px;
+            z-index: -2;
+            box-sizing: border-box;
+            transform: translate(-2px, -2px);
+            pointer-events: none;
+        }
+        .collapsed-node::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #333;
+            background: #ddd;
+            border-radius: 5px;
+            z-index: -3;
+            box-sizing: border-box;
+            transform: translate(-4px, -4px);
+            pointer-events: none;
+        }
+        .hidden {
+            display: none;
         }`,
 
         htmlStructure: {
