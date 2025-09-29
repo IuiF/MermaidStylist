@@ -112,38 +112,85 @@ function generateHTML(nodes, connections) {
             // 木構造を解析
             const treeStructure = analyzeTreeStructure(nodes, connections);
 
-            // 必要な最大幅を事前計算
-            let maxRequiredWidth = 0;
-            treeStructure.levels.forEach(level => {
-                const spacing = calculateDynamicSpacing(level, containerWidth, nodeWidthMap);
-                const requiredWidth = spacing.totalWidth + 100; // 左右マージン含む
-                maxRequiredWidth = Math.max(maxRequiredWidth, requiredWidth);
-            });
+            // ノードの位置情報を保存するマップ
+            const nodePositions = new Map();
 
-            // コンテナが狭すぎる場合は拡張
-            if (maxRequiredWidth > containerWidth) {
-                containerWidth = maxRequiredWidth;
-                container.style.width = containerWidth + 'px';
-                console.log("Container width expanded to: " + containerWidth + "px");
-            }
-
-            // 各階層レベルでノードを配置
+            // 各階層レベルでノードを配置（一方向配置）
             const levelHeight = 80;
+            const leftMargin = 50;
+            const fixedSpacing = 60;
 
             treeStructure.levels.forEach((level, levelIndex) => {
                 const y = 50 + levelIndex * levelHeight;
 
-                // 動的間隔計算（containerWidthと事前計算された幅マップを渡す）
-                const spacing = calculateDynamicSpacing(level, containerWidth, nodeWidthMap);
+                if (levelIndex === 0) {
+                    // ルートレベルは左端から配置
+                    let currentX = leftMargin;
+                    level.forEach(node => {
+                        const element = document.getElementById(node.id);
+                        if (element) {
+                            element.style.left = currentX + 'px';
+                            element.style.top = y + 'px';
+                            nodePositions.set(node.id, { x: currentX, y: y, width: nodeWidthMap.get(node.label) });
+                            currentX += nodeWidthMap.get(node.label) + fixedSpacing;
+                        }
+                    });
+                } else {
+                    // このレベルで既に配置されたノードの最右端X座標を追跡
+                    let levelMaxX = leftMargin;
 
-                level.forEach((node, nodeIndex) => {
-                    const element = document.getElementById(node.id);
-                    if (element) {
-                        element.style.left = spacing.positions[nodeIndex] + 'px';
-                        element.style.top = y + 'px';
-                    }
-                });
+                    // 子レベルは親ノードの位置から右方向に配置
+                    level.forEach(node => {
+                        const element = document.getElementById(node.id);
+                        if (element) {
+                            // この子ノードの親を見つける
+                            const parentId = connections.find(conn => conn.to === node.id)?.from;
+                            if (parentId && nodePositions.has(parentId)) {
+                                const parentPos = nodePositions.get(parentId);
+
+                                // 親の右端から配置開始（既に配置済みの兄弟ノードを考慮）
+                                const siblings = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
+                                const siblingIndex = siblings.indexOf(node.id);
+
+                                let startX = parentPos.x + parentPos.width + fixedSpacing;
+
+                                // 兄弟ノードがある場合は順番に右へ配置
+                                for (let i = 0; i < siblingIndex; i++) {
+                                    const siblingId = siblings[i];
+                                    if (nodePositions.has(siblingId)) {
+                                        const siblingPos = nodePositions.get(siblingId);
+                                        startX = Math.max(startX, siblingPos.x + siblingPos.width + fixedSpacing);
+                                    }
+                                }
+
+                                // レベル内の他のノードとの重複を回避
+                                startX = Math.max(startX, levelMaxX);
+
+                                element.style.left = startX + 'px';
+                                element.style.top = y + 'px';
+                                nodePositions.set(node.id, { x: startX, y: y, width: nodeWidthMap.get(node.label) });
+
+                                // このレベルの最右端を更新
+                                levelMaxX = Math.max(levelMaxX, startX + nodeWidthMap.get(node.label) + fixedSpacing);
+                            } else {
+                                // 親が見つからない場合はレベル内の最右端から配置
+                                element.style.left = levelMaxX + 'px';
+                                element.style.top = y + 'px';
+                                nodePositions.set(node.id, { x: levelMaxX, y: y, width: nodeWidthMap.get(node.label) });
+                                levelMaxX += nodeWidthMap.get(node.label) + fixedSpacing;
+                            }
+                        }
+                    });
+                }
             });
+
+            // コンテナ幅を動的に調整
+            const maxX = Math.max(...Array.from(nodePositions.values()).map(pos => pos.x + pos.width));
+            if (maxX + 100 > containerWidth) {
+                containerWidth = maxX + 100;
+                container.style.width = containerWidth + 'px';
+                console.log("Container width expanded to: " + containerWidth + "px for directional layout");
+            }
         }
 
         function measureTextWidth(text, font) {
@@ -301,10 +348,11 @@ function generateHTML(nodes, connections) {
                         height: toElement.offsetHeight
                     };
 
-                    const x1 = fromRect.left + fromRect.width / 2;
-                    const y1 = fromRect.top + fromRect.height;
-                    const x2 = toRect.left + toRect.width / 2;
-                    const y2 = toRect.top;
+                    // 一方向レイアウトに適した矢印描画（親の右端から子の左端へ）
+                    const x1 = fromRect.left + fromRect.width;
+                    const y1 = fromRect.top + fromRect.height / 2;
+                    const x2 = toRect.left;
+                    const y2 = toRect.top + toRect.height / 2;
 
                     // 線の長さと角度を計算
                     const dx = x2 - x1;
