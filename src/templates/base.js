@@ -106,8 +106,13 @@ function getBaseTemplate() {
             border-bottom: 1px solid #ddd;
             z-index: 1000;
             display: flex;
-            align-items: center;
-            gap: 8px;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
         .layout-button {
             padding: 6px 12px;
@@ -116,6 +121,8 @@ function getBaseTemplate() {
             cursor: pointer;
             border-radius: 3px;
             font-size: 12px;
+            min-width: 120px;
+            text-align: center;
         }
         .layout-button:hover {
             background: #e0e0e0;
@@ -128,6 +135,7 @@ function getBaseTemplate() {
             margin-left: auto;
             font-size: 11px;
             color: #666;
+            align-self: center;
         }
         .context-menu {
             position: fixed;
@@ -160,7 +168,7 @@ function getBaseTemplate() {
             headClose: '</head>',
             bodyOpen: '<body>',
             pageTitle: '<h1>Tree Structure</h1>',
-            layoutControls: '<div class="layout-controls"><button class="layout-button active" id="verticalBtn" onclick="switchLayout(\'vertical\')">縦方向</button><button class="layout-button" id="horizontalBtn" onclick="switchLayout(\'horizontal\')">横方向</button><button class="layout-button" onclick="collapseAll()">すべて折りたたむ</button><button class="layout-button" onclick="expandAll()">すべて展開</button><button class="layout-button" onclick="viewportManager.resetView()">位置リセット</button><span class="viewport-info">ドラッグで移動 | ホイールで拡大縮小</span></div>',
+            layoutControls: '<div class="layout-controls"><div class="button-group"><button class="layout-button active" id="verticalBtn" onclick="switchLayout(\'vertical\')">縦方向</button><button class="layout-button" id="horizontalBtn" onclick="switchLayout(\'horizontal\')">横方向</button></div><div class="button-group"><button class="layout-button" onclick="collapseAll()">すべて折りたたむ</button><button class="layout-button" onclick="expandAll()">すべて展開</button></div><button class="layout-button" onclick="viewportManager.resetView()">位置リセット</button><span class="viewport-info">ドラッグで移動 | ホイールで拡大縮小</span></div>',
             containerOpen: '<div class="tree-container" id="treeContainer"><div id="contentWrapper">',
             containerClose: '</div></div>',
             bodyClose: '</body>',
