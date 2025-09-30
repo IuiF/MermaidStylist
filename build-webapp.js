@@ -14,10 +14,8 @@ function getEmbeddedCode() {
         parseMermaidConnections.toString() + '\n    ';
 
     // バリデーターのコード
-    const validatorCode = '\n        ' +
-        validateTreeStructure.toString() + '\n    ';
-
-    // ジェネレーターのコードは使用しない（ブラウザ向けに別途定義）
+    const treeValidator = fs.readFileSync('./src/validators/tree-validator.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};/g, '');
 
     // その他の必要なモジュール
     const baseTemplate = fs.readFileSync('./src/templates/base.js', 'utf8')
@@ -56,8 +54,14 @@ function getEmbeddedCode() {
     const contextMenu = fs.readFileSync('./src/features/context-menu.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};/g, '');
 
-    const treeValidator = fs.readFileSync('./src/validators/tree-validator.js', 'utf8')
-        .replace(/module\.exports = \{[^}]+\};/g, '');
+    // html.jsのgenerateHTML関数を文字列として取得し、ブラウザ向けに変換
+    const generateHTMLCode = generateHTML.toString();
+    const generateErrorHTMLCode = generateErrorHTML.toString();
+
+    // html.jsからgetJavaScriptContent関数を抽出
+    const htmlJsContent = fs.readFileSync('./src/generators/html.js', 'utf8');
+    const getJavaScriptContentMatch = htmlJsContent.match(/function getJavaScriptContent\([^)]*\)\s*\{[\s\S]*?\n\}/);
+    const getJavaScriptContentCode = getJavaScriptContentMatch ? getJavaScriptContentMatch[0] : '';
 
     return '\n        // パーサー\n        ' +
         parserCode + '\n\n' +
@@ -78,7 +82,11 @@ function getEmbeddedCode() {
         viewportManager + '\n' +
         highlightManager + '\n' +
         pathHighlighter + '\n' +
-        contextMenu + '\n    ';
+        contextMenu + '\n\n' +
+        '        // ジェネレーター（html.jsから自動取得）\n' +
+        '        ' + generateHTMLCode + '\n\n' +
+        '        ' + getJavaScriptContentCode + '\n\n' +
+        '        ' + generateErrorHTMLCode + '\n    ';
 }
 
 // webappテンプレートを読み込み
