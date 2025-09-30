@@ -9,12 +9,20 @@ function getViewportManager() {
             startY: 0,
             minScale: 0.1,
             maxScale: 3.0,
+            initialTouchDistance: 0,
+            initialTouchCenter: { x: 0, y: 0 },
+            lastTouchCenter: { x: 0, y: 0 },
 
             init: function() {
                 const container = document.getElementById('treeContainer');
 
-                // マウスホイールでズーム
+                // マウスホイールでズーム（Ctrl+ホイールのみ）
                 container.addEventListener('wheel', (e) => {
+                    // Ctrl+ホイールまたはピンチジェスチャーの場合のみズーム
+                    if (!e.ctrlKey) {
+                        return;
+                    }
+
                     e.preventDefault();
 
                     const rect = container.getBoundingClientRect();
@@ -35,7 +43,7 @@ function getViewportManager() {
                     this.scale = newScale;
 
                     this.applyTransform();
-                });
+                }, { passive: false });
 
                 // ドラッグで移動
                 container.addEventListener('mousedown', (e) => {
@@ -60,6 +68,83 @@ function getViewportManager() {
                         this.isDragging = false;
                         const container = document.getElementById('treeContainer');
                         container.style.cursor = 'grab';
+                    }
+                });
+
+                // タッチイベント（2本指でパン、ピンチでズーム）
+                container.addEventListener('touchstart', (e) => {
+                    if (e.touches.length === 2) {
+                        e.preventDefault();
+
+                        const rect = container.getBoundingClientRect();
+
+                        // 2本指の距離と中心点を記録
+                        const touch1 = e.touches[0];
+                        const touch2 = e.touches[1];
+
+                        const dx = touch2.clientX - touch1.clientX;
+                        const dy = touch2.clientY - touch1.clientY;
+                        this.initialTouchDistance = Math.sqrt(dx * dx + dy * dy);
+
+                        this.initialTouchCenter = {
+                            x: (touch1.clientX + touch2.clientX) / 2 - rect.left,
+                            y: (touch1.clientY + touch2.clientY) / 2 - rect.top
+                        };
+
+                        this.lastTouchCenter = { ...this.initialTouchCenter };
+                    }
+                }, { passive: false });
+
+                container.addEventListener('touchmove', (e) => {
+                    if (e.touches.length === 2) {
+                        e.preventDefault();
+
+                        const rect = container.getBoundingClientRect();
+                        const touch1 = e.touches[0];
+                        const touch2 = e.touches[1];
+
+                        // 現在の2本指の距離
+                        const dx = touch2.clientX - touch1.clientX;
+                        const dy = touch2.clientY - touch1.clientY;
+                        const currentDistance = Math.sqrt(dx * dx + dy * dy);
+
+                        // 現在の中心点
+                        const currentCenter = {
+                            x: (touch1.clientX + touch2.clientX) / 2 - rect.left,
+                            y: (touch1.clientY + touch2.clientY) / 2 - rect.top
+                        };
+
+                        // ピンチズーム
+                        if (this.initialTouchDistance > 0) {
+                            const worldX = (this.initialTouchCenter.x - this.translateX) / this.scale;
+                            const worldY = (this.initialTouchCenter.y - this.translateY) / this.scale;
+
+                            const scaleChange = currentDistance / this.initialTouchDistance;
+                            const newScale = Math.max(this.minScale, Math.min(this.maxScale, this.scale * scaleChange));
+
+                            this.translateX = this.initialTouchCenter.x - worldX * newScale;
+                            this.translateY = this.initialTouchCenter.y - worldY * newScale;
+                            this.scale = newScale;
+
+                            this.initialTouchDistance = currentDistance;
+                        }
+
+                        // 2本指でパン
+                        const panX = currentCenter.x - this.lastTouchCenter.x;
+                        const panY = currentCenter.y - this.lastTouchCenter.y;
+
+                        this.translateX += panX;
+                        this.translateY += panY;
+
+                        this.lastTouchCenter = currentCenter;
+
+                        this.applyTransform();
+                    }
+                }, { passive: false });
+
+                container.addEventListener('touchend', (e) => {
+                    if (e.touches.length < 2) {
+                        this.initialTouchDistance = 0;
                     }
                 });
 
