@@ -155,55 +155,12 @@ function getConnectionRenderer() {
             const existingLines = svgLayer.querySelectorAll('.connection-line, .connection-arrow, .connection-label');
             existingLines.forEach(line => line.remove());
 
-            // グローバルレーン管理システム
-            // 各レーンは { xPos, yMin, yMax, occupiedBy } の情報を持つ
-            const lanes = [];
+            // 2パスアルゴリズムによる動的レーン割り当て
             const laneWidth = 25;
             const minOffset = 30;
 
-            // レーンを占有する関数
-            function occupyLane(xPos, yMin, yMax, connectionId) {
-                // 既存のレーンで使えるものがあるか探す
-                for (let i = 0; i < lanes.length; i++) {
-                    const lane = lanes[i];
-                    // X位置が一致し、Y範囲が重ならないレーンを探す
-                    if (Math.abs(lane.xPos - xPos) < laneWidth / 2) {
-                        const hasOverlap = !(yMax < lane.yMin || yMin > lane.yMax);
-                        if (!hasOverlap) {
-                            // Y範囲を拡張
-                            lane.yMin = Math.min(lane.yMin, yMin);
-                            lane.yMax = Math.max(lane.yMax, yMax);
-                            lane.occupiedBy.push(connectionId);
-                            return i;
-                        }
-                    }
-                }
-                // 新しいレーンを作成
-                lanes.push({
-                    xPos: xPos,
-                    yMin: yMin,
-                    yMax: yMax,
-                    occupiedBy: [connectionId]
-                });
-                return lanes.length - 1;
-            }
-
-            // レーンを見つける関数（既存のレーンと衝突しないX位置を計算）
-            function findAvailableLane(x1, yMin, yMax, preferredOffset) {
-                const candidateX = x1 + preferredOffset;
-
-                // この位置で衝突するレーンがあるか確認
-                for (const lane of lanes) {
-                    if (Math.abs(lane.xPos - candidateX) < laneWidth / 2) {
-                        const hasOverlap = !(yMax < lane.yMin || yMin > lane.yMax);
-                        if (hasOverlap) {
-                            // 衝突する場合、さらに外側のレーンを試す
-                            return findAvailableLane(x1, yMin, yMax, preferredOffset + laneWidth);
-                        }
-                    }
-                }
-                return candidateX;
-            }
+            // パス1: すべての接続情報を収集
+            const edgeInfos = [];
 
             // 同じ親から出る接続をグループ化し、子のY座標でソート
             const connectionsByParent = {};
@@ -226,174 +183,221 @@ function getConnectionRenderer() {
                 });
             });
 
-            let connectionCount = 0;
+            // パス1: すべての接続の情報を収集
             connections.forEach(conn => {
                 const fromElement = svgHelpers.getNodeElement(conn.from);
                 const toElement = svgHelpers.getNodeElement(conn.to);
 
-                // 両端のノードが存在し、かつ表示されている場合のみ接続線を描画
-                if (fromElement && toElement &&
-                    !fromElement.classList.contains('hidden') &&
-                    !toElement.classList.contains('hidden')) {
+                if (!fromElement || !toElement ||
+                    fromElement.classList.contains('hidden') ||
+                    toElement.classList.contains('hidden')) {
+                    return;
+                }
 
-                    // ノードの位置と寸法を取得
-                    const fromPos = getNodePosition(fromElement);
-                    const fromDim = getNodeDimensions(fromElement);
-                    const fromLeft = fromPos.left;
-                    const fromTop = fromPos.top;
-                    const fromWidth = fromDim.width;
-                    const fromHeight = fromDim.height;
+                const fromPos = getNodePosition(fromElement);
+                const fromDim = getNodeDimensions(fromElement);
+                const toPos = getNodePosition(toElement);
+                const toDim = getNodeDimensions(toElement);
 
-                    const toPos = getNodePosition(toElement);
-                    const toDim = getNodeDimensions(toElement);
-                    const toLeft = toPos.left;
-                    const toTop = toPos.top;
-                    const toWidth = toDim.width;
-                    const toHeight = toDim.height;
+                const siblings = connectionsByParent[conn.from];
+                const siblingIndex = siblings.findIndex(c => c.to === conn.to);
+                const siblingCount = siblings.length;
 
-                    // 同じ親から出る接続の数とソート済みインデックスを取得
-                    const siblings = connectionsByParent[conn.from];
-                    const siblingIndex = siblings.findIndex(c => c.to === conn.to);
-                    const siblingCount = siblings.length;
+                // ポート位置の計算
+                let y1;
+                const portMargin = 4;
+                if (siblingCount === 1) {
+                    y1 = fromPos.top + fromDim.height / 2;
+                } else {
+                    const availableHeight = fromDim.height - (portMargin * 2);
+                    const portSpacing = availableHeight / (siblingCount - 1);
+                    y1 = fromPos.top + portMargin + (siblingIndex * portSpacing);
+                }
 
-                    // ポート割り当て: 親ノードの出発点を子の位置に応じて最適化
-                    let y1, x1;
-                    const portMargin = 4; // ノード端からのマージン
-                    if (siblingCount === 1) {
-                        // 単一の接続: 中央から出発
-                        y1 = fromTop + fromHeight / 2;
-                        x1 = fromLeft + fromWidth;
-                    } else {
-                        // 複数の接続: ノードの高さに沿って均等に配置
-                        const availableHeight = fromHeight - (portMargin * 2);
-                        const portSpacing = availableHeight / (siblingCount - 1);
-                        y1 = fromTop + portMargin + (siblingIndex * portSpacing);
-                        x1 = fromLeft + fromWidth;
-                    }
+                const x1 = fromPos.left + fromDim.width;
+                const x2 = toPos.left;
+                const y2 = toPos.top + toDim.height / 2;
 
-                    // 子ノードの到達点も同様に最適化
-                    const x2 = toLeft;
-                    const y2 = toTop + toHeight / 2; // 子ノードは中央で固定（簡易実装）
+                edgeInfos.push({
+                    conn: conn,
+                    x1: x1,
+                    y1: y1,
+                    x2: x2,
+                    y2: y2,
+                    yMin: Math.min(y1, y2),
+                    yMax: Math.max(y1, y2),
+                    siblingIndex: siblingIndex,
+                    siblingCount: siblingCount,
+                    parentX: fromPos.left
+                });
+            });
 
-                    // ELKスタイル: 直交エッジ（orthogonal edges）
-                    // グローバルレーン管理で他のエッジとの衝突を回避
+            // パス2: レーン割り当てと描画
+            // 親ノードのX座標でソート（左から右へ処理）
+            edgeInfos.sort((a, b) => a.parentX - b.parentX);
 
-                    const dy = y2 - y1; // 親ポートから子ノードへの垂直距離
-                    const yMin = Math.min(y1, y2);
-                    const yMax = Math.max(y1, y2);
+            // グローバルレーン管理
+            const occupiedLanes = []; // { laneIndex, segments: [{yMin, yMax, xRange}] }
 
-                    // 同じ親からの接続に基づく優先オフセット
-                    const reversedIndex = (siblingCount - 1) - siblingIndex;
-                    const preferredOffset = minOffset + (reversedIndex * laneWidth);
+            function findBestLane(x1, x2, yMin, yMax, preferredLane) {
+                let laneIndex = preferredLane;
+                const xMin = Math.min(x1, x2);
+                const xMax = Math.max(x1, x2);
 
-                    // グローバルレーン管理を使用して実際のX位置を決定
-                    const verticalSegmentX = findAvailableLane(x1, yMin, yMax, preferredOffset);
-                    const horizontalOffset = verticalSegmentX - x1;
+                while (true) {
+                    const laneX = x1 + minOffset + (laneIndex * laneWidth);
 
-                    // レーンを占有
-                    occupyLane(verticalSegmentX, yMin, yMax, conn.from + '->' + conn.to);
-
-                    const cornerRadius = 8;
-
-                    const p1x = x1;
-                    const p1y = y1;
-                    const p2x = x1 + horizontalOffset;
-                    const p2y = y1;
-                    const p3x = p2x;
-                    const p3y = y2;
-                    const p4x = x2;
-                    const p4y = y2;
-
-                    // 角を丸める場合のパス
-                    let pathData;
-                    if (Math.abs(p3y - p2y) > cornerRadius * 2) {
-                        // 角を丸める
-                        if (p3y > p2y) {
-                            // 下向き
-                            pathData = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
-                        } else {
-                            // 上向き
-                            pathData = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
+                    // このレーンで衝突があるか確認
+                    let hasConflict = false;
+                    for (const lane of occupiedLanes) {
+                        if (lane.laneIndex === laneIndex) {
+                            for (const seg of lane.segments) {
+                                // Y範囲とX範囲の両方をチェック
+                                const yOverlap = !(yMax < seg.yMin || yMin > seg.yMax);
+                                const xOverlap = !(xMax < seg.xMin || xMin > seg.xMax);
+                                if (yOverlap && xOverlap) {
+                                    hasConflict = true;
+                                    break;
+                                }
+                            }
+                            if (hasConflict) break;
                         }
+                    }
+
+                    if (!hasConflict) {
+                        // レーンを占有
+                        let lane = occupiedLanes.find(l => l.laneIndex === laneIndex);
+                        if (!lane) {
+                            lane = { laneIndex: laneIndex, segments: [] };
+                            occupiedLanes.push(lane);
+                        }
+                        lane.segments.push({
+                            yMin: yMin,
+                            yMax: yMax,
+                            xMin: laneX,
+                            xMax: laneX
+                        });
+                        return laneIndex;
+                    }
+
+                    laneIndex++;
+                }
+            }
+
+            let connectionCount = 0;
+            edgeInfos.forEach(edgeInfo => {
+                const { conn, x1, y1, x2, y2, yMin, yMax, siblingIndex, siblingCount } = edgeInfo;
+                const fromElement = svgHelpers.getNodeElement(conn.from);
+                const toElement = svgHelpers.getNodeElement(conn.to);
+
+                // 優先レーンを計算（上の子は外側、下の子は内側）
+                const reversedIndex = (siblingCount - 1) - siblingIndex;
+                const preferredLane = reversedIndex;
+
+                // 最適なレーンを見つける
+                const assignedLane = findBestLane(x1, x2, yMin, yMax, preferredLane);
+                const horizontalOffset = minOffset + (assignedLane * laneWidth);
+
+                const cornerRadius = 8;
+
+                const p1x = x1;
+                const p1y = y1;
+                const p2x = x1 + horizontalOffset;
+                const p2y = y1;
+                const p3x = p2x;
+                const p3y = y2;
+                const p4x = x2;
+                const p4y = y2;
+
+                // 角を丸める場合のパス
+                let pathData;
+                if (Math.abs(p3y - p2y) > cornerRadius * 2) {
+                    // 角を丸める
+                    if (p3y > p2y) {
+                        // 下向き
+                        pathData = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
                     } else {
-                        // 直線
-                        pathData = \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
+                        // 上向き
+                        pathData = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
                     }
+                } else {
+                    // 直線
+                    pathData = \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
+                }
 
-                    const path = svgHelpers.createPath(pathData, {
-                        class: 'connection-line',
-                        'data-from': conn.from,
-                        'data-to': conn.to,
-                        fill: 'none'
+                const path = svgHelpers.createPath(pathData, {
+                    class: 'connection-line',
+                    'data-from': conn.from,
+                    'data-to': conn.to,
+                    fill: 'none'
+                });
+
+                svgLayer.appendChild(path);
+
+                // 矢印を作成（水平方向に進入）
+                const angle = 0; // 水平方向
+                const arrowSize = 8;
+                const arrowX = x2;
+                const arrowY = y2;
+
+                const ap1x = arrowX;
+                const ap1y = arrowY;
+                const ap2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
+                const ap2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
+                const ap3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
+                const ap3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
+
+                const arrow = svgHelpers.createPolygon(\`\${ap1x},\${ap1y} \${ap2x},\${ap2y} \${ap3x},\${ap3y}\`, {
+                    class: 'connection-arrow',
+                    'data-from': conn.from,
+                    'data-to': conn.to
+                });
+
+                svgLayer.appendChild(arrow);
+                connectionCount++;
+
+                // ラベルがある場合は表示
+                if (conn.label) {
+                    const tempText = svgHelpers.createText(conn.label, {
+                        'font-size': '11',
+                        'font-family': 'Arial, sans-serif'
+                    });
+                    svgLayer.appendChild(tempText);
+                    const textBBox = tempText.getBBox();
+                    svgLayer.removeChild(tempText);
+
+                    const labelPadding = 4;
+                    const labelWidth = textBBox.width + labelPadding * 2;
+                    const labelHeight = textBBox.height + labelPadding * 2;
+
+                    const labelGroup = svgHelpers.createGroup({
+                        class: 'connection-label'
                     });
 
-                    svgLayer.appendChild(path);
-
-                    // 矢印を作成（水平方向に進入）
-                    const angle = 0; // 水平方向
-                    const arrowSize = 8;
-                    const arrowX = x2;
-                    const arrowY = y2;
-
-                    const ap1x = arrowX;
-                    const ap1y = arrowY;
-                    const ap2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
-                    const ap2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
-                    const ap3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
-                    const ap3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
-
-                    const arrow = svgHelpers.createPolygon(\`\${ap1x},\${ap1y} \${ap2x},\${ap2y} \${ap3x},\${ap3y}\`, {
-                        class: 'connection-arrow',
-                        'data-from': conn.from,
-                        'data-to': conn.to
+                    const labelRect = svgHelpers.createRect({
+                        x: x2,
+                        y: y2 - labelHeight - 5,
+                        width: labelWidth,
+                        height: labelHeight,
+                        fill: '#fff',
+                        stroke: '#999',
+                        'stroke-width': '1',
+                        rx: '3',
+                        ry: '3'
                     });
 
-                    svgLayer.appendChild(arrow);
-                    connectionCount++;
+                    const labelText = svgHelpers.createText(conn.label, {
+                        x: x2 + labelPadding,
+                        y: y2 - labelHeight / 2 - 5,
+                        'dominant-baseline': 'central',
+                        fill: '#333',
+                        'font-size': '11',
+                        'font-family': 'Arial, sans-serif'
+                    });
 
-                    // ラベルがある場合は表示
-                    if (conn.label) {
-                        const tempText = svgHelpers.createText(conn.label, {
-                            'font-size': '11',
-                            'font-family': 'Arial, sans-serif'
-                        });
-                        svgLayer.appendChild(tempText);
-                        const textBBox = tempText.getBBox();
-                        svgLayer.removeChild(tempText);
-
-                        const labelPadding = 4;
-                        const labelWidth = textBBox.width + labelPadding * 2;
-                        const labelHeight = textBBox.height + labelPadding * 2;
-
-                        const labelGroup = svgHelpers.createGroup({
-                            class: 'connection-label'
-                        });
-
-                        const labelRect = svgHelpers.createRect({
-                            x: toLeft,
-                            y: toTop - labelHeight - 5,
-                            width: labelWidth,
-                            height: labelHeight,
-                            fill: '#fff',
-                            stroke: '#999',
-                            'stroke-width': '1',
-                            rx: '3',
-                            ry: '3'
-                        });
-
-                        const labelText = svgHelpers.createText(conn.label, {
-                            x: toLeft + labelPadding,
-                            y: toTop - labelHeight / 2 - 5,
-                            'dominant-baseline': 'central',
-                            fill: '#333',
-                            'font-size': '11',
-                            'font-family': 'Arial, sans-serif'
-                        });
-
-                        labelGroup.appendChild(labelRect);
-                        labelGroup.appendChild(labelText);
-                        svgLayer.appendChild(labelGroup);
-                    }
+                    labelGroup.appendChild(labelRect);
+                    labelGroup.appendChild(labelText);
+                    svgLayer.appendChild(labelGroup);
                 }
             });
 
