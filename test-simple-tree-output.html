@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mermaid Tree</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        .tree-container {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            background: #fafafa;
+            cursor: grab;
+        }
+        .tree-container:active {
+            cursor: grabbing;
+        }
+        #contentWrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+            will-change: transform;
+        }
+        .node {
+            position: absolute;
+            border: 2px solid #333;
+            background: #f9f9f9;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            cursor: pointer;
+            z-index: 2;
+            box-sizing: content-box;
+        }
+        .connection-line {
+            position: absolute;
+            background-color: #666;
+            transform-origin: left center;
+            height: 2px;
+            z-index: 1;
+        }
+        .connection-line::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: -3px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid #666;
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+        }
+        .connection-label {
+            position: absolute;
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #333;
+            border: 1px solid #999;
+            white-space: nowrap;
+            z-index: 3;
+            pointer-events: none;
+        }
+        .collapse-button {
+            cursor: pointer;
+            font-size: 10px;
+            margin-left: 5px;
+            user-select: none;
+        }
+        .collapsed-node {
+            box-shadow:
+                5px 5px 0 0 #d0d0d0,
+                5px 5px 0 2px #333,
+                2px 2px 4px rgba(0,0,0,0.3);
+            background: #f9f9f9 !important;
+        }
+        .hidden {
+            display: none;
+        }
+        .layout-controls {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .layout-button {
+            padding: 6px 12px;
+            border: 1px solid #666;
+            background: #f0f0f0;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .layout-button:hover {
+            background: #e0e0e0;
+        }
+        .layout-button.active {
+            background: #333;
+            color: #fff;
+        }
+        .viewport-info {
+            margin-left: auto;
+            font-size: 11px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="layout-controls"><button class="layout-button active" id="verticalBtn" onclick="switchLayout('vertical')">縦方向</button><button class="layout-button" id="horizontalBtn" onclick="switchLayout('horizontal')">横方向</button><button class="layout-button" onclick="collapseAll()">すべて折りたたむ</button><button class="layout-button" onclick="expandAll()">すべて展開</button><button class="layout-button" onclick="viewportManager.resetView()">リセット</button><button class="layout-button" onclick="viewportManager.fitToView()">全体表示</button><span class="viewport-info">ドラッグで移動 | ホイールで拡大縮小</span></div>
+    <div class="tree-container" id="treeContainer"><div id="contentWrapper">
+        <div class="node" id="--" data-label="B[子1" data-has-children="false">B[子1</div>
+        <div class="node" id="A--" data-label="C[子2" data-has-children="false">C[子2</div>
+        <div class="node" id="B--" data-label="E[孫1" data-has-children="false">E[孫1</div>
+        <div class="node" id="C--" data-label="G[孫3" data-has-children="false">G[孫3</div>
+        <div class="node" id="A" data-label="A" data-has-children="true" onclick="toggleNodeCollapse('A')">A<span class="collapse-button" onclick="toggleNodeCollapse('A'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="C" data-label="C" data-has-children="true" onclick="toggleNodeCollapse('C')">C<span class="collapse-button" onclick="toggleNodeCollapse('C'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="D" data-label="D" data-has-children="false">D</div>
+        <div class="node" id="B" data-label="B" data-has-children="true" onclick="toggleNodeCollapse('B')">B<span class="collapse-button" onclick="toggleNodeCollapse('B'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="E" data-label="E" data-has-children="false">E</div>
+        <div class="node" id="F" data-label="F" data-has-children="false">F</div>
+        <div class="node" id="G" data-label="G" data-has-children="false">G</div>
+    </div></div>
+    <script>
+        const nodes = [{"id":"--","label":"B[子1"},{"id":"A--","label":"C[子2"},{"id":"B--","label":"E[孫1"},{"id":"C--","label":"G[孫3"},{"id":"A","label":"A"},{"id":"C","label":"C"},{"id":"D","label":"D"},{"id":"B","label":"B"},{"id":"E","label":"E"},{"id":"F","label":"F"},{"id":"G","label":"G"}];
+        const connections = [{"from":"A","to":"C"},{"from":"A","to":"D"},{"from":"B","to":"E"},{"from":"B","to":"F"},{"from":"C","to":"G"}];
+
+        // Import utilities
+        
+        function measureTextWidth(text, font) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            context.font = font;
+            return context.measureText(text).width;
+        }
+
+        function calculateAllNodeWidths(nodes) {
+            const padding = 24;
+            const nodeWidthMap = new Map();
+            const font = '12px Arial, sans-serif';
+
+            nodes.forEach(node => {
+                if (!nodeWidthMap.has(node.label)) {
+                    const textWidth = measureTextWidth(node.label, font);
+                    const calculatedWidth = Math.ceil(textWidth) + padding;
+                    nodeWidthMap.set(node.label, calculatedWidth);
+
+                    if (node.label.length > 8) {
+                        console.log("Debug: label=" + node.label + ", measured width=" + Math.ceil(textWidth) + "px, total width=" + calculatedWidth + "px");
+                    }
+                }
+            });
+
+            return nodeWidthMap;
+        }
+
+        function debugActualWidths(nodes) {
+            const nodeWidthMap = calculateAllNodeWidths(nodes);
+
+            nodes.forEach(node => {
+                const element = document.getElementById(node.id);
+                if (element && node.label.length > 10) {
+                    const actualWidth = element.offsetWidth;
+                    const calculatedWidth = nodeWidthMap.get(node.label);
+                    const difference = actualWidth - calculatedWidth;
+
+                    console.log("Width comparison: " + node.label);
+                    console.log("  Calculated: " + calculatedWidth + "px, Actual: " + actualWidth + "px, Difference: " + difference + "px");
+                }
+            });
+        }
+
+        function calculateConnectionLabelSpacing(connections, parentId) {
+            const labelFont = '11px Arial, sans-serif';
+            const minSpacing = 60;
+            const labelPadding = 30;
+
+            let maxLabelWidth = 0;
+
+            connections.forEach(conn => {
+                if (conn.from === parentId && conn.label) {
+                    const labelWidth = measureTextWidth(conn.label, labelFont);
+                    maxLabelWidth = Math.max(maxLabelWidth, labelWidth);
+                }
+            });
+
+            if (maxLabelWidth > 0) {
+                return Math.max(minSpacing, maxLabelWidth + labelPadding);
+            }
+
+            return minSpacing;
+        }
+    
+
+        // Import tree structure analyzer
+        
+        function analyzeTreeStructure(nodes, connections) {
+            const childNodes = new Set(connections.map(c => c.to));
+            const rootNodes = nodes.filter(node => !childNodes.has(node.id));
+
+            const childrenMap = new Map();
+            connections.forEach(conn => {
+                if (!childrenMap.has(conn.from)) {
+                    childrenMap.set(conn.from, []);
+                }
+                childrenMap.get(conn.from).push(conn.to);
+            });
+
+            const levels = [];
+            const visited = new Set();
+
+            if (rootNodes.length > 0) {
+                let currentLevel = rootNodes.map(node => node.id);
+                let maxDepth = 0;
+
+                while (currentLevel.length > 0 && maxDepth < 50) {
+                    const levelNodes = currentLevel.map(nodeId => nodes.find(n => n.id === nodeId)).filter(Boolean);
+                    levels.push(levelNodes);
+
+                    currentLevel.forEach(nodeId => visited.add(nodeId));
+
+                    const nextLevel = [];
+                    currentLevel.forEach(nodeId => {
+                        const children = childrenMap.get(nodeId) || [];
+                        children.forEach(childId => {
+                            if (!visited.has(childId)) {
+                                nextLevel.push(childId);
+                            }
+                        });
+                    });
+
+                    currentLevel = [...new Set(nextLevel)];
+                    maxDepth++;
+                }
+            }
+
+            return { rootNodes, levels, childrenMap };
+        }
+    
+
+        // Import layouts
+        
+        function verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure) {
+            const container = document.getElementById('treeContainer');
+            let containerWidth = Math.max(800, container.clientWidth || 800);
+
+            const nodeWidthMap = calculateAllNodeWidths(nodes);
+            const treeStructure = analyzeTreeStructure(nodes, connections);
+            const nodePositions = new Map();
+
+            const levelHeight = 80;
+            const leftMargin = 50;
+            const fixedSpacing = 60;
+
+            treeStructure.levels.forEach((level, levelIndex) => {
+                const y = 50 + levelIndex * levelHeight;
+
+                if (levelIndex === 0) {
+                    let currentX = leftMargin;
+                    level.forEach(node => {
+                        const element = document.getElementById(node.id);
+                        if (element && !element.classList.contains('hidden')) {
+                            const nodeWidth = nodeWidthMap.get(node.label);
+                            element.style.left = currentX + 'px';
+                            element.style.top = y + 'px';
+                            element.style.width = nodeWidth + 'px';
+                            nodePositions.set(node.id, { x: currentX, y: y, width: nodeWidth });
+                            currentX += nodeWidth + fixedSpacing;
+                        }
+                    });
+                } else {
+                    let levelMaxX = leftMargin;
+
+                    level.forEach(node => {
+                        const element = document.getElementById(node.id);
+                        if (element && !element.classList.contains('hidden')) {
+                            const nodeWidth = nodeWidthMap.get(node.label);
+                            const parentId = connections.find(conn => conn.to === node.id)?.from;
+                            if (parentId && nodePositions.has(parentId)) {
+                                const parentPos = nodePositions.get(parentId);
+                                const siblings = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
+                                const siblingIndex = siblings.indexOf(node.id);
+
+                                let startX = parentPos.x + parentPos.width + fixedSpacing;
+
+                                for (let i = 0; i < siblingIndex; i++) {
+                                    const siblingId = siblings[i];
+                                    if (nodePositions.has(siblingId)) {
+                                        const siblingPos = nodePositions.get(siblingId);
+                                        startX = Math.max(startX, siblingPos.x + siblingPos.width + fixedSpacing);
+                                    }
+                                }
+
+                                startX = Math.max(startX, levelMaxX);
+
+                                element.style.left = startX + 'px';
+                                element.style.top = y + 'px';
+                                element.style.width = nodeWidth + 'px';
+                                nodePositions.set(node.id, { x: startX, y: y, width: nodeWidth });
+
+                                levelMaxX = Math.max(levelMaxX, startX + nodeWidth + fixedSpacing);
+                            } else {
+                                element.style.left = levelMaxX + 'px';
+                                element.style.top = y + 'px';
+                                element.style.width = nodeWidth + 'px';
+                                nodePositions.set(node.id, { x: levelMaxX, y: y, width: nodeWidth });
+                                levelMaxX += nodeWidth + fixedSpacing;
+                            }
+                        }
+                    });
+                }
+            });
+
+            const maxX = Math.max(...Array.from(nodePositions.values()).map(pos => pos.x + pos.width));
+            if (maxX + 100 > containerWidth) {
+                containerWidth = maxX + 100;
+                container.style.width = containerWidth + 'px';
+                console.log("Container width expanded to: " + containerWidth + "px for vertical layout");
+            }
+
+            return nodePositions;
+        }
+    
+        
+        function horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure) {
+            const container = document.getElementById('treeContainer');
+            let containerHeight = Math.max(800, container.clientHeight || 800);
+
+            const nodeWidthMap = calculateAllNodeWidths(nodes);
+            const treeStructure = analyzeTreeStructure(nodes, connections);
+            const nodePositions = new Map();
+
+            const leftMargin = 50;
+            const topMargin = 50;
+            const fixedSpacing = 60;
+            const nodeHeight = 40;
+
+            treeStructure.levels.forEach((level, levelIndex) => {
+                if (levelIndex === 0) {
+                    let currentY = topMargin;
+                    level.forEach(node => {
+                        const element = document.getElementById(node.id);
+                        if (element && !element.classList.contains('hidden')) {
+                            const nodeWidth = nodeWidthMap.get(node.label);
+                            element.style.left = leftMargin + 'px';
+                            element.style.top = currentY + 'px';
+                            element.style.width = nodeWidth + 'px';
+                            nodePositions.set(node.id, { x: leftMargin, y: currentY, width: nodeWidth, height: nodeHeight });
+                            currentY += nodeHeight + fixedSpacing;
+                        }
+                    });
+                } else {
+                    let levelMaxY = topMargin;
+
+                    level.forEach(node => {
+                        const element = document.getElementById(node.id);
+                        if (element && !element.classList.contains('hidden')) {
+                            const nodeWidth = nodeWidthMap.get(node.label);
+                            const parentId = connections.find(conn => conn.to === node.id)?.from;
+                            if (parentId && nodePositions.has(parentId)) {
+                                const parentPos = nodePositions.get(parentId);
+                                const siblings = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
+                                const siblingIndex = siblings.indexOf(node.id);
+
+                                // 親子間の距離を一定にする（横方向は倍のスペース）
+                                const nodeX = parentPos.x + parentPos.width + fixedSpacing * 2;
+
+                                let startY = parentPos.y;
+
+                                for (let i = 0; i < siblingIndex; i++) {
+                                    const siblingId = siblings[i];
+                                    if (nodePositions.has(siblingId)) {
+                                        const siblingPos = nodePositions.get(siblingId);
+                                        startY = Math.max(startY, siblingPos.y + siblingPos.height + fixedSpacing);
+                                    }
+                                }
+
+                                startY = Math.max(startY, levelMaxY);
+
+                                element.style.left = nodeX + 'px';
+                                element.style.top = startY + 'px';
+                                element.style.width = nodeWidth + 'px';
+                                nodePositions.set(node.id, { x: nodeX, y: startY, width: nodeWidth, height: nodeHeight });
+
+                                levelMaxY = Math.max(levelMaxY, startY + nodeHeight + fixedSpacing);
+                            } else {
+                                element.style.left = leftMargin + 'px';
+                                element.style.top = levelMaxY + 'px';
+                                element.style.width = nodeWidth + 'px';
+                                nodePositions.set(node.id, { x: leftMargin, y: levelMaxY, width: nodeWidth, height: nodeHeight });
+                                levelMaxY += nodeHeight + fixedSpacing;
+                            }
+                        }
+                    });
+                }
+            });
+
+            const maxY = Math.max(...Array.from(nodePositions.values()).map(pos => pos.y + pos.height));
+            const maxX = Math.max(...Array.from(nodePositions.values()).map(pos => pos.x + pos.width));
+
+            if (maxY + 100 > containerHeight) {
+                containerHeight = maxY + 100;
+                container.style.height = containerHeight + 'px';
+                console.log("Container height expanded to: " + containerHeight + "px for horizontal layout");
+            }
+
+            let containerWidth = Math.max(800, container.clientWidth || 800);
+            if (maxX + 100 > containerWidth) {
+                containerWidth = maxX + 100;
+                container.style.width = containerWidth + 'px';
+                console.log("Container width expanded to: " + containerWidth + "px for horizontal layout");
+            }
+
+            return nodePositions;
+        }
+    
+
+        // Import connection renderer
+        
+        function createCSSLines(connections, nodePositions) {
+            const contentWrapper = document.getElementById('contentWrapper');
+            if (!contentWrapper) {
+                console.error('Content wrapper element not found');
+                return;
+            }
+
+            const existingLines = contentWrapper.querySelectorAll('.connection-line, .connection-label');
+            existingLines.forEach(line => line.remove());
+
+            let connectionCount = 0;
+            connections.forEach(conn => {
+                const fromElement = document.getElementById(conn.from);
+                const toElement = document.getElementById(conn.to);
+
+                // 両端のノードが存在し、かつ表示されている場合のみ接続線を描画
+                if (fromElement && toElement &&
+                    !fromElement.classList.contains('hidden') &&
+                    !toElement.classList.contains('hidden')) {
+
+                    // style.leftとstyle.topから直接座標を取得（transformの影響を受けない）
+                    const fromLeft = parseFloat(fromElement.style.left) || 0;
+                    const fromTop = parseFloat(fromElement.style.top) || 0;
+                    const fromWidth = fromElement.offsetWidth;
+                    const fromHeight = fromElement.offsetHeight;
+
+                    const toLeft = parseFloat(toElement.style.left) || 0;
+                    const toTop = parseFloat(toElement.style.top) || 0;
+                    const toWidth = toElement.offsetWidth;
+                    const toHeight = toElement.offsetHeight;
+
+                    const x1 = fromLeft + fromWidth;
+                    const y1 = fromTop + fromHeight / 2;
+                    const x2 = toLeft;
+                    const y2 = toTop + toHeight / 2;
+
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+                    const line = document.createElement('div');
+                    line.className = 'connection-line';
+                    line.style.left = x1 + 'px';
+                    line.style.top = y1 + 'px';
+                    line.style.width = length + 'px';
+                    line.style.transform = `rotate(${angle}deg)`;
+
+                    contentWrapper.appendChild(line);
+                    connectionCount++;
+
+                    // ラベルがある場合は表示
+                    if (conn.label) {
+                        const labelElement = document.createElement('div');
+                        labelElement.className = 'connection-label';
+                        labelElement.textContent = conn.label;
+
+                        // ラベルを子ノード（toElement）の左上に配置
+                        labelElement.style.left = toLeft + 'px';
+                        labelElement.style.top = toTop + 'px';
+                        labelElement.style.transform = 'translate(0, -100%)';
+
+                        contentWrapper.appendChild(labelElement);
+                    }
+                }
+            });
+
+            console.log("Created " + connectionCount + " CSS lines");
+        }
+    
+
+        // Import collapse manager
+        
+        const collapseManager = {
+            collapsedNodes: new Set(),
+            childrenMap: new Map(),
+
+            init: function() {
+                connections.forEach(conn => {
+                    if (!this.childrenMap.has(conn.from)) {
+                        this.childrenMap.set(conn.from, []);
+                    }
+                    this.childrenMap.get(conn.from).push(conn.to);
+                });
+            },
+
+            isCollapsed: function(nodeId) {
+                return this.collapsedNodes.has(nodeId);
+            },
+
+            canCollapse: function(nodeId) {
+                return this.childrenMap.has(nodeId) && this.childrenMap.get(nodeId).length > 0;
+            },
+
+            toggleCollapse: function(nodeId) {
+                if (this.canCollapse(nodeId)) {
+                    const nodeElement = document.getElementById(nodeId);
+                    const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                    if (this.collapsedNodes.has(nodeId)) {
+                        this.collapsedNodes.delete(nodeId);
+                        nodeElement.classList.remove('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▼';
+                    } else {
+                        this.collapsedNodes.add(nodeId);
+                        nodeElement.classList.add('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▲';
+                    }
+
+                    this.updateVisibility();
+
+                    // レイアウトを再計算
+                    setTimeout(() => {
+                        if (currentLayout === 'vertical') {
+                            currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                        } else {
+                            currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                        }
+                        createCSSLines(connections, currentNodePositions);
+                    }, 50);
+                }
+            },
+
+            isVisible: function(nodeId) {
+                const isRoot = !connections.some(conn => conn.to === nodeId);
+                if (isRoot) return true;
+
+                const parentConnection = connections.find(conn => conn.to === nodeId);
+                if (!parentConnection) return true;
+
+                if (this.isCollapsed(parentConnection.from)) return false;
+
+                return this.isVisible(parentConnection.from);
+            },
+
+            updateVisibility: function() {
+                nodes.forEach(node => {
+                    const element = document.getElementById(node.id);
+                    if (element) {
+                        if (this.isVisible(node.id)) {
+                            element.classList.remove('hidden');
+                        } else {
+                            element.classList.add('hidden');
+                        }
+                    }
+                });
+            },
+
+            collapseAll: function() {
+                nodes.forEach(node => {
+                    if (this.canCollapse(node.id) && !this.isCollapsed(node.id)) {
+                        const nodeElement = document.getElementById(node.id);
+                        const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                        this.collapsedNodes.add(node.id);
+                        nodeElement.classList.add('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▲';
+                    }
+                });
+
+                this.updateVisibility();
+
+                setTimeout(() => {
+                    if (currentLayout === 'vertical') {
+                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    } else {
+                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    }
+                    createCSSLines(connections, currentNodePositions);
+                }, 50);
+            },
+
+            expandAll: function() {
+                nodes.forEach(node => {
+                    if (this.isCollapsed(node.id)) {
+                        const nodeElement = document.getElementById(node.id);
+                        const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                        this.collapsedNodes.delete(node.id);
+                        nodeElement.classList.remove('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▼';
+                    }
+                });
+
+                this.updateVisibility();
+
+                setTimeout(() => {
+                    if (currentLayout === 'vertical') {
+                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    } else {
+                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    }
+                    createCSSLines(connections, currentNodePositions);
+                }, 50);
+            }
+        };
+
+        function toggleNodeCollapse(nodeId) {
+            collapseManager.toggleCollapse(nodeId);
+        }
+
+        function collapseAll() {
+            collapseManager.collapseAll();
+        }
+
+        function expandAll() {
+            collapseManager.expandAll();
+        }
+    
+
+        // Import layout switcher
+        
+        // Layout state
+        let currentLayout = 'vertical';
+        let currentNodePositions = null;
+
+        function switchLayout(layoutType) {
+            currentLayout = layoutType;
+
+            // Update button states
+            document.getElementById('verticalBtn').classList.toggle('active', layoutType === 'vertical');
+            document.getElementById('horizontalBtn').classList.toggle('active', layoutType === 'horizontal');
+
+            // Apply layout
+            if (layoutType === 'vertical') {
+                currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+            } else {
+                currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+            }
+
+            // Redraw lines
+            setTimeout(() => {
+                createCSSLines(connections, currentNodePositions);
+            }, 50);
+        }
+    
+
+        // Import viewport manager
+        
+        const viewportManager = {
+            scale: 1.0,
+            translateX: 0,
+            translateY: 0,
+            isDragging: false,
+            startX: 0,
+            startY: 0,
+            minScale: 0.1,
+            maxScale: 3.0,
+
+            init: function() {
+                const container = document.getElementById('treeContainer');
+
+                // マウスホイールでズーム
+                container.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+
+                    const rect = container.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    const mouseY = e.clientY - rect.top;
+
+                    // ズーム前のマウス位置（ワールド座標）
+                    const worldX = (mouseX - this.translateX) / this.scale;
+                    const worldY = (mouseY - this.translateY) / this.scale;
+
+                    // ズーム
+                    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                    const newScale = Math.max(this.minScale, Math.min(this.maxScale, this.scale * delta));
+
+                    // ズーム後もマウス位置が同じワールド座標を指すように調整
+                    this.translateX = mouseX - worldX * newScale;
+                    this.translateY = mouseY - worldY * newScale;
+                    this.scale = newScale;
+
+                    this.applyTransform();
+                });
+
+                // ドラッグで移動
+                container.addEventListener('mousedown', (e) => {
+                    if (e.target === container || e.target.classList.contains('connection-line') || e.target.classList.contains('connection-label')) {
+                        this.isDragging = true;
+                        this.startX = e.clientX - this.translateX;
+                        this.startY = e.clientY - this.translateY;
+                        container.style.cursor = 'grabbing';
+                    }
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (this.isDragging) {
+                        this.translateX = e.clientX - this.startX;
+                        this.translateY = e.clientY - this.startY;
+                        this.applyTransform();
+                    }
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (this.isDragging) {
+                        this.isDragging = false;
+                        const container = document.getElementById('treeContainer');
+                        container.style.cursor = 'grab';
+                    }
+                });
+
+                // 初期カーソル設定
+                container.style.cursor = 'grab';
+            },
+
+            applyTransform: function() {
+                const contentWrapper = document.getElementById('contentWrapper');
+                if (contentWrapper) {
+                    contentWrapper.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`;
+                }
+            },
+
+            resetView: function() {
+                this.scale = 1.0;
+                this.translateX = 0;
+                this.translateY = 0;
+                this.applyTransform();
+            },
+
+            fitToView: function() {
+                const container = document.getElementById('treeContainer');
+                const contentWrapper = document.getElementById('contentWrapper');
+
+                if (!contentWrapper) return;
+
+                // すべてのノードの境界を計算
+                const nodes = contentWrapper.querySelectorAll('.node');
+                if (nodes.length === 0) return;
+
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+                nodes.forEach(node => {
+                    const x = parseFloat(node.style.left);
+                    const y = parseFloat(node.style.top);
+                    const width = node.offsetWidth;
+                    const height = node.offsetHeight;
+
+                    minX = Math.min(minX, x);
+                    minY = Math.min(minY, y);
+                    maxX = Math.max(maxX, x + width);
+                    maxY = Math.max(maxY, y + height);
+                });
+
+                const contentWidth = maxX - minX;
+                const contentHeight = maxY - minY;
+                const containerWidth = container.clientWidth;
+                const containerHeight = container.clientHeight;
+
+                // パディングを考慮したスケール計算
+                const padding = 50;
+                const scaleX = (containerWidth - padding * 2) / contentWidth;
+                const scaleY = (containerHeight - padding * 2) / contentHeight;
+                const newScale = Math.min(scaleX, scaleY, this.maxScale);
+
+                // コンテンツを中央に配置
+                this.scale = newScale;
+                this.translateX = (containerWidth - contentWidth * newScale) / 2 - minX * newScale;
+                this.translateY = (containerHeight - contentHeight * newScale) / 2 - minY * newScale;
+
+                this.applyTransform();
+            }
+        };
+    
+
+        window.onload = function() {
+            collapseManager.init();
+            viewportManager.init();
+
+            // Apply initial layout
+            currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+
+            // デバッグ：実際の要素幅と計算値を比較
+            setTimeout(() => {
+                debugActualWidths(nodes);
+                createCSSLines(connections, currentNodePositions);
+
+                // 初期表示で全体を表示
+                viewportManager.fitToView();
+            }, 200);
+        };
+    </script></body>
+</html>

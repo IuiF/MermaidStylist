@@ -2,15 +2,29 @@ function getBaseTemplate() {
     return {
         css: `        body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
         }
         .tree-container {
-            position: relative;
-            width: 100%;
-            height: 800px;
-            overflow: auto;
-            border: 1px solid #ddd;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
             background: #fafafa;
+            cursor: grab;
+        }
+        .tree-container:active {
+            cursor: grabbing;
+        }
+        #contentWrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+            will-change: transform;
         }
         .node {
             position: absolute;
@@ -71,11 +85,20 @@ function getBaseTemplate() {
             display: none;
         }
         .layout-controls {
-            margin-bottom: 10px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .layout-button {
             padding: 6px 12px;
-            margin-right: 8px;
             border: 1px solid #666;
             background: #f0f0f0;
             cursor: pointer;
@@ -88,6 +111,11 @@ function getBaseTemplate() {
         .layout-button.active {
             background: #333;
             color: #fff;
+        }
+        .viewport-info {
+            margin-left: auto;
+            font-size: 11px;
+            color: #666;
         }`,
 
         htmlStructure: {
@@ -98,9 +126,9 @@ function getBaseTemplate() {
             headClose: '</head>',
             bodyOpen: '<body>',
             pageTitle: '<h1>Tree Structure</h1>',
-            layoutControls: '<div class="layout-controls"><button class="layout-button active" id="verticalBtn" onclick="switchLayout(\'vertical\')">縦方向</button><button class="layout-button" id="horizontalBtn" onclick="switchLayout(\'horizontal\')">横方向</button><button class="layout-button" onclick="collapseAll()">すべて折りたたむ</button><button class="layout-button" onclick="expandAll()">すべて展開</button></div>',
-            containerOpen: '<div class="tree-container" id="treeContainer">',
-            containerClose: '</div>',
+            layoutControls: '<div class="layout-controls"><button class="layout-button active" id="verticalBtn" onclick="switchLayout(\'vertical\')">縦方向</button><button class="layout-button" id="horizontalBtn" onclick="switchLayout(\'horizontal\')">横方向</button><button class="layout-button" onclick="collapseAll()">すべて折りたたむ</button><button class="layout-button" onclick="expandAll()">すべて展開</button><button class="layout-button" onclick="viewportManager.resetView()">リセット</button><button class="layout-button" onclick="viewportManager.fitToView()">全体表示</button><span class="viewport-info">ドラッグで移動 | ホイールで拡大縮小</span></div>',
+            containerOpen: '<div class="tree-container" id="treeContainer"><div id="contentWrapper">',
+            containerClose: '</div></div>',
             bodyClose: '</body>',
             htmlClose: '</html>'
         }

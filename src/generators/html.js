@@ -6,6 +6,7 @@ const { getHorizontalLayout } = require('../layouts/horizontal-layout');
 const { getConnectionRenderer } = require('../features/connection-renderer');
 const { getCollapseManager } = require('../features/collapse-manager');
 const { getLayoutSwitcher } = require('../features/layout-switcher');
+const { getViewportManager } = require('../features/viewport-manager');
 
 function generateHTML(nodes, connections) {
     const template = getBaseTemplate();
@@ -19,7 +20,6 @@ function generateHTML(nodes, connections) {
     html += '    </style>\n';
     html += template.htmlStructure.headClose + '\n';
     html += template.htmlStructure.bodyOpen + '\n';
-    html += '    ' + template.htmlStructure.pageTitle + '\n';
     html += '    ' + template.htmlStructure.layoutControls + '\n';
     html += '    ' + template.htmlStructure.containerOpen + '\n';
 
@@ -62,23 +62,23 @@ function getJavaScriptContent(nodes, connections) {
         // Import layout switcher
         ${getLayoutSwitcher()}
 
+        // Import viewport manager
+        ${getViewportManager()}
+
         window.onload = function() {
             collapseManager.init();
+            viewportManager.init();
 
             // Apply initial layout
             currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
-
-            // コンテナの高さを動的に設定
-            const treeStructure = analyzeTreeStructure(nodes, connections);
-            const container = document.getElementById('treeContainer');
-            const requiredHeight = Math.max(800, treeStructure.levels.length * 80 + 100);
-
-            container.style.height = requiredHeight + 'px';
 
             // デバッグ：実際の要素幅と計算値を比較
             setTimeout(() => {
                 debugActualWidths(nodes);
                 createCSSLines(connections, currentNodePositions);
+
+                // 初期表示で全体を表示
+                viewportManager.fitToView();
             }, 200);
         };
     </script>`;

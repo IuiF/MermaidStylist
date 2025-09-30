@@ -1,13 +1,13 @@
 function getConnectionRenderer() {
     return `
         function createCSSLines(connections, nodePositions) {
-            const container = document.getElementById('treeContainer');
-            if (!container) {
-                console.error('Container element not found');
+            const contentWrapper = document.getElementById('contentWrapper');
+            if (!contentWrapper) {
+                console.error('Content wrapper element not found');
                 return;
             }
 
-            const existingLines = container.querySelectorAll('.connection-line, .connection-label');
+            const existingLines = contentWrapper.querySelectorAll('.connection-line, .connection-label');
             existingLines.forEach(line => line.remove());
 
             let connectionCount = 0;
@@ -19,23 +19,22 @@ function getConnectionRenderer() {
                 if (fromElement && toElement &&
                     !fromElement.classList.contains('hidden') &&
                     !toElement.classList.contains('hidden')) {
-                    const fromRect = {
-                        left: fromElement.offsetLeft,
-                        top: fromElement.offsetTop,
-                        width: fromElement.offsetWidth,
-                        height: fromElement.offsetHeight
-                    };
-                    const toRect = {
-                        left: toElement.offsetLeft,
-                        top: toElement.offsetTop,
-                        width: toElement.offsetWidth,
-                        height: toElement.offsetHeight
-                    };
 
-                    const x1 = fromRect.left + fromRect.width;
-                    const y1 = fromRect.top + fromRect.height / 2;
-                    const x2 = toRect.left;
-                    const y2 = toRect.top + toRect.height / 2;
+                    // style.leftとstyle.topから直接座標を取得（transformの影響を受けない）
+                    const fromLeft = parseFloat(fromElement.style.left) || 0;
+                    const fromTop = parseFloat(fromElement.style.top) || 0;
+                    const fromWidth = fromElement.offsetWidth;
+                    const fromHeight = fromElement.offsetHeight;
+
+                    const toLeft = parseFloat(toElement.style.left) || 0;
+                    const toTop = parseFloat(toElement.style.top) || 0;
+                    const toWidth = toElement.offsetWidth;
+                    const toHeight = toElement.offsetHeight;
+
+                    const x1 = fromLeft + fromWidth;
+                    const y1 = fromTop + fromHeight / 2;
+                    const x2 = toLeft;
+                    const y2 = toTop + toHeight / 2;
 
                     const dx = x2 - x1;
                     const dy = y2 - y1;
@@ -49,7 +48,7 @@ function getConnectionRenderer() {
                     line.style.width = length + 'px';
                     line.style.transform = \`rotate(\${angle}deg)\`;
 
-                    container.appendChild(line);
+                    contentWrapper.appendChild(line);
                     connectionCount++;
 
                     // ラベルがある場合は表示
@@ -59,11 +58,11 @@ function getConnectionRenderer() {
                         labelElement.textContent = conn.label;
 
                         // ラベルを子ノード（toElement）の左上に配置
-                        labelElement.style.left = toRect.left + 'px';
-                        labelElement.style.top = toRect.top + 'px';
+                        labelElement.style.left = toLeft + 'px';
+                        labelElement.style.top = toTop + 'px';
                         labelElement.style.transform = 'translate(0, -100%)';
 
-                        container.appendChild(labelElement);
+                        contentWrapper.appendChild(labelElement);
                     }
                 }
             });
