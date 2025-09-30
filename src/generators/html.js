@@ -85,9 +85,6 @@ function getJavaScriptContent(nodes, connections) {
             setTimeout(() => {
                 debugActualWidths(nodes);
                 createCSSLines(connections, currentNodePositions);
-
-                // 初期表示で全体を表示
-                viewportManager.fitToView();
             }, 200);
         };
     </script>`;

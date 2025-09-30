@@ -87,6 +87,11 @@
         .hidden {
             display: none;
         }
+        .highlighted {
+            background: #fff3cd !important;
+            border-color: #ffc107 !important;
+            box-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+        }
         .layout-controls {
             position: fixed;
             top: 0;
@@ -120,22 +125,44 @@
             font-size: 11px;
             color: #666;
         }
+        .context-menu {
+            position: fixed;
+            background: #fff;
+            border: 1px solid #999;
+            border-radius: 3px;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+            padding: 4px 0;
+            z-index: 10000;
+            display: none;
+        }
+        .context-menu.visible {
+            display: block;
+        }
+        .context-menu-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .context-menu-item:hover {
+            background: #f0f0f0;
+        }
     </style>
 </head>
 <body>
     <div class="layout-controls"><button class="layout-button active" id="verticalBtn" onclick="switchLayout('vertical')">縦方向</button><button class="layout-button" id="horizontalBtn" onclick="switchLayout('horizontal')">横方向</button><button class="layout-button" onclick="collapseAll()">すべて折りたたむ</button><button class="layout-button" onclick="expandAll()">すべて展開</button><button class="layout-button" onclick="viewportManager.resetView()">リセット</button><button class="layout-button" onclick="viewportManager.fitToView()">全体表示</button><span class="viewport-info">ドラッグで移動 | ホイールで拡大縮小</span></div>
     <div class="tree-container" id="treeContainer"><div id="contentWrapper">
-        <div class="node" id="--" data-label="B[子1" data-has-children="false">B[子1</div>
-        <div class="node" id="A--" data-label="C[子2" data-has-children="false">C[子2</div>
-        <div class="node" id="B--" data-label="E[孫1" data-has-children="false">E[孫1</div>
-        <div class="node" id="C--" data-label="G[孫3" data-has-children="false">G[孫3</div>
-        <div class="node" id="A" data-label="A" data-has-children="true" onclick="toggleNodeCollapse('A')">A<span class="collapse-button" onclick="toggleNodeCollapse('A'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="C" data-label="C" data-has-children="true" onclick="toggleNodeCollapse('C')">C<span class="collapse-button" onclick="toggleNodeCollapse('C'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="D" data-label="D" data-has-children="false">D</div>
-        <div class="node" id="B" data-label="B" data-has-children="true" onclick="toggleNodeCollapse('B')">B<span class="collapse-button" onclick="toggleNodeCollapse('B'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="E" data-label="E" data-has-children="false">E</div>
-        <div class="node" id="F" data-label="F" data-has-children="false">F</div>
-        <div class="node" id="G" data-label="G" data-has-children="false">G</div>
+        <div class="node" id="--" data-label="B[子1" data-has-children="false"><span class="label">B[子1</span></div>
+        <div class="node" id="A--" data-label="C[子2" data-has-children="false"><span class="label">C[子2</span></div>
+        <div class="node" id="B--" data-label="E[孫1" data-has-children="false"><span class="label">E[孫1</span></div>
+        <div class="node" id="C--" data-label="G[孫3" data-has-children="false"><span class="label">G[孫3</span></div>
+        <div class="node" id="A" data-label="A" data-has-children="true" onclick="toggleNodeCollapse('A')"><span class="label">A</span><span class="collapse-button" onclick="toggleNodeCollapse('A'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="C" data-label="C" data-has-children="true" onclick="toggleNodeCollapse('C')"><span class="label">C</span><span class="collapse-button" onclick="toggleNodeCollapse('C'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="D" data-label="D" data-has-children="false"><span class="label">D</span></div>
+        <div class="node" id="B" data-label="B" data-has-children="true" onclick="toggleNodeCollapse('B')"><span class="label">B</span><span class="collapse-button" onclick="toggleNodeCollapse('B'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="E" data-label="E" data-has-children="false"><span class="label">E</span></div>
+        <div class="node" id="F" data-label="F" data-has-children="false"><span class="label">F</span></div>
+        <div class="node" id="G" data-label="G" data-has-children="false"><span class="label">G</span></div>
     </div></div>
     <script>
         const nodes = [{"id":"--","label":"B[子1"},{"id":"A--","label":"C[子2"},{"id":"B--","label":"E[孫1"},{"id":"C--","label":"G[孫3"},{"id":"A","label":"A"},{"id":"C","label":"C"},{"id":"D","label":"D"},{"id":"B","label":"B"},{"id":"E","label":"E"},{"id":"F","label":"F"},{"id":"G","label":"G"}];
@@ -156,7 +183,11 @@
             const font = '12px Arial, sans-serif';
 
             nodes.forEach(node => {
-                if (!nodeWidthMap.has(node.label)) {
+                const element = document.getElementById(node.id);
+                if (element) {
+                    const actualWidth = element.offsetWidth;
+                    nodeWidthMap.set(node.label, actualWidth);
+                } else if (!nodeWidthMap.has(node.label)) {
                     const textWidth = measureTextWidth(node.label, font);
                     const calculatedWidth = Math.ceil(textWidth) + padding;
                     nodeWidthMap.set(node.label, calculatedWidth);
@@ -276,10 +307,9 @@
                     level.forEach(node => {
                         const element = document.getElementById(node.id);
                         if (element && !element.classList.contains('hidden')) {
-                            const nodeWidth = nodeWidthMap.get(node.label);
                             element.style.left = currentX + 'px';
                             element.style.top = y + 'px';
-                            element.style.width = nodeWidth + 'px';
+                            const nodeWidth = element.offsetWidth;
                             nodePositions.set(node.id, { x: currentX, y: y, width: nodeWidth });
                             currentX += nodeWidth + fixedSpacing;
                         }
@@ -290,7 +320,6 @@
                     level.forEach(node => {
                         const element = document.getElementById(node.id);
                         if (element && !element.classList.contains('hidden')) {
-                            const nodeWidth = nodeWidthMap.get(node.label);
                             const parentId = connections.find(conn => conn.to === node.id)?.from;
                             if (parentId && nodePositions.has(parentId)) {
                                 const parentPos = nodePositions.get(parentId);
@@ -311,14 +340,14 @@
 
                                 element.style.left = startX + 'px';
                                 element.style.top = y + 'px';
-                                element.style.width = nodeWidth + 'px';
+                                const nodeWidth = element.offsetWidth;
                                 nodePositions.set(node.id, { x: startX, y: y, width: nodeWidth });
 
                                 levelMaxX = Math.max(levelMaxX, startX + nodeWidth + fixedSpacing);
                             } else {
                                 element.style.left = levelMaxX + 'px';
                                 element.style.top = y + 'px';
-                                element.style.width = nodeWidth + 'px';
+                                const nodeWidth = element.offsetWidth;
                                 nodePositions.set(node.id, { x: levelMaxX, y: y, width: nodeWidth });
                                 levelMaxX += nodeWidth + fixedSpacing;
                             }
@@ -349,66 +378,69 @@
             const leftMargin = 50;
             const topMargin = 50;
             const fixedSpacing = 60;
-            const nodeHeight = 40;
+
+            // 各階層の最大ノード幅を事前に計算
+            const levelMaxWidths = [];
+            treeStructure.levels.forEach((level, levelIndex) => {
+                let maxWidth = 0;
+                level.forEach(node => {
+                    const element = document.getElementById(node.id);
+                    if (element && !element.classList.contains('hidden')) {
+                        maxWidth = Math.max(maxWidth, element.offsetWidth);
+                    }
+                });
+                levelMaxWidths[levelIndex] = maxWidth;
+            });
+
+            // 各階層のX座標を計算
+            const levelXPositions = [leftMargin];
+            for (let i = 1; i < treeStructure.levels.length; i++) {
+                levelXPositions[i] = levelXPositions[i - 1] + levelMaxWidths[i - 1] + fixedSpacing * 2;
+            }
 
             treeStructure.levels.forEach((level, levelIndex) => {
-                if (levelIndex === 0) {
-                    let currentY = topMargin;
-                    level.forEach(node => {
-                        const element = document.getElementById(node.id);
-                        if (element && !element.classList.contains('hidden')) {
-                            const nodeWidth = nodeWidthMap.get(node.label);
-                            element.style.left = leftMargin + 'px';
+                const levelX = levelXPositions[levelIndex];
+                let currentY = topMargin;
+
+                level.forEach(node => {
+                    const element = document.getElementById(node.id);
+                    if (element && !element.classList.contains('hidden')) {
+                        const parentId = connections.find(conn => conn.to === node.id)?.from;
+
+                        if (parentId && nodePositions.has(parentId)) {
+                            const parentPos = nodePositions.get(parentId);
+                            const siblings = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
+                            const siblingIndex = siblings.indexOf(node.id);
+
+                            let startY = parentPos.y;
+
+                            for (let i = 0; i < siblingIndex; i++) {
+                                const siblingId = siblings[i];
+                                if (nodePositions.has(siblingId)) {
+                                    const siblingPos = nodePositions.get(siblingId);
+                                    startY = Math.max(startY, siblingPos.y + siblingPos.height + fixedSpacing);
+                                }
+                            }
+
+                            startY = Math.max(startY, currentY);
+
+                            element.style.left = levelX + 'px';
+                            element.style.top = startY + 'px';
+                            const nodeWidth = element.offsetWidth;
+                            const nodeHeight = element.offsetHeight;
+                            nodePositions.set(node.id, { x: levelX, y: startY, width: nodeWidth, height: nodeHeight });
+
+                            currentY = Math.max(currentY, startY + nodeHeight + fixedSpacing);
+                        } else {
+                            element.style.left = levelX + 'px';
                             element.style.top = currentY + 'px';
-                            element.style.width = nodeWidth + 'px';
-                            nodePositions.set(node.id, { x: leftMargin, y: currentY, width: nodeWidth, height: nodeHeight });
+                            const nodeWidth = element.offsetWidth;
+                            const nodeHeight = element.offsetHeight;
+                            nodePositions.set(node.id, { x: levelX, y: currentY, width: nodeWidth, height: nodeHeight });
                             currentY += nodeHeight + fixedSpacing;
                         }
-                    });
-                } else {
-                    let levelMaxY = topMargin;
-
-                    level.forEach(node => {
-                        const element = document.getElementById(node.id);
-                        if (element && !element.classList.contains('hidden')) {
-                            const nodeWidth = nodeWidthMap.get(node.label);
-                            const parentId = connections.find(conn => conn.to === node.id)?.from;
-                            if (parentId && nodePositions.has(parentId)) {
-                                const parentPos = nodePositions.get(parentId);
-                                const siblings = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
-                                const siblingIndex = siblings.indexOf(node.id);
-
-                                // 親子間の距離を一定にする（横方向は倍のスペース）
-                                const nodeX = parentPos.x + parentPos.width + fixedSpacing * 2;
-
-                                let startY = parentPos.y;
-
-                                for (let i = 0; i < siblingIndex; i++) {
-                                    const siblingId = siblings[i];
-                                    if (nodePositions.has(siblingId)) {
-                                        const siblingPos = nodePositions.get(siblingId);
-                                        startY = Math.max(startY, siblingPos.y + siblingPos.height + fixedSpacing);
-                                    }
-                                }
-
-                                startY = Math.max(startY, levelMaxY);
-
-                                element.style.left = nodeX + 'px';
-                                element.style.top = startY + 'px';
-                                element.style.width = nodeWidth + 'px';
-                                nodePositions.set(node.id, { x: nodeX, y: startY, width: nodeWidth, height: nodeHeight });
-
-                                levelMaxY = Math.max(levelMaxY, startY + nodeHeight + fixedSpacing);
-                            } else {
-                                element.style.left = leftMargin + 'px';
-                                element.style.top = levelMaxY + 'px';
-                                element.style.width = nodeWidth + 'px';
-                                nodePositions.set(node.id, { x: leftMargin, y: levelMaxY, width: nodeWidth, height: nodeHeight });
-                                levelMaxY += nodeHeight + fixedSpacing;
-                            }
-                        }
-                    });
-                }
+                    }
+                });
             });
 
             const maxY = Math.max(...Array.from(nodePositions.values()).map(pos => pos.y + pos.height));
@@ -627,6 +659,54 @@
                     }
                     createCSSLines(connections, currentNodePositions);
                 }, 50);
+            },
+
+            collapseAllByLabel: function(label) {
+                nodes.forEach(node => {
+                    if (node.label === label && this.canCollapse(node.id) && !this.isCollapsed(node.id)) {
+                        const nodeElement = document.getElementById(node.id);
+                        const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                        this.collapsedNodes.add(node.id);
+                        nodeElement.classList.add('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▲';
+                    }
+                });
+
+                this.updateVisibility();
+
+                setTimeout(() => {
+                    if (currentLayout === 'vertical') {
+                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    } else {
+                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    }
+                    createCSSLines(connections, currentNodePositions);
+                }, 50);
+            },
+
+            expandAllByLabel: function(label) {
+                nodes.forEach(node => {
+                    if (node.label === label && this.isCollapsed(node.id)) {
+                        const nodeElement = document.getElementById(node.id);
+                        const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                        this.collapsedNodes.delete(node.id);
+                        nodeElement.classList.remove('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▼';
+                    }
+                });
+
+                this.updateVisibility();
+
+                setTimeout(() => {
+                    if (currentLayout === 'vertical') {
+                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    } else {
+                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    }
+                    createCSSLines(connections, currentNodePositions);
+                }, 50);
             }
         };
 
@@ -798,9 +878,138 @@
         };
     
 
+        // Import highlight manager
+        
+        const highlightManager = {
+            currentHighlightedLabel: null,
+
+            highlightAllByLabel: function(label) {
+                // 既存のハイライトを解除
+                this.clearHighlight();
+
+                // 新しいラベルをハイライト
+                nodes.forEach(node => {
+                    if (node.label === label) {
+                        const nodeElement = document.getElementById(node.id);
+                        if (nodeElement) {
+                            nodeElement.classList.add('highlighted');
+                        }
+                    }
+                });
+
+                this.currentHighlightedLabel = label;
+            },
+
+            clearHighlight: function() {
+                if (this.currentHighlightedLabel) {
+                    nodes.forEach(node => {
+                        if (node.label === this.currentHighlightedLabel) {
+                            const nodeElement = document.getElementById(node.id);
+                            if (nodeElement) {
+                                nodeElement.classList.remove('highlighted');
+                            }
+                        }
+                    });
+                    this.currentHighlightedLabel = null;
+                }
+            }
+        };
+    
+
+        // Import context menu
+        
+        const contextMenu = {
+            menuElement: null,
+            targetNode: null,
+
+            init: function() {
+                this.createMenuElement();
+                this.attachEventListeners();
+            },
+
+            createMenuElement: function() {
+                const menu = document.createElement('div');
+                menu.id = 'contextMenu';
+                menu.className = 'context-menu';
+                document.body.appendChild(menu);
+                this.menuElement = menu;
+            },
+
+            updateMenuItems: function(nodeElement) {
+                const label = nodeElement.querySelector('.label').textContent;
+                const isCollapsed = nodeElement.classList.contains('collapsed-node');
+                const hasChildren = collapseManager.canCollapse(nodeElement.id);
+
+                let menuHTML = '';
+
+                if (hasChildren) {
+                    if (isCollapsed) {
+                        menuHTML += '<div class="context-menu-item" data-action="expandAllSame">同じ名前のノードをすべて展開</div>';
+                    } else {
+                        menuHTML += '<div class="context-menu-item" data-action="collapseAllSame">同じ名前のノードをすべて折りたたむ</div>';
+                    }
+                }
+
+                menuHTML += '<div class="context-menu-item" data-action="highlightSame">同じ名前のノードを強調</div>';
+
+                this.menuElement.innerHTML = menuHTML;
+            },
+
+            attachEventListeners: function() {
+                // 右クリックでメニュー表示
+                document.addEventListener('contextmenu', (e) => {
+                    const nodeElement = e.target.closest('.node');
+                    if (nodeElement) {
+                        e.preventDefault();
+                        this.showMenu(e.clientX, e.clientY, nodeElement);
+                    }
+                });
+
+                // メニュー外クリックで閉じる
+                document.addEventListener('click', () => {
+                    this.hideMenu();
+                });
+
+                // メニューアイテムのクリック（イベント委譲）
+                this.menuElement.addEventListener('click', (e) => {
+                    const item = e.target.closest('.context-menu-item');
+                    if (item && this.targetNode) {
+                        e.stopPropagation();
+                        const action = item.getAttribute('data-action');
+                        const label = this.targetNode.querySelector('.label').textContent;
+
+                        if (action === 'collapseAllSame') {
+                            collapseManager.collapseAllByLabel(label);
+                        } else if (action === 'expandAllSame') {
+                            collapseManager.expandAllByLabel(label);
+                        } else if (action === 'highlightSame') {
+                            highlightManager.highlightAllByLabel(label);
+                        }
+
+                        this.hideMenu();
+                    }
+                });
+            },
+
+            showMenu: function(x, y, nodeElement) {
+                this.targetNode = nodeElement;
+                this.updateMenuItems(nodeElement);
+                this.menuElement.style.left = x + 'px';
+                this.menuElement.style.top = y + 'px';
+                this.menuElement.classList.add('visible');
+            },
+
+            hideMenu: function() {
+                this.menuElement.classList.remove('visible');
+                this.targetNode = null;
+            }
+        };
+    
+
         window.onload = function() {
             collapseManager.init();
             viewportManager.init();
+            contextMenu.init();
 
             // Apply initial layout
             currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);

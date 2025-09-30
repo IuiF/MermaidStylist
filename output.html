@@ -1,65 +1,1055 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>エラー - Mermaid Tree</title>
+    <title>Mermaid Tree</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 40px;
-            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
         }
-        .error-container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        .tree-container {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            background: #fafafa;
+            cursor: grab;
         }
-        h1 {
-            color: #d32f2f;
-            margin-top: 0;
+        .tree-container:active {
+            cursor: grabbing;
         }
-        .error-message {
-            background: #ffebee;
-            border-left: 4px solid #d32f2f;
-            padding: 15px;
-            margin: 20px 0;
+        #contentWrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+            will-change: transform;
         }
-        ul {
-            margin: 10px 0;
-            padding-left: 20px;
+        .node {
+            position: absolute;
+            border: 2px solid #333;
+            background: #f9f9f9;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            cursor: pointer;
+            z-index: 2;
+            box-sizing: content-box;
         }
-        li {
-            margin: 8px 0;
-            line-height: 1.6;
+        .connection-line {
+            position: absolute;
+            background-color: #666;
+            transform-origin: left center;
+            height: 2px;
+            z-index: 1;
         }
-        .info {
+        .connection-line::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: -3px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid #666;
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+        }
+        .connection-label {
+            position: absolute;
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #333;
+            border: 1px solid #999;
+            white-space: nowrap;
+            z-index: 3;
+            pointer-events: none;
+        }
+        .collapse-button {
+            cursor: pointer;
+            font-size: 10px;
+            margin-left: 5px;
+            user-select: none;
+        }
+        .collapsed-node {
+            box-shadow:
+                5px 5px 0 0 #d0d0d0,
+                5px 5px 0 2px #333,
+                2px 2px 4px rgba(0,0,0,0.3);
+            background: #f9f9f9 !important;
+        }
+        .hidden {
+            display: none;
+        }
+        .highlighted {
+            background: #fff3cd !important;
+            border-color: #ffc107 !important;
+            box-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+        }
+        .highlighted.collapsed-node {
+            box-shadow:
+                5px 5px 0 0 #d0d0d0,
+                5px 5px 0 2px #ffc107,
+                2px 2px 4px rgba(0,0,0,0.3),
+                0 0 8px rgba(255, 193, 7, 0.5) !important;
+        }
+        .layout-controls {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .layout-button {
+            padding: 6px 12px;
+            border: 1px solid #666;
+            background: #f0f0f0;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .layout-button:hover {
+            background: #e0e0e0;
+        }
+        .layout-button.active {
+            background: #333;
+            color: #fff;
+        }
+        .viewport-info {
+            margin-left: auto;
+            font-size: 11px;
             color: #666;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
+        }
+        .context-menu {
+            position: fixed;
+            background: #fff;
+            border: 1px solid #999;
+            border-radius: 3px;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+            padding: 4px 0;
+            z-index: 10000;
+            display: none;
+        }
+        .context-menu.visible {
+            display: block;
+        }
+        .context-menu-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .context-menu-item:hover {
+            background: #f0f0f0;
         }
     </style>
 </head>
 <body>
-    <div class="error-container">
-        <h1>⚠ 木構造ではないため描画できません</h1>
-        <div class="error-message">
-            <strong>検出されたエラー:</strong>
-            <ul>
-            <li>以下のノードが複数の親を持っているため、木構造ではありません: Detail Z (Z0110), Detail AA (AA0120), Detail AB (AB0130), Detail AC (AC0140)</li>
-            </ul>
-        </div>
-        <div class="info">
-            <p>このツールは木構造のMermaid図のみをサポートしています。</p>
-            <p>木構造の条件:</p>
-            <ul>
-                <li>各ノードは最大1つの親を持つ</li>
-                <li>ルートノード（親を持たないノード）が存在する</li>
-                <li>サイクル（循環参照）が存在しない</li>
-            </ul>
-        </div>
-    </div>
-</body>
+    <div class="layout-controls"><button class="layout-button active" id="verticalBtn" onclick="switchLayout('vertical')">縦方向</button><button class="layout-button" id="horizontalBtn" onclick="switchLayout('horizontal')">横方向</button><button class="layout-button" onclick="collapseAll()">すべて折りたたむ</button><button class="layout-button" onclick="expandAll()">すべて展開</button><button class="layout-button" onclick="viewportManager.resetView()">リセット</button><span class="viewport-info">ドラッグで移動 | ホイールで拡大縮小</span></div>
+    <div class="tree-container" id="treeContainer"><div id="contentWrapper">
+        <div class="node" id="A" data-label="Main System (A0000)" data-has-children="true" onclick="toggleNodeCollapse('A')"><span class="label">Main System (A0000)</span><span class="collapse-button" onclick="toggleNodeCollapse('A'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="B" data-label="Subsystem 1 (B1000)" data-has-children="true" onclick="toggleNodeCollapse('B')"><span class="label">Subsystem 1 (B1000)</span><span class="collapse-button" onclick="toggleNodeCollapse('B'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="C" data-label="Subsystem 2 (C2000)" data-has-children="true" onclick="toggleNodeCollapse('C')"><span class="label">Subsystem 2 (C2000)</span><span class="collapse-button" onclick="toggleNodeCollapse('C'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="D" data-label="Subsystem 3 (D3000)" data-has-children="true" onclick="toggleNodeCollapse('D')"><span class="label">Subsystem 3 (D3000)</span><span class="collapse-button" onclick="toggleNodeCollapse('D'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="E" data-label="Module 1.1 (E1100)" data-has-children="true" onclick="toggleNodeCollapse('E')"><span class="label">Module 1.1 (E1100)</span><span class="collapse-button" onclick="toggleNodeCollapse('E'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="F" data-label="Module 1.2 (F1200)" data-has-children="true" onclick="toggleNodeCollapse('F')"><span class="label">Module 1.2 (F1200)</span><span class="collapse-button" onclick="toggleNodeCollapse('F'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="G" data-label="Module 2.1 (G2100)" data-has-children="true" onclick="toggleNodeCollapse('G')"><span class="label">Module 2.1 (G2100)</span><span class="collapse-button" onclick="toggleNodeCollapse('G'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="H" data-label="Module 2.2 (H2200)" data-has-children="false"><span class="label">Module 2.2 (H2200)</span></div>
+        <div class="node" id="I" data-label="Component 1.1.1 (I1110)" data-has-children="true" onclick="toggleNodeCollapse('I')"><span class="label">Component 1.1.1 (I1110)</span><span class="collapse-button" onclick="toggleNodeCollapse('I'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="J" data-label="Component 1.1.2 (J1120)" data-has-children="true" onclick="toggleNodeCollapse('J')"><span class="label">Component 1.1.2 (J1120)</span><span class="collapse-button" onclick="toggleNodeCollapse('J'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="K" data-label="Component 1.2.1 (K1210)" data-has-children="true" onclick="toggleNodeCollapse('K')"><span class="label">Component 1.2.1 (K1210)</span><span class="collapse-button" onclick="toggleNodeCollapse('K'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="L" data-label="Component 2.1.1 (L2110)" data-has-children="true" onclick="toggleNodeCollapse('L')"><span class="label">Component 2.1.1 (L2110)</span><span class="collapse-button" onclick="toggleNodeCollapse('L'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="M" data-label="Component 2.1.2 (M2120)" data-has-children="true" onclick="toggleNodeCollapse('M')"><span class="label">Component 2.1.2 (M2120)</span><span class="collapse-button" onclick="toggleNodeCollapse('M'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="N" data-label="Component 3.1 (N3100)" data-has-children="true" onclick="toggleNodeCollapse('N')"><span class="label">Component 3.1 (N3100)</span><span class="collapse-button" onclick="toggleNodeCollapse('N'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="O" data-label="Component 3.2 (O3200)" data-has-children="true" onclick="toggleNodeCollapse('O')"><span class="label">Component 3.2 (O3200)</span><span class="collapse-button" onclick="toggleNodeCollapse('O'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="P" data-label="Detail P (P0010)" data-has-children="true" onclick="toggleNodeCollapse('P')"><span class="label">Detail P (P0010)</span><span class="collapse-button" onclick="toggleNodeCollapse('P'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="Q" data-label="Detail Q (Q0020)" data-has-children="true" onclick="toggleNodeCollapse('Q')"><span class="label">Detail Q (Q0020)</span><span class="collapse-button" onclick="toggleNodeCollapse('Q'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="R" data-label="Detail R (R0030)" data-has-children="true" onclick="toggleNodeCollapse('R')"><span class="label">Detail R (R0030)</span><span class="collapse-button" onclick="toggleNodeCollapse('R'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="S" data-label="Detail S (S0040)" data-has-children="true" onclick="toggleNodeCollapse('S')"><span class="label">Detail S (S0040)</span><span class="collapse-button" onclick="toggleNodeCollapse('S'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="T" data-label="Detail T (T0050)" data-has-children="true" onclick="toggleNodeCollapse('T')"><span class="label">Detail T (T0050)</span><span class="collapse-button" onclick="toggleNodeCollapse('T'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="U" data-label="Detail U (U0060)" data-has-children="true" onclick="toggleNodeCollapse('U')"><span class="label">Detail U (U0060)</span><span class="collapse-button" onclick="toggleNodeCollapse('U'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="V" data-label="Detail V (V0070)" data-has-children="true" onclick="toggleNodeCollapse('V')"><span class="label">Detail V (V0070)</span><span class="collapse-button" onclick="toggleNodeCollapse('V'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="W" data-label="Detail W (W0080)" data-has-children="true" onclick="toggleNodeCollapse('W')"><span class="label">Detail W (W0080)</span><span class="collapse-button" onclick="toggleNodeCollapse('W'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="X" data-label="Detail X (X0090)" data-has-children="true" onclick="toggleNodeCollapse('X')"><span class="label">Detail X (X0090)</span><span class="collapse-button" onclick="toggleNodeCollapse('X'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="Y" data-label="Detail Y (Y0100)" data-has-children="true" onclick="toggleNodeCollapse('Y')"><span class="label">Detail Y (Y0100)</span><span class="collapse-button" onclick="toggleNodeCollapse('Y'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="Z" data-label="Detail Z (Z0110)" data-has-children="true" onclick="toggleNodeCollapse('Z')"><span class="label">Detail Z (Z0110)</span><span class="collapse-button" onclick="toggleNodeCollapse('Z'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="AA" data-label="Detail AA (AA0120)" data-has-children="true" onclick="toggleNodeCollapse('AA')"><span class="label">Detail AA (AA0120)</span><span class="collapse-button" onclick="toggleNodeCollapse('AA'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="AB" data-label="Detail AB (AB0130)" data-has-children="true" onclick="toggleNodeCollapse('AB')"><span class="label">Detail AB (AB0130)</span><span class="collapse-button" onclick="toggleNodeCollapse('AB'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="AC" data-label="Detail AC (AC0140)" data-has-children="true" onclick="toggleNodeCollapse('AC')"><span class="label">Detail AC (AC0140)</span><span class="collapse-button" onclick="toggleNodeCollapse('AC'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="AD" data-label="Detail AD (AD0150)" data-has-children="true" onclick="toggleNodeCollapse('AD')"><span class="label">Detail AD (AD0150)</span><span class="collapse-button" onclick="toggleNodeCollapse('AD'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="AE" data-label="Detail AE (AE0160)" data-has-children="true" onclick="toggleNodeCollapse('AE')"><span class="label">Detail AE (AE0160)</span><span class="collapse-button" onclick="toggleNodeCollapse('AE'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="AF" data-label="Detail AF (AF0170)" data-has-children="true" onclick="toggleNodeCollapse('AF')"><span class="label">Detail AF (AF0170)</span><span class="collapse-button" onclick="toggleNodeCollapse('AF'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="AG" data-label="Detail AG (AG0180)" data-has-children="true" onclick="toggleNodeCollapse('AG')"><span class="label">Detail AG (AG0180)</span><span class="collapse-button" onclick="toggleNodeCollapse('AG'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="AH" data-label="Detail AH (AH0190)" data-has-children="true" onclick="toggleNodeCollapse('AH')"><span class="label">Detail AH (AH0190)</span><span class="collapse-button" onclick="toggleNodeCollapse('AH'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="AI" data-label="Detail AI (AI0200)" data-has-children="true" onclick="toggleNodeCollapse('AI')"><span class="label">Detail AI (AI0200)</span><span class="collapse-button" onclick="toggleNodeCollapse('AI'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="AJ" data-label="Detail AJ (AJ0210)" data-has-children="true" onclick="toggleNodeCollapse('AJ')"><span class="label">Detail AJ (AJ0210)</span><span class="collapse-button" onclick="toggleNodeCollapse('AJ'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="AK" data-label="Detail AK (AK0220)" data-has-children="true" onclick="toggleNodeCollapse('AK')"><span class="label">Detail AK (AK0220)</span><span class="collapse-button" onclick="toggleNodeCollapse('AK'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="AL" data-label="Detail AL (AL0230)" data-has-children="true" onclick="toggleNodeCollapse('AL')"><span class="label">Detail AL (AL0230)</span><span class="collapse-button" onclick="toggleNodeCollapse('AL'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="AM" data-label="Detail AM (AM0240)" data-has-children="true" onclick="toggleNodeCollapse('AM')"><span class="label">Detail AM (AM0240)</span><span class="collapse-button" onclick="toggleNodeCollapse('AM'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="AN" data-label="Detail AN (AN0250)" data-has-children="true" onclick="toggleNodeCollapse('AN')"><span class="label">Detail AN (AN0250)</span><span class="collapse-button" onclick="toggleNodeCollapse('AN'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="AO" data-label="Detail AO (AO0260)" data-has-children="false"><span class="label">Detail AO (AO0260)</span></div>
+        <div class="node" id="AP" data-label="Detail AP (AP0270)" data-has-children="false"><span class="label">Detail AP (AP0270)</span></div>
+        <div class="node" id="AQ" data-label="Detail AQ (AQ0280)" data-has-children="false"><span class="label">Detail AQ (AQ0280)</span></div>
+        <div class="node" id="AR" data-label="Detail AR (AR0290)" data-has-children="false"><span class="label">Detail AR (AR0290)</span></div>
+        <div class="node" id="AS" data-label="Detail AS (AS0300)" data-has-children="false"><span class="label">Detail AS (AS0300)</span></div>
+        <div class="node" id="AT" data-label="Detail AT (AT0310)" data-has-children="false"><span class="label">Detail AT (AT0310)</span></div>
+        <div class="node" id="AU" data-label="Detail AU (AU0320)" data-has-children="false"><span class="label">Detail AU (AU0320)</span></div>
+        <div class="node" id="AV" data-label="Detail AV (AV0330)" data-has-children="false"><span class="label">Detail AV (AV0330)</span></div>
+        <div class="node" id="AW" data-label="Detail AW (AW0340)" data-has-children="false"><span class="label">Detail AW (AW0340)</span></div>
+        <div class="node" id="AX" data-label="Detail AX (AX0350)" data-has-children="false"><span class="label">Detail AX (AX0350)</span></div>
+        <div class="node" id="AY" data-label="Detail AY (AY0360)" data-has-children="false"><span class="label">Detail AY (AY0360)</span></div>
+        <div class="node" id="AZ" data-label="Detail AZ (AZ0370)" data-has-children="false"><span class="label">Detail AZ (AZ0370)</span></div>
+        <div class="node" id="BA" data-label="Detail BA (BA0380)" data-has-children="false"><span class="label">Detail BA (BA0380)</span></div>
+        <div class="node" id="BB" data-label="Detail BB (BB0390)" data-has-children="false"><span class="label">Detail BB (BB0390)</span></div>
+        <div class="node" id="BC" data-label="Detail BC (BC0400)" data-has-children="false"><span class="label">Detail BC (BC0400)</span></div>
+        <div class="node" id="BD" data-label="Detail BD (BD0410)" data-has-children="false"><span class="label">Detail BD (BD0410)</span></div>
+        <div class="node" id="BE" data-label="Detail BE (BE0420)" data-has-children="false"><span class="label">Detail BE (BE0420)</span></div>
+        <div class="node" id="BF" data-label="Detail BF (BF0430)" data-has-children="false"><span class="label">Detail BF (BF0430)</span></div>
+        <div class="node" id="BG" data-label="Detail BG (BG0440)" data-has-children="false"><span class="label">Detail BG (BG0440)</span></div>
+        <div class="node" id="BH" data-label="Detail BH (BH0450)" data-has-children="false"><span class="label">Detail BH (BH0450)</span></div>
+        <div class="node" id="BI" data-label="Detail BI (BI0460)" data-has-children="false"><span class="label">Detail BI (BI0460)</span></div>
+        <div class="node" id="BJ" data-label="Detail BJ (BJ0470)" data-has-children="false"><span class="label">Detail BJ (BJ0470)</span></div>
+        <div class="node" id="BK" data-label="Detail BK (BK0480)" data-has-children="false"><span class="label">Detail BK (BK0480)</span></div>
+        <div class="node" id="BL" data-label="Detail BL (BL0490)" data-has-children="false"><span class="label">Detail BL (BL0490)</span></div>
+        <div class="node" id="BM" data-label="Detail BM (BM0500)" data-has-children="false"><span class="label">Detail BM (BM0500)</span></div>
+        <div class="node" id="BN" data-label="Detail BN (BN0510)" data-has-children="false"><span class="label">Detail BN (BN0510)</span></div>
+        <div class="node" id="BO" data-label="Detail BO (BO0520)" data-has-children="false"><span class="label">Detail BO (BO0520)</span></div>
+        <div class="node" id="BP" data-label="Detail BP (BP0530)" data-has-children="false"><span class="label">Detail BP (BP0530)</span></div>
+        <div class="node" id="BQ" data-label="Detail BQ (BQ0540)" data-has-children="false"><span class="label">Detail BQ (BQ0540)</span></div>
+        <div class="node" id="BR" data-label="Detail BR (BR0550)" data-has-children="false"><span class="label">Detail BR (BR0550)</span></div>
+        <div class="node" id="BS" data-label="Detail BS (BS0560)" data-has-children="false"><span class="label">Detail BS (BS0560)</span></div>
+        <div class="node" id="BT" data-label="Detail BT (BT0570)" data-has-children="false"><span class="label">Detail BT (BT0570)</span></div>
+        <div class="node" id="BU" data-label="Detail BU (BU0580)" data-has-children="false"><span class="label">Detail BU (BU0580)</span></div>
+        <div class="node" id="BV" data-label="Detail BV (BV0590)" data-has-children="false"><span class="label">Detail BV (BV0590)</span></div>
+        <div class="node" id="BW" data-label="Detail BW (BW0600)" data-has-children="false"><span class="label">Detail BW (BW0600)</span></div>
+        <div class="node" id="BX" data-label="Detail BX (BX0610)" data-has-children="false"><span class="label">Detail BX (BX0610)</span></div>
+        <div class="node" id="BY" data-label="Detail BY (BY0620)" data-has-children="false"><span class="label">Detail BY (BY0620)</span></div>
+        <div class="node" id="BZ" data-label="Detail BZ (BZ0630)" data-has-children="false"><span class="label">Detail BZ (BZ0630)</span></div>
+    </div></div>
+    <script>
+        const nodes = [{"id":"A","label":"Main System (A0000)"},{"id":"B","label":"Subsystem 1 (B1000)"},{"id":"C","label":"Subsystem 2 (C2000)"},{"id":"D","label":"Subsystem 3 (D3000)"},{"id":"E","label":"Module 1.1 (E1100)"},{"id":"F","label":"Module 1.2 (F1200)"},{"id":"G","label":"Module 2.1 (G2100)"},{"id":"H","label":"Module 2.2 (H2200)"},{"id":"I","label":"Component 1.1.1 (I1110)"},{"id":"J","label":"Component 1.1.2 (J1120)"},{"id":"K","label":"Component 1.2.1 (K1210)"},{"id":"L","label":"Component 2.1.1 (L2110)"},{"id":"M","label":"Component 2.1.2 (M2120)"},{"id":"N","label":"Component 3.1 (N3100)"},{"id":"O","label":"Component 3.2 (O3200)"},{"id":"P","label":"Detail P (P0010)"},{"id":"Q","label":"Detail Q (Q0020)"},{"id":"R","label":"Detail R (R0030)"},{"id":"S","label":"Detail S (S0040)"},{"id":"T","label":"Detail T (T0050)"},{"id":"U","label":"Detail U (U0060)"},{"id":"V","label":"Detail V (V0070)"},{"id":"W","label":"Detail W (W0080)"},{"id":"X","label":"Detail X (X0090)"},{"id":"Y","label":"Detail Y (Y0100)"},{"id":"Z","label":"Detail Z (Z0110)"},{"id":"AA","label":"Detail AA (AA0120)"},{"id":"AB","label":"Detail AB (AB0130)"},{"id":"AC","label":"Detail AC (AC0140)"},{"id":"AD","label":"Detail AD (AD0150)"},{"id":"AE","label":"Detail AE (AE0160)"},{"id":"AF","label":"Detail AF (AF0170)"},{"id":"AG","label":"Detail AG (AG0180)"},{"id":"AH","label":"Detail AH (AH0190)"},{"id":"AI","label":"Detail AI (AI0200)"},{"id":"AJ","label":"Detail AJ (AJ0210)"},{"id":"AK","label":"Detail AK (AK0220)"},{"id":"AL","label":"Detail AL (AL0230)"},{"id":"AM","label":"Detail AM (AM0240)"},{"id":"AN","label":"Detail AN (AN0250)"},{"id":"AO","label":"Detail AO (AO0260)"},{"id":"AP","label":"Detail AP (AP0270)"},{"id":"AQ","label":"Detail AQ (AQ0280)"},{"id":"AR","label":"Detail AR (AR0290)"},{"id":"AS","label":"Detail AS (AS0300)"},{"id":"AT","label":"Detail AT (AT0310)"},{"id":"AU","label":"Detail AU (AU0320)"},{"id":"AV","label":"Detail AV (AV0330)"},{"id":"AW","label":"Detail AW (AW0340)"},{"id":"AX","label":"Detail AX (AX0350)"},{"id":"AY","label":"Detail AY (AY0360)"},{"id":"AZ","label":"Detail AZ (AZ0370)"},{"id":"BA","label":"Detail BA (BA0380)"},{"id":"BB","label":"Detail BB (BB0390)"},{"id":"BC","label":"Detail BC (BC0400)"},{"id":"BD","label":"Detail BD (BD0410)"},{"id":"BE","label":"Detail BE (BE0420)"},{"id":"BF","label":"Detail BF (BF0430)"},{"id":"BG","label":"Detail BG (BG0440)"},{"id":"BH","label":"Detail BH (BH0450)"},{"id":"BI","label":"Detail BI (BI0460)"},{"id":"BJ","label":"Detail BJ (BJ0470)"},{"id":"BK","label":"Detail BK (BK0480)"},{"id":"BL","label":"Detail BL (BL0490)"},{"id":"BM","label":"Detail BM (BM0500)"},{"id":"BN","label":"Detail BN (BN0510)"},{"id":"BO","label":"Detail BO (BO0520)"},{"id":"BP","label":"Detail BP (BP0530)"},{"id":"BQ","label":"Detail BQ (BQ0540)"},{"id":"BR","label":"Detail BR (BR0550)"},{"id":"BS","label":"Detail BS (BS0560)"},{"id":"BT","label":"Detail BT (BT0570)"},{"id":"BU","label":"Detail BU (BU0580)"},{"id":"BV","label":"Detail BV (BV0590)"},{"id":"BW","label":"Detail BW (BW0600)"},{"id":"BX","label":"Detail BX (BX0610)"},{"id":"BY","label":"Detail BY (BY0620)"},{"id":"BZ","label":"Detail BZ (BZ0630)"}];
+        const connections = [{"from":"A","to":"B","label":"is composed of"},{"from":"A","to":"C","label":"is composed of"},{"from":"A","to":"D","label":"is composed of"},{"from":"B","to":"E","label":"contains"},{"from":"B","to":"F","label":"contains"},{"from":"C","to":"G","label":"contains"},{"from":"C","to":"H","label":"contains"},{"from":"D","to":"N","label":"contains"},{"from":"D","to":"O","label":"contains"},{"from":"E","to":"I","label":"uses service"},{"from":"F","to":"K","label":"uses service"},{"from":"G","to":"L","label":"uses service"},{"from":"N","to":"Z","label":"uses service"},{"from":"O","to":"AB","label":"uses service"},{"from":"I","to":"P","label":"implements logic"},{"from":"I","to":"Q","label":"implements logic"},{"from":"J","to":"R","label":"implements logic"},{"from":"J","to":"S","label":"implements logic"},{"from":"K","to":"T","label":"implements logic"},{"from":"K","to":"U","label":"implements logic"},{"from":"L","to":"V","label":"implements logic"},{"from":"L","to":"W","label":"implements logic"},{"from":"M","to":"X","label":"implements logic"},{"from":"M","to":"Y","label":"implements logic"},{"from":"P","to":"AD","label":"calls"},{"from":"P","to":"AE","label":"calls"},{"from":"Q","to":"AF","label":"calls"},{"from":"Q","to":"AG","label":"calls"},{"from":"R","to":"AH","label":"calls"},{"from":"R","to":"AI","label":"calls"},{"from":"S","to":"AJ","label":"calls"},{"from":"S","to":"AK","label":"calls"},{"from":"T","to":"AL","label":"calls"},{"from":"T","to":"AM","label":"calls"},{"from":"U","to":"AN","label":"calls"},{"from":"U","to":"AO","label":"calls"},{"from":"V","to":"AP","label":"calls"},{"from":"V","to":"AQ","label":"calls"},{"from":"W","to":"AR","label":"calls"},{"from":"W","to":"AS","label":"calls"},{"from":"X","to":"AT","label":"calls"},{"from":"X","to":"AU","label":"calls"},{"from":"Y","to":"AV","label":"calls"},{"from":"Y","to":"AW","label":"calls"},{"from":"Z","to":"AX","label":"calls"},{"from":"AA","to":"AZ","label":"calls"},{"from":"AA","to":"BA","label":"calls"},{"from":"AB","to":"BC","label":"calls"},{"from":"AC","to":"BD","label":"calls"},{"from":"AC","to":"BE","label":"calls"},{"from":"AD","to":"BF","label":"calls"},{"from":"AD","to":"BG","label":"calls"},{"from":"AE","to":"BH","label":"calls"},{"from":"AE","to":"BI","label":"calls"},{"from":"AF","to":"BJ","label":"calls"},{"from":"AF","to":"BK","label":"calls"},{"from":"AG","to":"BL","label":"calls"},{"from":"AG","to":"BM","label":"calls"},{"from":"AH","to":"BN","label":"calls"},{"from":"AH","to":"BO","label":"calls"},{"from":"AI","to":"BP","label":"calls"},{"from":"AI","to":"BQ","label":"calls"},{"from":"AJ","to":"BR","label":"calls"},{"from":"AJ","to":"BS","label":"calls"},{"from":"AK","to":"BT","label":"calls"},{"from":"AK","to":"BU","label":"calls"},{"from":"AL","to":"BV","label":"calls"},{"from":"AL","to":"BW","label":"calls"},{"from":"AM","to":"BX","label":"calls"},{"from":"AM","to":"BY","label":"calls"},{"from":"AN","to":"BZ","label":"calls"}];
+
+        // Import utilities
+        
+        function measureTextWidth(text, font) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            context.font = font;
+            return context.measureText(text).width;
+        }
+
+        function calculateAllNodeWidths(nodes) {
+            const padding = 24;
+            const nodeWidthMap = new Map();
+            const font = '12px Arial, sans-serif';
+
+            nodes.forEach(node => {
+                const element = document.getElementById(node.id);
+                if (element) {
+                    const actualWidth = element.offsetWidth;
+                    nodeWidthMap.set(node.label, actualWidth);
+                } else if (!nodeWidthMap.has(node.label)) {
+                    const textWidth = measureTextWidth(node.label, font);
+                    const calculatedWidth = Math.ceil(textWidth) + padding;
+                    nodeWidthMap.set(node.label, calculatedWidth);
+
+                    if (node.label.length > 8) {
+                        console.log("Debug: label=" + node.label + ", measured width=" + Math.ceil(textWidth) + "px, total width=" + calculatedWidth + "px");
+                    }
+                }
+            });
+
+            return nodeWidthMap;
+        }
+
+        function debugActualWidths(nodes) {
+            const nodeWidthMap = calculateAllNodeWidths(nodes);
+
+            nodes.forEach(node => {
+                const element = document.getElementById(node.id);
+                if (element && node.label.length > 10) {
+                    const actualWidth = element.offsetWidth;
+                    const calculatedWidth = nodeWidthMap.get(node.label);
+                    const difference = actualWidth - calculatedWidth;
+
+                    console.log("Width comparison: " + node.label);
+                    console.log("  Calculated: " + calculatedWidth + "px, Actual: " + actualWidth + "px, Difference: " + difference + "px");
+                }
+            });
+        }
+
+        function calculateConnectionLabelSpacing(connections, parentId) {
+            const labelFont = '11px Arial, sans-serif';
+            const minSpacing = 60;
+            const labelPadding = 30;
+
+            let maxLabelWidth = 0;
+
+            connections.forEach(conn => {
+                if (conn.from === parentId && conn.label) {
+                    const labelWidth = measureTextWidth(conn.label, labelFont);
+                    maxLabelWidth = Math.max(maxLabelWidth, labelWidth);
+                }
+            });
+
+            if (maxLabelWidth > 0) {
+                return Math.max(minSpacing, maxLabelWidth + labelPadding);
+            }
+
+            return minSpacing;
+        }
+    
+
+        // Import tree structure analyzer
+        
+        function analyzeTreeStructure(nodes, connections) {
+            const childNodes = new Set(connections.map(c => c.to));
+            const rootNodes = nodes.filter(node => !childNodes.has(node.id));
+
+            const childrenMap = new Map();
+            connections.forEach(conn => {
+                if (!childrenMap.has(conn.from)) {
+                    childrenMap.set(conn.from, []);
+                }
+                childrenMap.get(conn.from).push(conn.to);
+            });
+
+            const levels = [];
+            const visited = new Set();
+
+            if (rootNodes.length > 0) {
+                let currentLevel = rootNodes.map(node => node.id);
+                let maxDepth = 0;
+
+                while (currentLevel.length > 0 && maxDepth < 50) {
+                    const levelNodes = currentLevel.map(nodeId => nodes.find(n => n.id === nodeId)).filter(Boolean);
+                    levels.push(levelNodes);
+
+                    currentLevel.forEach(nodeId => visited.add(nodeId));
+
+                    const nextLevel = [];
+                    currentLevel.forEach(nodeId => {
+                        const children = childrenMap.get(nodeId) || [];
+                        children.forEach(childId => {
+                            if (!visited.has(childId)) {
+                                nextLevel.push(childId);
+                            }
+                        });
+                    });
+
+                    currentLevel = [...new Set(nextLevel)];
+                    maxDepth++;
+                }
+            }
+
+            return { rootNodes, levels, childrenMap };
+        }
+    
+
+        // Import layouts
+        
+        function verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure) {
+            const container = document.getElementById('treeContainer');
+            let containerWidth = Math.max(800, container.clientWidth || 800);
+
+            const nodeWidthMap = calculateAllNodeWidths(nodes);
+            const treeStructure = analyzeTreeStructure(nodes, connections);
+            const nodePositions = new Map();
+
+            const levelHeight = 80;
+            const leftMargin = 50;
+            const fixedSpacing = 60;
+
+            treeStructure.levels.forEach((level, levelIndex) => {
+                const y = 50 + levelIndex * levelHeight;
+
+                if (levelIndex === 0) {
+                    let currentX = leftMargin;
+                    level.forEach(node => {
+                        const element = document.getElementById(node.id);
+                        if (element && !element.classList.contains('hidden')) {
+                            element.style.left = currentX + 'px';
+                            element.style.top = y + 'px';
+                            const nodeWidth = element.offsetWidth;
+                            nodePositions.set(node.id, { x: currentX, y: y, width: nodeWidth });
+                            currentX += nodeWidth + fixedSpacing;
+                        }
+                    });
+                } else {
+                    let levelMaxX = leftMargin;
+
+                    level.forEach(node => {
+                        const element = document.getElementById(node.id);
+                        if (element && !element.classList.contains('hidden')) {
+                            const parentId = connections.find(conn => conn.to === node.id)?.from;
+                            if (parentId && nodePositions.has(parentId)) {
+                                const parentPos = nodePositions.get(parentId);
+                                const siblings = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
+                                const siblingIndex = siblings.indexOf(node.id);
+
+                                let startX = parentPos.x + parentPos.width + fixedSpacing;
+
+                                for (let i = 0; i < siblingIndex; i++) {
+                                    const siblingId = siblings[i];
+                                    if (nodePositions.has(siblingId)) {
+                                        const siblingPos = nodePositions.get(siblingId);
+                                        startX = Math.max(startX, siblingPos.x + siblingPos.width + fixedSpacing);
+                                    }
+                                }
+
+                                startX = Math.max(startX, levelMaxX);
+
+                                element.style.left = startX + 'px';
+                                element.style.top = y + 'px';
+                                const nodeWidth = element.offsetWidth;
+                                nodePositions.set(node.id, { x: startX, y: y, width: nodeWidth });
+
+                                levelMaxX = Math.max(levelMaxX, startX + nodeWidth + fixedSpacing);
+                            } else {
+                                element.style.left = levelMaxX + 'px';
+                                element.style.top = y + 'px';
+                                const nodeWidth = element.offsetWidth;
+                                nodePositions.set(node.id, { x: levelMaxX, y: y, width: nodeWidth });
+                                levelMaxX += nodeWidth + fixedSpacing;
+                            }
+                        }
+                    });
+                }
+            });
+
+            const maxX = Math.max(...Array.from(nodePositions.values()).map(pos => pos.x + pos.width));
+            if (maxX + 100 > containerWidth) {
+                containerWidth = maxX + 100;
+                container.style.width = containerWidth + 'px';
+                console.log("Container width expanded to: " + containerWidth + "px for vertical layout");
+            }
+
+            return nodePositions;
+        }
+    
+        
+        function horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure) {
+            const container = document.getElementById('treeContainer');
+            let containerHeight = Math.max(800, container.clientHeight || 800);
+
+            const nodeWidthMap = calculateAllNodeWidths(nodes);
+            const treeStructure = analyzeTreeStructure(nodes, connections);
+            const nodePositions = new Map();
+
+            const leftMargin = 50;
+            const topMargin = 50;
+            const fixedSpacing = 60;
+
+            // 各階層の最大ノード幅を事前に計算
+            const levelMaxWidths = [];
+            treeStructure.levels.forEach((level, levelIndex) => {
+                let maxWidth = 0;
+                level.forEach(node => {
+                    const element = document.getElementById(node.id);
+                    if (element && !element.classList.contains('hidden')) {
+                        maxWidth = Math.max(maxWidth, element.offsetWidth);
+                    }
+                });
+                levelMaxWidths[levelIndex] = maxWidth;
+            });
+
+            // 各階層のX座標を計算
+            const levelXPositions = [leftMargin];
+            for (let i = 1; i < treeStructure.levels.length; i++) {
+                levelXPositions[i] = levelXPositions[i - 1] + levelMaxWidths[i - 1] + fixedSpacing * 2;
+            }
+
+            treeStructure.levels.forEach((level, levelIndex) => {
+                const levelX = levelXPositions[levelIndex];
+                let currentY = topMargin;
+
+                level.forEach(node => {
+                    const element = document.getElementById(node.id);
+                    if (element && !element.classList.contains('hidden')) {
+                        const parentId = connections.find(conn => conn.to === node.id)?.from;
+
+                        if (parentId && nodePositions.has(parentId)) {
+                            const parentPos = nodePositions.get(parentId);
+                            const siblings = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
+                            const siblingIndex = siblings.indexOf(node.id);
+
+                            let startY = parentPos.y;
+
+                            for (let i = 0; i < siblingIndex; i++) {
+                                const siblingId = siblings[i];
+                                if (nodePositions.has(siblingId)) {
+                                    const siblingPos = nodePositions.get(siblingId);
+                                    startY = Math.max(startY, siblingPos.y + siblingPos.height + fixedSpacing);
+                                }
+                            }
+
+                            startY = Math.max(startY, currentY);
+
+                            element.style.left = levelX + 'px';
+                            element.style.top = startY + 'px';
+                            const nodeWidth = element.offsetWidth;
+                            const nodeHeight = element.offsetHeight;
+                            nodePositions.set(node.id, { x: levelX, y: startY, width: nodeWidth, height: nodeHeight });
+
+                            currentY = Math.max(currentY, startY + nodeHeight + fixedSpacing);
+                        } else {
+                            element.style.left = levelX + 'px';
+                            element.style.top = currentY + 'px';
+                            const nodeWidth = element.offsetWidth;
+                            const nodeHeight = element.offsetHeight;
+                            nodePositions.set(node.id, { x: levelX, y: currentY, width: nodeWidth, height: nodeHeight });
+                            currentY += nodeHeight + fixedSpacing;
+                        }
+                    }
+                });
+            });
+
+            const maxY = Math.max(...Array.from(nodePositions.values()).map(pos => pos.y + pos.height));
+            const maxX = Math.max(...Array.from(nodePositions.values()).map(pos => pos.x + pos.width));
+
+            if (maxY + 100 > containerHeight) {
+                containerHeight = maxY + 100;
+                container.style.height = containerHeight + 'px';
+                console.log("Container height expanded to: " + containerHeight + "px for horizontal layout");
+            }
+
+            let containerWidth = Math.max(800, container.clientWidth || 800);
+            if (maxX + 100 > containerWidth) {
+                containerWidth = maxX + 100;
+                container.style.width = containerWidth + 'px';
+                console.log("Container width expanded to: " + containerWidth + "px for horizontal layout");
+            }
+
+            return nodePositions;
+        }
+    
+
+        // Import connection renderer
+        
+        function createCSSLines(connections, nodePositions) {
+            const contentWrapper = document.getElementById('contentWrapper');
+            if (!contentWrapper) {
+                console.error('Content wrapper element not found');
+                return;
+            }
+
+            const existingLines = contentWrapper.querySelectorAll('.connection-line, .connection-label');
+            existingLines.forEach(line => line.remove());
+
+            let connectionCount = 0;
+            connections.forEach(conn => {
+                const fromElement = document.getElementById(conn.from);
+                const toElement = document.getElementById(conn.to);
+
+                // 両端のノードが存在し、かつ表示されている場合のみ接続線を描画
+                if (fromElement && toElement &&
+                    !fromElement.classList.contains('hidden') &&
+                    !toElement.classList.contains('hidden')) {
+
+                    // style.leftとstyle.topから直接座標を取得（transformの影響を受けない）
+                    const fromLeft = parseFloat(fromElement.style.left) || 0;
+                    const fromTop = parseFloat(fromElement.style.top) || 0;
+                    const fromWidth = fromElement.offsetWidth;
+                    const fromHeight = fromElement.offsetHeight;
+
+                    const toLeft = parseFloat(toElement.style.left) || 0;
+                    const toTop = parseFloat(toElement.style.top) || 0;
+                    const toWidth = toElement.offsetWidth;
+                    const toHeight = toElement.offsetHeight;
+
+                    const x1 = fromLeft + fromWidth;
+                    const y1 = fromTop + fromHeight / 2;
+                    const x2 = toLeft;
+                    const y2 = toTop + toHeight / 2;
+
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+                    const line = document.createElement('div');
+                    line.className = 'connection-line';
+                    line.style.left = x1 + 'px';
+                    line.style.top = y1 + 'px';
+                    line.style.width = length + 'px';
+                    line.style.transform = `rotate(${angle}deg)`;
+
+                    contentWrapper.appendChild(line);
+                    connectionCount++;
+
+                    // ラベルがある場合は表示
+                    if (conn.label) {
+                        const labelElement = document.createElement('div');
+                        labelElement.className = 'connection-label';
+                        labelElement.textContent = conn.label;
+
+                        // ラベルを子ノード（toElement）の左上に配置
+                        labelElement.style.left = toLeft + 'px';
+                        labelElement.style.top = toTop + 'px';
+                        labelElement.style.transform = 'translate(0, -100%)';
+
+                        contentWrapper.appendChild(labelElement);
+                    }
+                }
+            });
+
+            console.log("Created " + connectionCount + " CSS lines");
+        }
+    
+
+        // Import collapse manager
+        
+        const collapseManager = {
+            collapsedNodes: new Set(),
+            childrenMap: new Map(),
+
+            init: function() {
+                connections.forEach(conn => {
+                    if (!this.childrenMap.has(conn.from)) {
+                        this.childrenMap.set(conn.from, []);
+                    }
+                    this.childrenMap.get(conn.from).push(conn.to);
+                });
+            },
+
+            isCollapsed: function(nodeId) {
+                return this.collapsedNodes.has(nodeId);
+            },
+
+            canCollapse: function(nodeId) {
+                return this.childrenMap.has(nodeId) && this.childrenMap.get(nodeId).length > 0;
+            },
+
+            toggleCollapse: function(nodeId) {
+                if (this.canCollapse(nodeId)) {
+                    const nodeElement = document.getElementById(nodeId);
+                    const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                    if (this.collapsedNodes.has(nodeId)) {
+                        this.collapsedNodes.delete(nodeId);
+                        nodeElement.classList.remove('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▼';
+                    } else {
+                        this.collapsedNodes.add(nodeId);
+                        nodeElement.classList.add('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▲';
+                    }
+
+                    this.updateVisibility();
+
+                    // レイアウトを再計算
+                    setTimeout(() => {
+                        if (currentLayout === 'vertical') {
+                            currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                        } else {
+                            currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                        }
+                        createCSSLines(connections, currentNodePositions);
+                    }, 50);
+                }
+            },
+
+            isVisible: function(nodeId) {
+                const isRoot = !connections.some(conn => conn.to === nodeId);
+                if (isRoot) return true;
+
+                const parentConnection = connections.find(conn => conn.to === nodeId);
+                if (!parentConnection) return true;
+
+                if (this.isCollapsed(parentConnection.from)) return false;
+
+                return this.isVisible(parentConnection.from);
+            },
+
+            updateVisibility: function() {
+                nodes.forEach(node => {
+                    const element = document.getElementById(node.id);
+                    if (element) {
+                        if (this.isVisible(node.id)) {
+                            element.classList.remove('hidden');
+                        } else {
+                            element.classList.add('hidden');
+                        }
+                    }
+                });
+            },
+
+            collapseAll: function() {
+                nodes.forEach(node => {
+                    if (this.canCollapse(node.id) && !this.isCollapsed(node.id)) {
+                        const nodeElement = document.getElementById(node.id);
+                        const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                        this.collapsedNodes.add(node.id);
+                        nodeElement.classList.add('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▲';
+                    }
+                });
+
+                this.updateVisibility();
+
+                setTimeout(() => {
+                    if (currentLayout === 'vertical') {
+                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    } else {
+                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    }
+                    createCSSLines(connections, currentNodePositions);
+                }, 50);
+            },
+
+            expandAll: function() {
+                nodes.forEach(node => {
+                    if (this.isCollapsed(node.id)) {
+                        const nodeElement = document.getElementById(node.id);
+                        const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                        this.collapsedNodes.delete(node.id);
+                        nodeElement.classList.remove('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▼';
+                    }
+                });
+
+                this.updateVisibility();
+
+                setTimeout(() => {
+                    if (currentLayout === 'vertical') {
+                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    } else {
+                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    }
+                    createCSSLines(connections, currentNodePositions);
+                }, 50);
+            },
+
+            collapseAllByLabel: function(label) {
+                nodes.forEach(node => {
+                    if (node.label === label && this.canCollapse(node.id) && !this.isCollapsed(node.id)) {
+                        const nodeElement = document.getElementById(node.id);
+                        const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                        this.collapsedNodes.add(node.id);
+                        nodeElement.classList.add('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▲';
+                    }
+                });
+
+                this.updateVisibility();
+
+                setTimeout(() => {
+                    if (currentLayout === 'vertical') {
+                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    } else {
+                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    }
+                    createCSSLines(connections, currentNodePositions);
+                }, 50);
+            },
+
+            expandAllByLabel: function(label) {
+                nodes.forEach(node => {
+                    if (node.label === label && this.isCollapsed(node.id)) {
+                        const nodeElement = document.getElementById(node.id);
+                        const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                        this.collapsedNodes.delete(node.id);
+                        nodeElement.classList.remove('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▼';
+                    }
+                });
+
+                this.updateVisibility();
+
+                setTimeout(() => {
+                    if (currentLayout === 'vertical') {
+                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    } else {
+                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    }
+                    createCSSLines(connections, currentNodePositions);
+                }, 50);
+            }
+        };
+
+        function toggleNodeCollapse(nodeId) {
+            collapseManager.toggleCollapse(nodeId);
+        }
+
+        function collapseAll() {
+            collapseManager.collapseAll();
+        }
+
+        function expandAll() {
+            collapseManager.expandAll();
+        }
+    
+
+        // Import layout switcher
+        
+        // Layout state
+        let currentLayout = 'vertical';
+        let currentNodePositions = null;
+
+        function switchLayout(layoutType) {
+            currentLayout = layoutType;
+
+            // Update button states
+            document.getElementById('verticalBtn').classList.toggle('active', layoutType === 'vertical');
+            document.getElementById('horizontalBtn').classList.toggle('active', layoutType === 'horizontal');
+
+            // Apply layout
+            if (layoutType === 'vertical') {
+                currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+            } else {
+                currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+            }
+
+            // Redraw lines
+            setTimeout(() => {
+                createCSSLines(connections, currentNodePositions);
+            }, 50);
+        }
+    
+
+        // Import viewport manager
+        
+        const viewportManager = {
+            scale: 1.0,
+            translateX: 0,
+            translateY: 0,
+            isDragging: false,
+            startX: 0,
+            startY: 0,
+            minScale: 0.1,
+            maxScale: 3.0,
+
+            init: function() {
+                const container = document.getElementById('treeContainer');
+
+                // マウスホイールでズーム
+                container.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+
+                    const rect = container.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    const mouseY = e.clientY - rect.top;
+
+                    // ズーム前のマウス位置（ワールド座標）
+                    const worldX = (mouseX - this.translateX) / this.scale;
+                    const worldY = (mouseY - this.translateY) / this.scale;
+
+                    // ズーム
+                    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                    const newScale = Math.max(this.minScale, Math.min(this.maxScale, this.scale * delta));
+
+                    // ズーム後もマウス位置が同じワールド座標を指すように調整
+                    this.translateX = mouseX - worldX * newScale;
+                    this.translateY = mouseY - worldY * newScale;
+                    this.scale = newScale;
+
+                    this.applyTransform();
+                });
+
+                // ドラッグで移動
+                container.addEventListener('mousedown', (e) => {
+                    if (e.target === container || e.target.classList.contains('connection-line') || e.target.classList.contains('connection-label')) {
+                        this.isDragging = true;
+                        this.startX = e.clientX - this.translateX;
+                        this.startY = e.clientY - this.translateY;
+                        container.style.cursor = 'grabbing';
+                    }
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (this.isDragging) {
+                        this.translateX = e.clientX - this.startX;
+                        this.translateY = e.clientY - this.startY;
+                        this.applyTransform();
+                    }
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (this.isDragging) {
+                        this.isDragging = false;
+                        const container = document.getElementById('treeContainer');
+                        container.style.cursor = 'grab';
+                    }
+                });
+
+                // 初期カーソル設定
+                container.style.cursor = 'grab';
+            },
+
+            applyTransform: function() {
+                const contentWrapper = document.getElementById('contentWrapper');
+                if (contentWrapper) {
+                    contentWrapper.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`;
+                }
+            },
+
+            resetView: function() {
+                this.scale = 1.0;
+                this.translateX = 0;
+                this.translateY = 0;
+                this.applyTransform();
+            }
+        };
+    
+
+        // Import highlight manager
+        
+        const highlightManager = {
+            currentHighlightedLabel: null,
+
+            highlightAllByLabel: function(label) {
+                // 既存のハイライトを解除
+                this.clearHighlight();
+
+                // 新しいラベルをハイライト
+                nodes.forEach(node => {
+                    if (node.label === label) {
+                        const nodeElement = document.getElementById(node.id);
+                        if (nodeElement) {
+                            nodeElement.classList.add('highlighted');
+                        }
+                    }
+                });
+
+                this.currentHighlightedLabel = label;
+            },
+
+            clearHighlight: function() {
+                if (this.currentHighlightedLabel) {
+                    nodes.forEach(node => {
+                        if (node.label === this.currentHighlightedLabel) {
+                            const nodeElement = document.getElementById(node.id);
+                            if (nodeElement) {
+                                nodeElement.classList.remove('highlighted');
+                            }
+                        }
+                    });
+                    this.currentHighlightedLabel = null;
+                }
+            }
+        };
+    
+
+        // Import context menu
+        
+        const contextMenu = {
+            menuElement: null,
+            targetNode: null,
+
+            init: function() {
+                this.createMenuElement();
+                this.attachEventListeners();
+            },
+
+            createMenuElement: function() {
+                const menu = document.createElement('div');
+                menu.id = 'contextMenu';
+                menu.className = 'context-menu';
+                document.body.appendChild(menu);
+                this.menuElement = menu;
+            },
+
+            updateMenuItems: function(nodeElement) {
+                const label = nodeElement.querySelector('.label').textContent;
+                const isCollapsed = nodeElement.classList.contains('collapsed-node');
+                const hasChildren = collapseManager.canCollapse(nodeElement.id);
+
+                let menuHTML = '';
+
+                if (hasChildren) {
+                    if (isCollapsed) {
+                        menuHTML += '<div class="context-menu-item" data-action="expandAllSame">同じ名前のノードをすべて展開</div>';
+                    } else {
+                        menuHTML += '<div class="context-menu-item" data-action="collapseAllSame">同じ名前のノードをすべて折りたたむ</div>';
+                    }
+                }
+
+                menuHTML += '<div class="context-menu-item" data-action="highlightSame">同じ名前のノードを強調</div>';
+
+                this.menuElement.innerHTML = menuHTML;
+            },
+
+            attachEventListeners: function() {
+                // 右クリックでメニュー表示
+                document.addEventListener('contextmenu', (e) => {
+                    const nodeElement = e.target.closest('.node');
+                    if (nodeElement) {
+                        e.preventDefault();
+                        this.showMenu(e.clientX, e.clientY, nodeElement);
+                    }
+                });
+
+                // メニュー外クリックで閉じる
+                document.addEventListener('click', () => {
+                    this.hideMenu();
+                });
+
+                // メニューアイテムのクリック（イベント委譲）
+                this.menuElement.addEventListener('click', (e) => {
+                    const item = e.target.closest('.context-menu-item');
+                    if (item && this.targetNode) {
+                        e.stopPropagation();
+                        const action = item.getAttribute('data-action');
+                        const label = this.targetNode.querySelector('.label').textContent;
+
+                        if (action === 'collapseAllSame') {
+                            collapseManager.collapseAllByLabel(label);
+                        } else if (action === 'expandAllSame') {
+                            collapseManager.expandAllByLabel(label);
+                        } else if (action === 'highlightSame') {
+                            highlightManager.highlightAllByLabel(label);
+                        }
+
+                        this.hideMenu();
+                    }
+                });
+            },
+
+            showMenu: function(x, y, nodeElement) {
+                this.targetNode = nodeElement;
+                this.updateMenuItems(nodeElement);
+                this.menuElement.style.left = x + 'px';
+                this.menuElement.style.top = y + 'px';
+                this.menuElement.classList.add('visible');
+            },
+
+            hideMenu: function() {
+                this.menuElement.classList.remove('visible');
+                this.targetNode = null;
+            }
+        };
+    
+
+        window.onload = function() {
+            collapseManager.init();
+            viewportManager.init();
+            contextMenu.init();
+
+            // Apply initial layout
+            currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+
+            // デバッグ：実際の要素幅と計算値を比較
+            setTimeout(() => {
+                debugActualWidths(nodes);
+                createCSSLines(connections, currentNodePositions);
+            }, 200);
+        };
+    </script></body>
 </html>
