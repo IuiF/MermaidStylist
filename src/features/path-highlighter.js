@@ -1,6 +1,8 @@
 function getPathHighlighter() {
     return `
         const pathHighlighter = {
+            currentHighlightedNodeId: null,
+
             addDoubleStroke: function(nodeElement) {
                 const rect = nodeElement.querySelector('.node-rect');
                 if (!rect) return;
@@ -29,6 +31,7 @@ function getPathHighlighter() {
 
             highlightPathToRoot: function(nodeId) {
                 this.clearPathHighlight();
+                this.currentHighlightedNodeId = nodeId;
 
                 const parentMap = new Map();
                 connections.forEach(conn => {
@@ -95,6 +98,16 @@ function getPathHighlighter() {
                 document.querySelectorAll('.path-highlighted-line').forEach(element => {
                     element.classList.remove('path-highlighted-line');
                 });
+
+                this.currentHighlightedNodeId = null;
+            },
+
+            reapplyPathHighlight: function() {
+                if (this.currentHighlightedNodeId) {
+                    const nodeId = this.currentHighlightedNodeId;
+                    this.currentHighlightedNodeId = null;
+                    this.highlightPathToRoot(nodeId);
+                }
             }
         };
     `;

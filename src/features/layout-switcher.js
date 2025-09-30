@@ -21,6 +21,7 @@ function getLayoutSwitcher() {
             // Redraw lines
             setTimeout(() => {
                 createCSSLines(connections, currentNodePositions);
+                pathHighlighter.reapplyPathHighlight();
             }, 50);
         }
     `;
