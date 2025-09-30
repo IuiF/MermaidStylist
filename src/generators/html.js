@@ -159,17 +159,12 @@ function getJavaScriptContent(nodes, connections) {
             viewportManager.init();
             contextMenu.init();
 
-            // SVGノードが配置されるまで少し待つ
-            setTimeout(() => {
-                // Apply initial layout
+            // SVGノードが配置された後に即座にレイアウト
+            requestAnimationFrame(() => {
                 currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
-
-                // レイアウト完了後に接続線を描画
-                setTimeout(() => {
-                    debugActualWidths(nodes);
-                    createCSSLines(connections, currentNodePositions);
-                }, 100);
-            }, 50);
+                debugActualWidths(nodes);
+                createCSSLines(connections, currentNodePositions);
+            });
         };
     </script>`;
 }

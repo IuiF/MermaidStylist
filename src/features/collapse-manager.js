@@ -41,7 +41,7 @@ function getCollapseManager() {
             },
 
             recalculateLayout: function() {
-                setTimeout(() => {
+                requestAnimationFrame(() => {
                     if (currentLayout === 'vertical') {
                         currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
                     } else {
@@ -50,7 +50,7 @@ function getCollapseManager() {
                     createCSSLines(connections, currentNodePositions);
                     shadowManager.updatePositions(this.collapsedNodes);
                     pathHighlighter.reapplyPathHighlight();
-                }, 50);
+                });
             },
 
             toggleCollapse: function(nodeId) {

@@ -19,10 +19,10 @@ function getLayoutSwitcher() {
             }
 
             // Redraw lines
-            setTimeout(() => {
+            requestAnimationFrame(() => {
                 createCSSLines(connections, currentNodePositions);
                 pathHighlighter.reapplyPathHighlight();
-            }, 50);
+            });
         }
     `;
 }
