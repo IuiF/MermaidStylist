@@ -1,7 +1,7 @@
 function getLayoutSwitcher() {
     return `
         // Layout state
-        let currentLayout = 'vertical';
+        let currentLayout = 'horizontal';
         let currentNodePositions = null;
 
         function switchLayout(layoutType) {

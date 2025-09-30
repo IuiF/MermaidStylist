@@ -168,7 +168,7 @@ function getBaseTemplate() {
             headClose: '</head>',
             bodyOpen: '<body>',
             pageTitle: '<h1>Tree Structure</h1>',
-            layoutControls: '<div class="layout-controls"><div class="button-group"><button class="layout-button active" id="verticalBtn" onclick="switchLayout(\'vertical\')">縦方向</button><button class="layout-button" id="horizontalBtn" onclick="switchLayout(\'horizontal\')">横方向</button></div><div class="button-group"><button class="layout-button" onclick="collapseAll()">すべて折りたたむ</button><button class="layout-button" onclick="expandAll()">すべて展開</button></div><button class="layout-button" onclick="viewportManager.resetView()">位置リセット</button><span class="viewport-info">ドラッグで移動 | ホイールで拡大縮小</span></div>',
+            layoutControls: '<div class="layout-controls"><div class="button-group"><button class="layout-button active" id="horizontalBtn" onclick="switchLayout(\'horizontal\')">横方向</button><button class="layout-button" id="verticalBtn" onclick="switchLayout(\'vertical\')">縦方向</button></div><div class="button-group"><button class="layout-button" onclick="collapseAll()">すべて折りたたむ</button><button class="layout-button" onclick="expandAll()">すべて展開</button></div><button class="layout-button" onclick="viewportManager.resetView()">位置リセット</button><span class="viewport-info">ドラッグで移動 | ホイールで拡大縮小</span></div>',
             containerOpen: '<div class="tree-container" id="treeContainer"><div id="contentWrapper">',
             containerClose: '</div></div>',
             bodyClose: '</body>',
