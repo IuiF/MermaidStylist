@@ -8,7 +8,7 @@ function getHighlightManager() {
 
                 nodes.forEach(node => {
                     if (node.label === label) {
-                        const nodeElement = document.getElementById(node.id);
+                        const nodeElement = svgHelpers.getNodeElement(node.id);
                         if (nodeElement) {
                             nodeElement.classList.add('highlighted');
 
@@ -26,7 +26,7 @@ function getHighlightManager() {
                 if (this.currentHighlightedLabel) {
                     nodes.forEach(node => {
                         if (node.label === this.currentHighlightedLabel) {
-                            const nodeElement = document.getElementById(node.id);
+                            const nodeElement = svgHelpers.getNodeElement(node.id);
                             if (nodeElement) {
                                 nodeElement.classList.remove('highlighted');
                                 svgHelpers.removeDoubleStroke(nodeElement);

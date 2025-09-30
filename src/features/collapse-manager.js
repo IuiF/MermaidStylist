@@ -22,7 +22,7 @@ function getCollapseManager() {
             },
 
             setNodeState: function(nodeId, collapsed) {
-                const nodeElement = document.getElementById(nodeId);
+                const nodeElement = svgHelpers.getNodeElement(nodeId);
                 const collapseButton = Array.from(nodeElement.children).find(el =>
                     el.classList && el.classList.contains('collapse-button')
                 );
@@ -73,9 +73,9 @@ function getCollapseManager() {
             },
 
             updateVisibility: function() {
-                const svgLayer = document.getElementById('svgLayer');
+                const svgLayer = svgHelpers.getSVGLayer();
                 nodes.forEach(node => {
-                    const element = document.getElementById(node.id);
+                    const element = svgHelpers.getNodeElement(node.id);
                     if (element) {
                         if (this.isVisible(node.id)) {
                             element.classList.remove('hidden');

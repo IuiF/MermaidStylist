@@ -77,23 +77,24 @@ function getJavaScriptContent(nodes, connections) {
 
         // Create SVG nodes
         function createSVGNodes() {
-            const svgLayer = document.getElementById('svgLayer');
+            const svgLayer = svgHelpers.getSVGLayer();
 
             nodes.forEach(node => {
                 const hasChildren = connections.some(conn => conn.from === node.id);
 
                 // グループ要素を作成
-                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-                g.setAttribute('id', node.id);
-                g.setAttribute('class', 'node');
-                g.setAttribute('data-label', node.label);
-                g.setAttribute('data-has-children', hasChildren);
+                const g = svgHelpers.createGroup({
+                    id: node.id,
+                    class: 'node',
+                    'data-label': node.label,
+                    'data-has-children': hasChildren
+                });
 
                 // 一時的なテキスト要素でテキスト幅を測定
-                const tempText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                tempText.textContent = node.label;
-                tempText.setAttribute('font-size', '12');
-                tempText.setAttribute('font-family', 'Arial, sans-serif');
+                const tempText = svgHelpers.createText(node.label, {
+                    'font-size': '12',
+                    'font-family': 'Arial, sans-serif'
+                });
                 svgLayer.appendChild(tempText);
                 const textWidth = tempText.getBBox().width;
                 svgLayer.removeChild(tempText);
@@ -104,32 +105,33 @@ function getJavaScriptContent(nodes, connections) {
                 const boxHeight = 28;
 
                 // 背景矩形
-                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                rect.setAttribute('class', 'node-rect');
-                rect.setAttribute('width', boxWidth);
-                rect.setAttribute('height', boxHeight);
-                rect.setAttribute('rx', 5);
-                rect.setAttribute('ry', 5);
+                const rect = svgHelpers.createRect({
+                    class: 'node-rect',
+                    width: boxWidth,
+                    height: boxHeight,
+                    rx: 5,
+                    ry: 5
+                });
 
                 // テキスト
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('class', 'node-text');
-                text.setAttribute('x', padding);
-                text.setAttribute('y', boxHeight / 2);
-                text.setAttribute('dominant-baseline', 'central');
-                text.textContent = node.label;
+                const text = svgHelpers.createText(node.label, {
+                    class: 'node-text',
+                    x: padding,
+                    y: boxHeight / 2,
+                    'dominant-baseline': 'central'
+                });
 
                 g.appendChild(rect);
                 g.appendChild(text);
 
                 // 折りたたみボタン
                 if (hasChildren) {
-                    const button = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                    button.setAttribute('class', 'collapse-button');
-                    button.setAttribute('x', boxWidth - padding - 5);
-                    button.setAttribute('y', boxHeight / 2);
-                    button.setAttribute('dominant-baseline', 'central');
-                    button.textContent = '▼';
+                    const button = svgHelpers.createText('▼', {
+                        class: 'collapse-button',
+                        x: boxWidth - padding - 5,
+                        y: boxHeight / 2,
+                        'dominant-baseline': 'central'
+                    });
                     g.appendChild(button);
                 }
 

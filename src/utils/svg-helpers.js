@@ -1,6 +1,46 @@
 function getSVGHelpers() {
     return `
         const svgHelpers = {
+            createElement: function(type, attributes = {}) {
+                const element = document.createElementNS('http://www.w3.org/2000/svg', type);
+                for (const [key, value] of Object.entries(attributes)) {
+                    if (value !== null && value !== undefined) {
+                        element.setAttribute(key, value);
+                    }
+                }
+                return element;
+            },
+
+            createRect: function(attributes = {}) {
+                return this.createElement('rect', attributes);
+            },
+
+            createText: function(content, attributes = {}) {
+                const element = this.createElement('text', attributes);
+                element.textContent = content;
+                return element;
+            },
+
+            createGroup: function(attributes = {}) {
+                return this.createElement('g', attributes);
+            },
+
+            createLine: function(attributes = {}) {
+                return this.createElement('line', attributes);
+            },
+
+            createPolygon: function(points, attributes = {}) {
+                return this.createElement('polygon', { ...attributes, points });
+            },
+
+            getSVGLayer: function() {
+                return document.getElementById('svgLayer');
+            },
+
+            getNodeElement: function(nodeId) {
+                return document.getElementById(nodeId);
+            },
+
             parseTransform: function(transformAttr) {
                 let x = 0, y = 0;
                 if (transformAttr) {
@@ -22,18 +62,19 @@ function getSVGHelpers() {
                     existingOverlay.remove();
                 }
 
-                const overlayRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                overlayRect.setAttribute('class', 'double-stroke-overlay');
-                overlayRect.setAttribute('x', rect.getAttribute('x'));
-                overlayRect.setAttribute('y', rect.getAttribute('y'));
-                overlayRect.setAttribute('width', rect.getAttribute('width'));
-                overlayRect.setAttribute('height', rect.getAttribute('height'));
-                overlayRect.setAttribute('rx', rect.getAttribute('rx'));
-                overlayRect.setAttribute('ry', rect.getAttribute('ry'));
-                overlayRect.setAttribute('fill', 'none');
-                overlayRect.setAttribute('stroke', '#ffc107');
-                overlayRect.setAttribute('stroke-width', '2');
-                overlayRect.setAttribute('pointer-events', 'none');
+                const overlayRect = this.createRect({
+                    class: 'double-stroke-overlay',
+                    x: rect.getAttribute('x'),
+                    y: rect.getAttribute('y'),
+                    width: rect.getAttribute('width'),
+                    height: rect.getAttribute('height'),
+                    rx: rect.getAttribute('rx'),
+                    ry: rect.getAttribute('ry'),
+                    fill: 'none',
+                    stroke: '#ffc107',
+                    'stroke-width': '2',
+                    'pointer-events': 'none'
+                });
 
                 rect.parentNode.insertBefore(overlayRect, rect.nextSibling);
             },

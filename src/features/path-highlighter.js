@@ -34,7 +34,7 @@ function getPathHighlighter() {
                 }
 
                 pathNodes.forEach(id => {
-                    const element = document.getElementById(id);
+                    const element = svgHelpers.getNodeElement(id);
                     if (element) {
                         element.classList.add('path-highlighted');
 

@@ -1,7 +1,7 @@
 function getConnectionRenderer() {
     return `
         function createCSSLines(connections, nodePositions) {
-            const svgLayer = document.getElementById('svgLayer');
+            const svgLayer = svgHelpers.getSVGLayer();
             if (!svgLayer) {
                 console.error('SVG layer element not found');
                 return;
@@ -13,8 +13,8 @@ function getConnectionRenderer() {
 
             let connectionCount = 0;
             connections.forEach(conn => {
-                const fromElement = document.getElementById(conn.from);
-                const toElement = document.getElementById(conn.to);
+                const fromElement = svgHelpers.getNodeElement(conn.from);
+                const toElement = svgHelpers.getNodeElement(conn.to);
 
                 // 両端のノードが存在し、かつ表示されている場合のみ接続線を描画
                 if (fromElement && toElement &&
@@ -42,14 +42,15 @@ function getConnectionRenderer() {
                     const y2 = toTop + toHeight / 2;
 
                     // SVG line要素を作成
-                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    line.setAttribute('class', 'connection-line');
-                    line.setAttribute('x1', x1);
-                    line.setAttribute('y1', y1);
-                    line.setAttribute('x2', x2);
-                    line.setAttribute('y2', y2);
-                    line.setAttribute('data-from', conn.from);
-                    line.setAttribute('data-to', conn.to);
+                    const line = svgHelpers.createLine({
+                        class: 'connection-line',
+                        x1: x1,
+                        y1: y1,
+                        x2: x2,
+                        y2: y2,
+                        'data-from': conn.from,
+                        'data-to': conn.to
+                    });
 
                     svgLayer.appendChild(line);
 
@@ -59,7 +60,6 @@ function getConnectionRenderer() {
                     const arrowX = x2;
                     const arrowY = y2;
 
-                    const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
                     const p1x = arrowX;
                     const p1y = arrowY;
                     const p2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
@@ -67,10 +67,11 @@ function getConnectionRenderer() {
                     const p3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
                     const p3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
 
-                    arrow.setAttribute('class', 'connection-arrow');
-                    arrow.setAttribute('points', \`\${p1x},\${p1y} \${p2x},\${p2y} \${p3x},\${p3y}\`);
-                    arrow.setAttribute('data-from', conn.from);
-                    arrow.setAttribute('data-to', conn.to);
+                    const arrow = svgHelpers.createPolygon(\`\${p1x},\${p1y} \${p2x},\${p2y} \${p3x},\${p3y}\`, {
+                        class: 'connection-arrow',
+                        'data-from': conn.from,
+                        'data-to': conn.to
+                    });
 
                     svgLayer.appendChild(arrow);
                     connectionCount++;
@@ -78,10 +79,10 @@ function getConnectionRenderer() {
                     // ラベルがある場合は表示（SVG rect + text要素として）
                     if (conn.label) {
                         // テキストサイズを測定
-                        const tempText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                        tempText.textContent = conn.label;
-                        tempText.setAttribute('font-size', '11');
-                        tempText.setAttribute('font-family', 'Arial, sans-serif');
+                        const tempText = svgHelpers.createText(conn.label, {
+                            'font-size': '11',
+                            'font-family': 'Arial, sans-serif'
+                        });
                         svgLayer.appendChild(tempText);
                         const textBBox = tempText.getBBox();
                         svgLayer.removeChild(tempText);
@@ -91,30 +92,32 @@ function getConnectionRenderer() {
                         const labelHeight = textBBox.height + labelPadding * 2;
 
                         // グループを作成
-                        const labelGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-                        labelGroup.setAttribute('class', 'connection-label');
+                        const labelGroup = svgHelpers.createGroup({
+                            class: 'connection-label'
+                        });
 
                         // 背景矩形
-                        const labelRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                        labelRect.setAttribute('x', toLeft);
-                        labelRect.setAttribute('y', toTop - labelHeight - 5);
-                        labelRect.setAttribute('width', labelWidth);
-                        labelRect.setAttribute('height', labelHeight);
-                        labelRect.setAttribute('fill', '#fff');
-                        labelRect.setAttribute('stroke', '#999');
-                        labelRect.setAttribute('stroke-width', '1');
-                        labelRect.setAttribute('rx', '3');
-                        labelRect.setAttribute('ry', '3');
+                        const labelRect = svgHelpers.createRect({
+                            x: toLeft,
+                            y: toTop - labelHeight - 5,
+                            width: labelWidth,
+                            height: labelHeight,
+                            fill: '#fff',
+                            stroke: '#999',
+                            'stroke-width': '1',
+                            rx: '3',
+                            ry: '3'
+                        });
 
                         // テキスト
-                        const labelText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                        labelText.setAttribute('x', toLeft + labelPadding);
-                        labelText.setAttribute('y', toTop - labelHeight / 2 - 5);
-                        labelText.setAttribute('dominant-baseline', 'central');
-                        labelText.setAttribute('fill', '#333');
-                        labelText.setAttribute('font-size', '11');
-                        labelText.setAttribute('font-family', 'Arial, sans-serif');
-                        labelText.textContent = conn.label;
+                        const labelText = svgHelpers.createText(conn.label, {
+                            x: toLeft + labelPadding,
+                            y: toTop - labelHeight / 2 - 5,
+                            'dominant-baseline': 'central',
+                            fill: '#333',
+                            'font-size': '11',
+                            'font-family': 'Arial, sans-serif'
+                        });
 
                         labelGroup.appendChild(labelRect);
                         labelGroup.appendChild(labelText);
