@@ -203,17 +203,8 @@ function getConnectionRenderer() {
                 const siblingIndex = siblings.findIndex(c => c.to === conn.to);
                 const siblingCount = siblings.length;
 
-                // ポート位置の計算
-                let y1;
-                const portMargin = 4;
-                if (siblingCount === 1) {
-                    y1 = fromPos.top + fromDim.height / 2;
-                } else {
-                    const availableHeight = fromDim.height - (portMargin * 2);
-                    const portSpacing = availableHeight / (siblingCount - 1);
-                    y1 = fromPos.top + portMargin + (siblingIndex * portSpacing);
-                }
-
+                // すべてのエッジは親の中央から出発
+                const y1 = fromPos.top + fromDim.height / 2;
                 const x1 = fromPos.left + fromDim.width;
                 const x2 = toPos.left;
                 const y2 = toPos.top + toDim.height / 2;
@@ -228,7 +219,8 @@ function getConnectionRenderer() {
                     yMax: Math.max(y1, y2),
                     siblingIndex: siblingIndex,
                     siblingCount: siblingCount,
-                    parentX: fromPos.left
+                    parentX: fromPos.left,
+                    parentY: fromPos.top
                 });
             });
 
@@ -258,11 +250,15 @@ function getConnectionRenderer() {
 
             // グローバルレーン管理
             const occupiedLanes = []; // { laneIndex, segments: [{yMin, yMax, xRange}] }
+            const parentAssignedLanes = {}; // 親ごとに割り当てられたレーン
 
-            function findBestLane(x1, x2, yMin, yMax, preferredLane) {
+            function findBestLaneForParent(parentId, x1, childrenYMin, childrenYMax, preferredLane) {
+                // すでに割り当て済みの場合はそれを返す
+                if (parentAssignedLanes[parentId] !== undefined) {
+                    return parentAssignedLanes[parentId];
+                }
+
                 let laneIndex = preferredLane;
-                const xMin = Math.min(x1, x2);
-                const xMax = Math.max(x1, x2);
 
                 while (true) {
                     const laneX = x1 + minOffset + (laneIndex * laneWidth);
@@ -272,10 +268,9 @@ function getConnectionRenderer() {
                     for (const lane of occupiedLanes) {
                         if (lane.laneIndex === laneIndex) {
                             for (const seg of lane.segments) {
-                                // Y範囲とX範囲の両方をチェック
-                                const yOverlap = !(yMax < seg.yMin || yMin > seg.yMax);
-                                const xOverlap = !(xMax < seg.xMin || xMin > seg.xMax);
-                                if (yOverlap && xOverlap) {
+                                // Y範囲をチェック
+                                const yOverlap = !(childrenYMax < seg.yMin || childrenYMin > seg.yMax);
+                                if (yOverlap) {
                                     hasConflict = true;
                                     break;
                                 }
@@ -292,17 +287,31 @@ function getConnectionRenderer() {
                             occupiedLanes.push(lane);
                         }
                         lane.segments.push({
-                            yMin: yMin,
-                            yMax: yMax,
+                            yMin: childrenYMin,
+                            yMax: childrenYMax,
                             xMin: laneX,
                             xMax: laneX
                         });
+
+                        // 親にレーンを割り当て
+                        parentAssignedLanes[parentId] = laneIndex;
                         return laneIndex;
                     }
 
                     laneIndex++;
                 }
             }
+
+            // 親ごとに子のY範囲を計算
+            const parentChildrenYRanges = {};
+            edgeInfos.forEach(info => {
+                if (!parentChildrenYRanges[info.conn.from]) {
+                    parentChildrenYRanges[info.conn.from] = { yMin: Infinity, yMax: -Infinity };
+                }
+                const range = parentChildrenYRanges[info.conn.from];
+                range.yMin = Math.min(range.yMin, info.y2);
+                range.yMax = Math.max(range.yMax, info.y2);
+            });
 
             let connectionCount = 0;
             const totalParents = parentIds.length;
@@ -312,19 +321,20 @@ function getConnectionRenderer() {
                 const fromElement = svgHelpers.getNodeElement(conn.from);
                 const toElement = svgHelpers.getNodeElement(conn.to);
 
-                // 優先レーンを計算
-                // 戦略: 上にある親ほど外側のレーン（大きいインデックス）を使う
-                const parentRank = parentRanks[conn.from]; // 0 = 最上位の親
-                const basePreference = totalParents - 1 - parentRank; // 上の親ほど大きい値
+                // 優先レーンを計算（親ごとに1回だけ）
+                const parentRank = parentRanks[conn.from];
+                const basePreference = totalParents - 1 - parentRank;
+                const preferredLane = basePreference * 3;
 
-                // 同じ親内での優先順位（上の子ほど外側）
-                const reversedIndex = (siblingCount - 1) - siblingIndex;
-
-                // 総合的な優先レーン
-                const preferredLane = basePreference * 3 + reversedIndex;
-
-                // 最適なレーンを見つける
-                const assignedLane = findBestLane(x1, x2, yMin, yMax, preferredLane);
+                // 親のレーンを取得または割り当て
+                const childrenRange = parentChildrenYRanges[conn.from];
+                const assignedLane = findBestLaneForParent(
+                    conn.from,
+                    x1,
+                    childrenRange.yMin,
+                    childrenRange.yMax,
+                    preferredLane
+                );
                 const horizontalOffset = minOffset + (assignedLane * laneWidth);
 
                 const cornerRadius = 8;
