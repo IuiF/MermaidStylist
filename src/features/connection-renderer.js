@@ -236,6 +236,26 @@ function getConnectionRenderer() {
             // 親ノードのX座標でソート（左から右へ処理）
             edgeInfos.sort((a, b) => a.parentX - b.parentX);
 
+            // 親ノードのY座標の範囲を計算（レーン優先順位のため）
+            const parentYPositions = {};
+            edgeInfos.forEach(info => {
+                if (!parentYPositions[info.conn.from]) {
+                    const fromElement = svgHelpers.getNodeElement(info.conn.from);
+                    if (fromElement) {
+                        const pos = getNodePosition(fromElement);
+                        parentYPositions[info.conn.from] = pos.top;
+                    }
+                }
+            });
+
+            // 親をY座標でソートして、順位を割り当て
+            const parentIds = Object.keys(parentYPositions);
+            parentIds.sort((a, b) => parentYPositions[a] - parentYPositions[b]);
+            const parentRanks = {};
+            parentIds.forEach((id, index) => {
+                parentRanks[id] = index;
+            });
+
             // グローバルレーン管理
             const occupiedLanes = []; // { laneIndex, segments: [{yMin, yMax, xRange}] }
 
@@ -285,14 +305,23 @@ function getConnectionRenderer() {
             }
 
             let connectionCount = 0;
+            const totalParents = parentIds.length;
+
             edgeInfos.forEach(edgeInfo => {
                 const { conn, x1, y1, x2, y2, yMin, yMax, siblingIndex, siblingCount } = edgeInfo;
                 const fromElement = svgHelpers.getNodeElement(conn.from);
                 const toElement = svgHelpers.getNodeElement(conn.to);
 
-                // 優先レーンを計算（上の子は外側、下の子は内側）
+                // 優先レーンを計算
+                // 戦略: 上にある親ほど外側のレーン（大きいインデックス）を使う
+                const parentRank = parentRanks[conn.from]; // 0 = 最上位の親
+                const basePreference = totalParents - 1 - parentRank; // 上の親ほど大きい値
+
+                // 同じ親内での優先順位（上の子ほど外側）
                 const reversedIndex = (siblingCount - 1) - siblingIndex;
-                const preferredLane = reversedIndex;
+
+                // 総合的な優先レーン
+                const preferredLane = basePreference * 3 + reversedIndex;
 
                 // 最適なレーンを見つける
                 const assignedLane = findBestLane(x1, x2, yMin, yMax, preferredLane);
