@@ -63,20 +63,40 @@ function parseMermaidNodes(content) {
     }
 
     // 接続からもノードを抽出
-    const connectionPattern = /([a-zA-Z0-9_-]+)\s*(?:-->|---|==>|===|\.->|\.-|~~~)\s*([a-zA-Z0-9_-]+)/;
+    // ラベル付き/なし両方に対応する包括的なパターン
+    const connectionExtractionPatterns = [
+        // ラベル付き（パイプ記号）: A-->|Label|B
+        /^([a-zA-Z0-9_-]+)\s*(?:-->|---|\.->|\.-|==>|===|~~~)\s*\|[^|]*\|\s*([a-zA-Z0-9_-]+)/,
+        // ラベル付き（ドット）: A-.Label.->B
+        /^([a-zA-Z0-9_-]+)\s*-\.[^\.]+\.(?:->|-)\s*([a-zA-Z0-9_-]+)/,
+        // ラベル付き（イコール）: A==Label==>B
+        /^([a-zA-Z0-9_-]+)\s*==[^=]+=+>\s*([a-zA-Z0-9_-]+)/,
+        // ラベル付き（ハイフン）: A--Label-->B
+        /^([a-zA-Z0-9_-]+)\s*--[^-]+--+>\s*([a-zA-Z0-9_-]+)/,
+        // ラベルなし: A-->B
+        /^([a-zA-Z0-9_-]+)\s*(?:-->|---|\.->|\.-|==>|===|~~~)\s*([a-zA-Z0-9_-]+)/
+    ];
+
     for (const line of lines) {
         const trimmedLine = line.trim();
-        const match = trimmedLine.match(connectionPattern);
-        if (match) {
-            const fromId = match[1];
-            const toId = match[2];
+        if (!trimmedLine || trimmedLine.startsWith('%%') || trimmedLine.startsWith('graph') || trimmedLine.startsWith('flowchart')) {
+            continue;
+        }
 
-            // ノードが定義されていない場合、IDをラベルとして使用
-            if (!nodeMap.has(fromId)) {
-                nodeMap.set(fromId, { id: fromId, label: fromId });
-            }
-            if (!nodeMap.has(toId)) {
-                nodeMap.set(toId, { id: toId, label: toId });
+        for (const pattern of connectionExtractionPatterns) {
+            const match = trimmedLine.match(pattern);
+            if (match) {
+                const fromId = match[1];
+                const toId = match[2];
+
+                // ノードが定義されていない場合、IDをラベルとして使用
+                if (!nodeMap.has(fromId)) {
+                    nodeMap.set(fromId, { id: fromId, label: fromId });
+                }
+                if (!nodeMap.has(toId)) {
+                    nodeMap.set(toId, { id: toId, label: toId });
+                }
+                break;
             }
         }
     }
@@ -90,23 +110,48 @@ function parseMermaidConnections(content) {
     const lines = content.split('\n');
 
     // 接続パターン（様々なタイプに対応）
+    // ラベル付きパターンを先に、シンプルなパターンを後に
     const connectionPatterns = [
-        // テキスト付き接続
-        /([a-zA-Z0-9_-]+)\s*--\s*([^-]+)\s*-->\s*([a-zA-Z0-9_-]+)/,
-        /([a-zA-Z0-9_-]+)\s*--\s*([^-]+)\s*---\s*([a-zA-Z0-9_-]+)/,
-        /([a-zA-Z0-9_-]+)\s*-\.\s*([^\.]+)\s*\.->\s*([a-zA-Z0-9_-]+)/,
-        /([a-zA-Z0-9_-]+)\s*-\.\s*([^\.]+)\s*\.-\s*([a-zA-Z0-9_-]+)/,
-        /([a-zA-Z0-9_-]+)\s*==\s*([^=]+)\s*==>\s*([a-zA-Z0-9_-]+)/,
-        /([a-zA-Z0-9_-]+)\s*==\s*([^=]+)\s*===\s*([a-zA-Z0-9_-]+)/,
+        // パイプ記号でラベル（引用符付き）
+        { pattern: /([a-zA-Z0-9_-]+)\s*-->\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*---\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*\.->\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*\.-\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*==>\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*===\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
 
-        // シンプルな接続
-        /([a-zA-Z0-9_-]+)\s*-->\s*([a-zA-Z0-9_-]+)/,
-        /([a-zA-Z0-9_-]+)\s*---\s*([a-zA-Z0-9_-]+)/,
-        /([a-zA-Z0-9_-]+)\s*\.->\\s*([a-zA-Z0-9_-]+)/,
-        /([a-zA-Z0-9_-]+)\s*\.-\s*([a-zA-Z0-9_-]+)/,
-        /([a-zA-Z0-9_-]+)\s*==>\s*([a-zA-Z0-9_-]+)/,
-        /([a-zA-Z0-9_-]+)\s*===\s*([a-zA-Z0-9_-]+)/,
-        /([a-zA-Z0-9_-]+)\s*~~~\s*([a-zA-Z0-9_-]+)/
+        // パイプ記号でラベル（引用符なし）
+        { pattern: /([a-zA-Z0-9_-]+)\s*-->\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*---\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*\.->\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*\.-\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*==>\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*===\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+
+        // ハイフン/ドット/イコールで囲むラベル（引用符付き）
+        { pattern: /([a-zA-Z0-9_-]+)\s*--\s*"([^"]+)"\s*-->\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*--\s*"([^"]+)"\s*---\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*-\.\s*"([^"]+)"\s*\.->\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*-\.\s*"([^"]+)"\s*\.-\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*==\s*"([^"]+)"\s*==>\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*==\s*"([^"]+)"\s*===\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+
+        // ハイフン/ドット/イコールで囲むラベル（引用符なし）
+        { pattern: /([a-zA-Z0-9_-]+)\s*--\s*([^-]+)\s*-->\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*--\s*([^-]+)\s*---\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*-\.\s*([^\.]+)\s*\.->\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*-\.\s*([^\.]+)\s*\.-\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*==\s*([^=]+)\s*==>\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+        { pattern: /([a-zA-Z0-9_-]+)\s*==\s*([^=]+)\s*===\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+
+        // シンプルな接続（ラベルなし）
+        { pattern: /([a-zA-Z0-9_-]+)\s*-->\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
+        { pattern: /([a-zA-Z0-9_-]+)\s*---\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
+        { pattern: /([a-zA-Z0-9_-]+)\s*\.->\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
+        { pattern: /([a-zA-Z0-9_-]+)\s*\.-\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
+        { pattern: /([a-zA-Z0-9_-]+)\s*==>\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
+        { pattern: /([a-zA-Z0-9_-]+)\s*===\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
+        { pattern: /([a-zA-Z0-9_-]+)\s*~~~\s*([a-zA-Z0-9_-]+)/, hasLabel: false }
     ];
 
     for (const line of lines) {
@@ -115,12 +160,19 @@ function parseMermaidConnections(content) {
             continue;
         }
 
-        for (const pattern of connectionPatterns) {
-            const match = trimmedLine.match(pattern);
+        for (const patternObj of connectionPatterns) {
+            const match = trimmedLine.match(patternObj.pattern);
             if (match) {
-                const from = match[1];
-                const to = match[match.length - 1];
-                connections.push({ from, to });
+                if (patternObj.hasLabel) {
+                    const from = match[1];
+                    const label = match[2].trim();
+                    const to = match[3];
+                    connections.push({ from, to, label });
+                } else {
+                    const from = match[1];
+                    const to = match[2];
+                    connections.push({ from, to });
+                }
                 break;
             }
         }
