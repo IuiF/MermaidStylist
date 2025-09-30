@@ -33,6 +33,10 @@ function getSVGHelpers() {
                 return this.createElement('polygon', { ...attributes, points });
             },
 
+            createPath: function(d, attributes = {}) {
+                return this.createElement('path', { ...attributes, d });
+            },
+
             getSVGLayer: function() {
                 return document.getElementById('svgLayer');
             },

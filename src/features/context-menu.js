@@ -46,6 +46,9 @@ function getContextMenu() {
                     menuHTML += '<div class="context-menu-item" data-action="showPath">ルートを表示</div>';
                 }
 
+                menuHTML += '<div class="context-menu-separator"></div>';
+                menuHTML += '<div class="context-menu-item" data-action="toggleLineStyle">接続線の形式を切り替え</div>';
+
                 this.menuElement.innerHTML = menuHTML;
             },
 
@@ -84,6 +87,10 @@ function getContextMenu() {
                             pathHighlighter.highlightPathToRoot(this.targetNode.id);
                         } else if (action === 'clearPath') {
                             pathHighlighter.clearPathHighlight();
+                        } else if (action === 'toggleLineStyle') {
+                            const isCurved = toggleLineStyle();
+                            createCSSLines(treeConnections, {});
+                            console.log('切り替え: ' + (isCurved ? '曲線' : '直線'));
                         }
 
                         this.hideMenu();

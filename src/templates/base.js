@@ -187,6 +187,11 @@ function getBaseTemplate() {
         }
         .context-menu-item:hover {
             background: #f0f0f0;
+        }
+        .context-menu-separator {
+            height: 1px;
+            background: #ddd;
+            margin: 4px 0;
         }`,
 
         htmlStructure: {
