@@ -50,6 +50,9 @@ function getEmbeddedCode() {
     const highlightManager = fs.readFileSync('./src/features/highlight-manager.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};/g, '');
 
+    const pathHighlighter = fs.readFileSync('./src/features/path-highlighter.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};/g, '');
+
     const contextMenu = fs.readFileSync('./src/features/context-menu.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};/g, '');
 
@@ -74,6 +77,7 @@ function getEmbeddedCode() {
         layoutSwitcher + '\n' +
         viewportManager + '\n' +
         highlightManager + '\n' +
+        pathHighlighter + '\n' +
         contextMenu + '\n    ';
 }
 

@@ -179,6 +179,8 @@ ${getEmbeddedCode()}
             script += '        ' + getViewportManager() + '\n\n';
             script += '        // Import highlight manager\n';
             script += '        ' + getHighlightManager() + '\n\n';
+            script += '        // Import path highlighter\n';
+            script += '        ' + getPathHighlighter() + '\n\n';
             script += '        // Import context menu\n';
             script += '        ' + getContextMenu() + '\n\n';
             script += '        window.onload = function() {\n';
@@ -186,7 +188,7 @@ ${getEmbeddedCode()}
             script += '            viewportManager.init();\n';
             script += '            contextMenu.init();\n\n';
             script += '            // Apply initial layout\n';
-            script += '            currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);\n\n';
+            script += '            currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);\n\n';
             script += '            // デバッグ：実際の要素幅と計算値を比較\n';
             script += '            setTimeout(() => {\n';
             script += '                debugActualWidths(nodes);\n';
