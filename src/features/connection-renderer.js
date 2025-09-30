@@ -472,9 +472,15 @@ function getConnectionRenderer() {
                         class: 'connection-label'
                     });
 
+                    // 子ノードの位置情報を取得（直線描画と同じ基準）
+                    const toElement = svgHelpers.getNodeElement(conn.to);
+                    const toPos = getNodePosition(toElement);
+                    const toLeft = toPos.left;
+                    const toTop = toPos.top;
+
                     const labelRect = svgHelpers.createRect({
-                        x: x2,
-                        y: y2 - labelHeight - 5,
+                        x: toLeft,
+                        y: toTop - labelHeight - 5,
                         width: labelWidth,
                         height: labelHeight,
                         fill: '#fff',
@@ -485,8 +491,8 @@ function getConnectionRenderer() {
                     });
 
                     const labelText = svgHelpers.createText(conn.label, {
-                        x: x2 + labelPadding,
-                        y: y2 - labelHeight / 2 - 5,
+                        x: toLeft + labelPadding,
+                        y: toTop - labelHeight / 2 - 5,
                         'dominant-baseline': 'central',
                         fill: '#333',
                         'font-size': '11',
