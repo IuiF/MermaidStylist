@@ -487,7 +487,7 @@ function getHierarchicalLayoutCode() {
                 return;
             }
 
-            const existingLines = container.querySelectorAll('.connection-line');
+            const existingLines = container.querySelectorAll('.connection-line, .connection-label');
             existingLines.forEach(line => line.remove());
 
             let connectionCount = 0;
@@ -531,6 +531,23 @@ function getHierarchicalLayoutCode() {
 
                     container.appendChild(line);
                     connectionCount++;
+
+                    // ラベルがある場合は表示
+                    if (conn.label) {
+                        const labelElement = document.createElement('div');
+                        labelElement.className = 'connection-label';
+                        labelElement.textContent = conn.label;
+
+                        // ラベルを接続線の中央に配置
+                        const centerX = x1 + dx / 2;
+                        const centerY = y1 + dy / 2;
+
+                        labelElement.style.left = centerX + 'px';
+                        labelElement.style.top = centerY + 'px';
+                        labelElement.style.transform = 'translate(-50%, -50%)';
+
+                        container.appendChild(labelElement);
+                    }
                 }
             });
 
