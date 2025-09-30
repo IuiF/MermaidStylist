@@ -118,7 +118,7 @@ function getBaseTemplate() {
         .highlighted.path-highlighted.collapsed-node {
             box-shadow:
                 5px 5px 0 0 #d0d0d0,
-                5px 5px 0 2px #2196f3,
+                5px 5px 0 2px #ffc107,
                 2px 2px 4px rgba(0,0,0,0.3),
                 0 0 8px rgba(33, 150, 243, 0.5) !important;
             outline: 3px solid #ffc107;
