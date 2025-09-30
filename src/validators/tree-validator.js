@@ -36,7 +36,7 @@ function validateTreeStructure(nodes, connections) {
         errors.push('ルートノードが存在しません。すべてのノードが親を持っているため、サイクルの可能性があります。');
     }
 
-    // サイクル検出
+    // サイクル検出（BFSでレベルを割り当て、上位レベルへの接続を検出）
     const childrenMap = new Map();
     connections.forEach(conn => {
         if (!childrenMap.has(conn.from)) {
@@ -45,31 +45,39 @@ function validateTreeStructure(nodes, connections) {
         childrenMap.get(conn.from).push(conn.to);
     });
 
-    const visited = new Set();
-    const recursionStack = new Set();
+    // BFSで各ノードにレベルを割り当て
+    const nodeLevel = new Map();
+    const queue = [];
 
-    function hasCycle(nodeId) {
-        visited.add(nodeId);
-        recursionStack.add(nodeId);
+    // ルートノードをレベル0として開始
+    rootNodes.forEach(rootId => {
+        nodeLevel.set(rootId, 0);
+        queue.push(rootId);
+    });
 
-        const children = childrenMap.get(nodeId) || [];
+    // BFSでレベルを割り当て
+    while (queue.length > 0) {
+        const currentId = queue.shift();
+        const currentLevel = nodeLevel.get(currentId);
+        const children = childrenMap.get(currentId) || [];
+
         for (const childId of children) {
-            if (!visited.has(childId)) {
-                if (hasCycle(childId)) {
-                    return true;
-                }
-            } else if (recursionStack.has(childId)) {
-                return true;
+            if (!nodeLevel.has(childId)) {
+                nodeLevel.set(childId, currentLevel + 1);
+                queue.push(childId);
             }
         }
-
-        recursionStack.delete(nodeId);
-        return false;
     }
 
-    for (const rootId of rootNodes) {
-        if (!visited.has(rootId)) {
-            if (hasCycle(rootId)) {
+    // すべての接続をチェックして、上位レベルに戻る接続がないか確認
+    for (const conn of connections) {
+        const fromLevel = nodeLevel.get(conn.from);
+        const toLevel = nodeLevel.get(conn.to);
+
+        // fromとtoの両方がレベル割り当て済みの場合のみチェック
+        if (fromLevel !== undefined && toLevel !== undefined) {
+            // toのレベルがfrom以下（同じか上位）の場合、サイクル
+            if (toLevel <= fromLevel) {
                 errors.push('グラフにサイクル（循環参照）が検出されました。木構造ではありません。');
                 break;
             }
