@@ -220,6 +220,12 @@ function getConnectionRenderer() {
                 const siblingIndex = siblings.findIndex(c => c.to === conn.to);
                 const siblingCount = siblings.length;
 
+                // 子が持つ親の数をカウント
+                const parentCount = connections.filter(c => c.to === conn.to).length;
+
+                // 1:1の親子関係を判定（親が1つの子のみ、子が1つの親のみ）
+                const is1to1 = (siblingCount === 1 && parentCount === 1);
+
                 // すべてのエッジは親の中央から出発
                 const y1 = fromPos.top + fromDim.height / 2;
                 const x1 = fromPos.left + fromDim.width;
@@ -241,7 +247,8 @@ function getConnectionRenderer() {
                     siblingCount: siblingCount,
                     parentX: fromPos.left,
                     parentY: fromPos.top,
-                    depth: edgeDepth
+                    depth: edgeDepth,
+                    is1to1: is1to1
                 });
             });
 
@@ -269,11 +276,14 @@ function getConnectionRenderer() {
                 parentRanks[id] = index;
             });
 
-            // 階層ごとに親の右端の最大位置を計算
+            // 階層ごとに親の右端の最大位置を計算（1:1の関係は除外）
             const depthMaxParentRight = {}; // depth -> max(parentRight)
             const depthMinChildLeft = {}; // depth -> min(childLeft)
 
             edgeInfos.forEach(info => {
+                // 1:1の関係はレーン計算から除外
+                if (info.is1to1) return;
+
                 const depth = info.depth;
 
                 // 親の右端
@@ -343,9 +353,12 @@ function getConnectionRenderer() {
                 }
             }
 
-            // 親ごとに子のY範囲を計算
+            // 親ごとに子のY範囲を計算（1:1の関係は除外）
             const parentChildrenYRanges = {};
             edgeInfos.forEach(info => {
+                // 1:1の関係はレーン計算から除外
+                if (info.is1to1) return;
+
                 if (!parentChildrenYRanges[info.conn.from]) {
                     parentChildrenYRanges[info.conn.from] = { yMin: Infinity, yMax: -Infinity };
                 }
@@ -357,13 +370,87 @@ function getConnectionRenderer() {
             let connectionCount = 0;
 
             edgeInfos.forEach(edgeInfo => {
-                const { conn, x1, y1, x2, y2, yMin, yMax, siblingIndex, siblingCount, depth } = edgeInfo;
+                const { conn, x1, y1, x2, y2, yMin, yMax, siblingIndex, siblingCount, depth, is1to1 } = edgeInfo;
+
+                // 1:1の親子関係は直線で描画
+                if (is1to1) {
+                    const line = svgHelpers.createLine(x1, y1, x2, y2, {
+                        class: 'connection-line',
+                        'data-from': conn.from,
+                        'data-to': conn.to
+                    });
+                    svgLayer.appendChild(line);
+
+                    // 矢印を作成
+                    const angle = Math.atan2(y2 - y1, x2 - x1);
+                    const arrowSize = 8;
+                    const arrowX = x2;
+                    const arrowY = y2;
+
+                    const ap1x = arrowX;
+                    const ap1y = arrowY;
+                    const ap2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
+                    const ap2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
+                    const ap3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
+                    const ap3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
+
+                    const arrow = svgHelpers.createPolygon(\`\${ap1x},\${ap1y} \${ap2x},\${ap2y} \${ap3x},\${ap3y}\`, {
+                        class: 'connection-arrow',
+                        'data-from': conn.from,
+                        'data-to': conn.to
+                    });
+                    svgLayer.appendChild(arrow);
+
+                    // ラベルがあれば追加（直線描画と同じ処理）
+                    if (conn.label) {
+                        const toElement = svgHelpers.getNodeElement(conn.to);
+                        const toPos = getNodePosition(toElement);
+                        const toLeft = toPos.left;
+                        const toTop = toPos.top;
+
+                        const labelPadding = 4;
+                        const labelWidth = conn.label.length * 6 + labelPadding * 2;
+                        const labelHeight = 16;
+
+                        const labelGroup = svgHelpers.createGroup({
+                            class: 'connection-label'
+                        });
+
+                        const labelRect = svgHelpers.createRect({
+                            x: toLeft,
+                            y: toTop - labelHeight - 5,
+                            width: labelWidth,
+                            height: labelHeight,
+                            fill: '#fff',
+                            stroke: '#999',
+                            'stroke-width': 1,
+                            rx: 2,
+                            ry: 2
+                        });
+
+                        const labelText = svgHelpers.createText(conn.label, {
+                            x: toLeft + labelPadding,
+                            y: toTop - labelHeight / 2 - 5,
+                            'dominant-baseline': 'central',
+                            fill: '#333',
+                            'font-size': '11',
+                            'font-family': 'Arial, sans-serif'
+                        });
+
+                        labelGroup.appendChild(labelRect);
+                        labelGroup.appendChild(labelText);
+                        svgLayer.appendChild(labelGroup);
+                    }
+
+                    connectionCount++;
+                    return;
+                }
                 const fromElement = svgHelpers.getNodeElement(conn.from);
                 const toElement = svgHelpers.getNodeElement(conn.to);
 
-                // この階層内での親のランクを計算
+                // この階層内での親のランクを計算（1:1の関係は除外）
                 const parentsAtThisDepth = edgeInfos
-                    .filter(e => e.depth === depth)
+                    .filter(e => e.depth === depth && !e.is1to1)
                     .map(e => e.conn.from)
                     .filter((v, i, a) => a.indexOf(v) === i) // ユニーク
                     .sort((a, b) => (parentYPositions[a] || 0) - (parentYPositions[b] || 0));
