@@ -9,7 +9,7 @@ function main() {
     try {
         // コマンドライン引数からファイルパスを取得
         const args = process.argv.slice(2);
-        const inputFile = args[0] || 'sample_mermaid.mmd';
+        const inputFile = args[0] || 'sample.mmd';
         const outputFile = args[1] || 'output.html';
 
         console.log(`Reading: ${inputFile}`);
@@ -45,7 +45,7 @@ function main() {
     } catch (error) {
         console.error('Error:', error.message);
         console.error('\nUsage: node main.js [input.mmd] [output.html]');
-        console.error('Example: node main.js sample_mermaid.mmd output.html');
+        console.error('Example: node main.js sample.mmd output.html');
         process.exit(1);
     }
 }
