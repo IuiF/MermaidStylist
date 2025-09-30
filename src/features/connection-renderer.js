@@ -189,10 +189,24 @@ function getConnectionRenderer() {
                     const toWidth = toDim.width;
                     const toHeight = toDim.height;
 
-                    const x1 = fromLeft + fromWidth;
-                    const y1 = fromTop + fromHeight / 2;
                     const x2 = toLeft;
                     const y2 = toTop + toHeight / 2;
+
+                    // 同じ親から出る接続の数とこの接続のインデックスを取得
+                    const siblings = connectionsByParent[conn.from];
+                    const siblingIndex = siblings.findIndex(c => c.to === conn.to);
+                    const siblingCount = siblings.length;
+
+                    // 親ノードの出発点を垂直方向に分散
+                    let y1;
+                    if (siblingCount === 1) {
+                        y1 = fromTop + fromHeight / 2;
+                    } else {
+                        const spacing = Math.min(fromHeight / (siblingCount + 1), 12);
+                        const startY = fromTop + fromHeight / 2 - ((siblingCount - 1) * spacing) / 2;
+                        y1 = startY + siblingIndex * spacing;
+                    }
+                    const x1 = fromLeft + fromWidth;
 
                     // ELKスタイル: 直交エッジ（orthogonal edges）
                     // 1. 親から水平に出る
