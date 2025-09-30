@@ -16,31 +16,33 @@ function getViewportManager() {
             init: function() {
                 const container = document.getElementById('treeContainer');
 
-                // マウスホイールでズーム（Ctrl+ホイールのみ）
+                // ホイールイベント（Ctrl+ホイールでズーム、通常の2本指スライドでパン）
                 container.addEventListener('wheel', (e) => {
-                    // Ctrl+ホイールまたはピンチジェスチャーの場合のみズーム
-                    if (!e.ctrlKey) {
-                        return;
-                    }
-
                     e.preventDefault();
 
-                    const rect = container.getBoundingClientRect();
-                    const mouseX = e.clientX - rect.left;
-                    const mouseY = e.clientY - rect.top;
+                    if (e.ctrlKey) {
+                        // Ctrl+ホイール → ズーム
+                        const rect = container.getBoundingClientRect();
+                        const mouseX = e.clientX - rect.left;
+                        const mouseY = e.clientY - rect.top;
 
-                    // ズーム前のマウス位置（ワールド座標）
-                    const worldX = (mouseX - this.translateX) / this.scale;
-                    const worldY = (mouseY - this.translateY) / this.scale;
+                        // ズーム前のマウス位置（ワールド座標）
+                        const worldX = (mouseX - this.translateX) / this.scale;
+                        const worldY = (mouseY - this.translateY) / this.scale;
 
-                    // ズーム
-                    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-                    const newScale = Math.max(this.minScale, Math.min(this.maxScale, this.scale * delta));
+                        // ズーム
+                        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                        const newScale = Math.max(this.minScale, Math.min(this.maxScale, this.scale * delta));
 
-                    // ズーム後もマウス位置が同じワールド座標を指すように調整
-                    this.translateX = mouseX - worldX * newScale;
-                    this.translateY = mouseY - worldY * newScale;
-                    this.scale = newScale;
+                        // ズーム後もマウス位置が同じワールド座標を指すように調整
+                        this.translateX = mouseX - worldX * newScale;
+                        this.translateY = mouseY - worldY * newScale;
+                        this.scale = newScale;
+                    } else {
+                        // 通常のホイール/2本指スライド → パン
+                        this.translateX -= e.deltaX;
+                        this.translateY -= e.deltaY;
+                    }
 
                     this.applyTransform();
                 }, { passive: false });
