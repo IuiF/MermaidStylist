@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stacking Context Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #e0e0e0;
+        }
+        .container {
+            border: 2px solid red;
+            padding: 20px;
+            background: #fafafa;
+            margin: 20px;
+        }
+
+        /* 現在の実装 */
+        .node-current {
+            position: relative;
+            border: 2px solid #333;
+            background: #f9f9f9 !important;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 2;
+            isolation: isolate;
+            display: inline-block;
+        }
+        .node-current::before {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: -5px;
+            bottom: -5px;
+            background: #d0d0d0;
+            border: 2px solid #333;
+            border-radius: 5px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* 修正案1: テキストをz-index制御 */
+        .node-fix1 {
+            position: relative;
+            border: 2px solid #333;
+            background: #f9f9f9;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 2;
+            display: inline-block;
+        }
+        .node-fix1::before {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: -5px;
+            bottom: -5px;
+            background: #d0d0d0;
+            border: 2px solid #333;
+            border-radius: 5px;
+            z-index: -1;
+            pointer-events: none;
+        }
+        .node-fix1 > span {
+            position: relative;
+            z-index: 1;
+        }
+
+        h2 {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>スタッキングコンテキスト調査</h1>
+
+    <h2>現在の実装（isolation: isolate）</h2>
+    <div class="container">
+        <div class="node-current">
+            TestNode▼
+        </div>
+        <p>階層: テキスト > ::before > 背景</p>
+    </div>
+
+    <h2>修正案1: テキストにz-index適用</h2>
+    <div class="container">
+        <div class="node-fix1">
+            <span>TestNode▼</span>
+        </div>
+        <p>階層: テキスト(z:1) > 背景 > ::before(z:-1)</p>
+    </div>
+
+    <h2>期待される表示</h2>
+    <div class="container">
+        <p>親ノード（背景・輪郭・テキスト）が一番上</p>
+        <p>灰色の重なりがその下の層</p>
+    </div>
+</body>
+</html>

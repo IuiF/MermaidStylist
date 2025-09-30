@@ -98,88 +98,22 @@
     <h1>Tree Structure</h1>
     <div class="layout-controls"><button class="layout-button active" id="verticalBtn" onclick="switchLayout('vertical')">縦方向</button><button class="layout-button" id="horizontalBtn" onclick="switchLayout('horizontal')">横方向</button><button class="layout-button" onclick="collapseAll()">すべて折りたたむ</button><button class="layout-button" onclick="expandAll()">すべて展開</button></div>
     <div class="tree-container" id="treeContainer">
-        <div class="node" id="A" data-label="Main System (A0000)" data-has-children="true" onclick="toggleNodeCollapse('A')">Main System (A0000)<span class="collapse-button" onclick="toggleNodeCollapse('A'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="B" data-label="Subsystem 1 (B1000)" data-has-children="true" onclick="toggleNodeCollapse('B')">Subsystem 1 (B1000)<span class="collapse-button" onclick="toggleNodeCollapse('B'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="C" data-label="Subsystem 2 (C2000)" data-has-children="true" onclick="toggleNodeCollapse('C')">Subsystem 2 (C2000)<span class="collapse-button" onclick="toggleNodeCollapse('C'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="D" data-label="Subsystem 3 (D3000)" data-has-children="true" onclick="toggleNodeCollapse('D')">Subsystem 3 (D3000)<span class="collapse-button" onclick="toggleNodeCollapse('D'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="E" data-label="Module 1.1 (E1100)" data-has-children="true" onclick="toggleNodeCollapse('E')">Module 1.1 (E1100)<span class="collapse-button" onclick="toggleNodeCollapse('E'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="F" data-label="Module 1.2 (F1200)" data-has-children="true" onclick="toggleNodeCollapse('F')">Module 1.2 (F1200)<span class="collapse-button" onclick="toggleNodeCollapse('F'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="G" data-label="Module 2.1 (G2100)" data-has-children="true" onclick="toggleNodeCollapse('G')">Module 2.1 (G2100)<span class="collapse-button" onclick="toggleNodeCollapse('G'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="H" data-label="Module 2.2 (H2200)" data-has-children="false">Module 2.2 (H2200)</div>
-        <div class="node" id="I" data-label="Component 1.1.1 (I1110)" data-has-children="true" onclick="toggleNodeCollapse('I')">Component 1.1.1 (I1110)<span class="collapse-button" onclick="toggleNodeCollapse('I'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="J" data-label="Component 1.1.2 (J1120)" data-has-children="true" onclick="toggleNodeCollapse('J')">Component 1.1.2 (J1120)<span class="collapse-button" onclick="toggleNodeCollapse('J'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="K" data-label="Component 1.2.1 (K1210)" data-has-children="true" onclick="toggleNodeCollapse('K')">Component 1.2.1 (K1210)<span class="collapse-button" onclick="toggleNodeCollapse('K'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="L" data-label="Component 2.1.1 (L2110)" data-has-children="true" onclick="toggleNodeCollapse('L')">Component 2.1.1 (L2110)<span class="collapse-button" onclick="toggleNodeCollapse('L'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="M" data-label="Component 2.1.2 (M2120)" data-has-children="true" onclick="toggleNodeCollapse('M')">Component 2.1.2 (M2120)<span class="collapse-button" onclick="toggleNodeCollapse('M'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="N" data-label="Component 3.1 (N3100)" data-has-children="true" onclick="toggleNodeCollapse('N')">Component 3.1 (N3100)<span class="collapse-button" onclick="toggleNodeCollapse('N'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="O" data-label="Component 3.2 (O3200)" data-has-children="true" onclick="toggleNodeCollapse('O')">Component 3.2 (O3200)<span class="collapse-button" onclick="toggleNodeCollapse('O'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="P" data-label="Detail P (P0010)" data-has-children="true" onclick="toggleNodeCollapse('P')">Detail P (P0010)<span class="collapse-button" onclick="toggleNodeCollapse('P'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="Q" data-label="Detail Q (Q0020)" data-has-children="true" onclick="toggleNodeCollapse('Q')">Detail Q (Q0020)<span class="collapse-button" onclick="toggleNodeCollapse('Q'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="R" data-label="Detail R (R0030)" data-has-children="true" onclick="toggleNodeCollapse('R')">Detail R (R0030)<span class="collapse-button" onclick="toggleNodeCollapse('R'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="S" data-label="Detail S (S0040)" data-has-children="true" onclick="toggleNodeCollapse('S')">Detail S (S0040)<span class="collapse-button" onclick="toggleNodeCollapse('S'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="T" data-label="Detail T (T0050)" data-has-children="true" onclick="toggleNodeCollapse('T')">Detail T (T0050)<span class="collapse-button" onclick="toggleNodeCollapse('T'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="U" data-label="Detail U (U0060)" data-has-children="true" onclick="toggleNodeCollapse('U')">Detail U (U0060)<span class="collapse-button" onclick="toggleNodeCollapse('U'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="V" data-label="Detail V (V0070)" data-has-children="true" onclick="toggleNodeCollapse('V')">Detail V (V0070)<span class="collapse-button" onclick="toggleNodeCollapse('V'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="W" data-label="Detail W (W0080)" data-has-children="true" onclick="toggleNodeCollapse('W')">Detail W (W0080)<span class="collapse-button" onclick="toggleNodeCollapse('W'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="X" data-label="Detail X (X0090)" data-has-children="true" onclick="toggleNodeCollapse('X')">Detail X (X0090)<span class="collapse-button" onclick="toggleNodeCollapse('X'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="Y" data-label="Detail Y (Y0100)" data-has-children="true" onclick="toggleNodeCollapse('Y')">Detail Y (Y0100)<span class="collapse-button" onclick="toggleNodeCollapse('Y'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="Z" data-label="Detail Z (Z0110)" data-has-children="true" onclick="toggleNodeCollapse('Z')">Detail Z (Z0110)<span class="collapse-button" onclick="toggleNodeCollapse('Z'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="AA" data-label="Detail AA (AA0120)" data-has-children="true" onclick="toggleNodeCollapse('AA')">Detail AA (AA0120)<span class="collapse-button" onclick="toggleNodeCollapse('AA'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="AB" data-label="Detail AB (AB0130)" data-has-children="true" onclick="toggleNodeCollapse('AB')">Detail AB (AB0130)<span class="collapse-button" onclick="toggleNodeCollapse('AB'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="AC" data-label="Detail AC (AC0140)" data-has-children="true" onclick="toggleNodeCollapse('AC')">Detail AC (AC0140)<span class="collapse-button" onclick="toggleNodeCollapse('AC'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="AD" data-label="Detail AD (AD0150)" data-has-children="true" onclick="toggleNodeCollapse('AD')">Detail AD (AD0150)<span class="collapse-button" onclick="toggleNodeCollapse('AD'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="AE" data-label="Detail AE (AE0160)" data-has-children="true" onclick="toggleNodeCollapse('AE')">Detail AE (AE0160)<span class="collapse-button" onclick="toggleNodeCollapse('AE'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="AF" data-label="Detail AF (AF0170)" data-has-children="true" onclick="toggleNodeCollapse('AF')">Detail AF (AF0170)<span class="collapse-button" onclick="toggleNodeCollapse('AF'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="AG" data-label="Detail AG (AG0180)" data-has-children="true" onclick="toggleNodeCollapse('AG')">Detail AG (AG0180)<span class="collapse-button" onclick="toggleNodeCollapse('AG'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="AH" data-label="Detail AH (AH0190)" data-has-children="true" onclick="toggleNodeCollapse('AH')">Detail AH (AH0190)<span class="collapse-button" onclick="toggleNodeCollapse('AH'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="AI" data-label="Detail AI (AI0200)" data-has-children="true" onclick="toggleNodeCollapse('AI')">Detail AI (AI0200)<span class="collapse-button" onclick="toggleNodeCollapse('AI'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="AJ" data-label="Detail AJ (AJ0210)" data-has-children="true" onclick="toggleNodeCollapse('AJ')">Detail AJ (AJ0210)<span class="collapse-button" onclick="toggleNodeCollapse('AJ'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="AK" data-label="Detail AK (AK0220)" data-has-children="true" onclick="toggleNodeCollapse('AK')">Detail AK (AK0220)<span class="collapse-button" onclick="toggleNodeCollapse('AK'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="AL" data-label="Detail AL (AL0230)" data-has-children="true" onclick="toggleNodeCollapse('AL')">Detail AL (AL0230)<span class="collapse-button" onclick="toggleNodeCollapse('AL'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="AM" data-label="Detail AM (AM0240)" data-has-children="true" onclick="toggleNodeCollapse('AM')">Detail AM (AM0240)<span class="collapse-button" onclick="toggleNodeCollapse('AM'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="AN" data-label="Detail AN (AN0250)" data-has-children="true" onclick="toggleNodeCollapse('AN')">Detail AN (AN0250)<span class="collapse-button" onclick="toggleNodeCollapse('AN'); event.stopPropagation();">▼</span></div>
-        <div class="node" id="AO" data-label="Detail AO (AO0260)" data-has-children="false">Detail AO (AO0260)</div>
-        <div class="node" id="AP" data-label="Detail AP (AP0270)" data-has-children="false">Detail AP (AP0270)</div>
-        <div class="node" id="AQ" data-label="Detail AQ (AQ0280)" data-has-children="false">Detail AQ (AQ0280)</div>
-        <div class="node" id="AR" data-label="Detail AR (AR0290)" data-has-children="false">Detail AR (AR0290)</div>
-        <div class="node" id="AS" data-label="Detail AS (AS0300)" data-has-children="false">Detail AS (AS0300)</div>
-        <div class="node" id="AT" data-label="Detail AT (AT0310)" data-has-children="false">Detail AT (AT0310)</div>
-        <div class="node" id="AU" data-label="Detail AU (AU0320)" data-has-children="false">Detail AU (AU0320)</div>
-        <div class="node" id="AV" data-label="Detail AV (AV0330)" data-has-children="false">Detail AV (AV0330)</div>
-        <div class="node" id="AW" data-label="Detail AW (AW0340)" data-has-children="false">Detail AW (AW0340)</div>
-        <div class="node" id="AX" data-label="Detail AX (AX0350)" data-has-children="false">Detail AX (AX0350)</div>
-        <div class="node" id="AY" data-label="Detail AY (AY0360)" data-has-children="false">Detail AY (AY0360)</div>
-        <div class="node" id="AZ" data-label="Detail AZ (AZ0370)" data-has-children="false">Detail AZ (AZ0370)</div>
-        <div class="node" id="BA" data-label="Detail BA (BA0380)" data-has-children="false">Detail BA (BA0380)</div>
-        <div class="node" id="BB" data-label="Detail BB (BB0390)" data-has-children="false">Detail BB (BB0390)</div>
-        <div class="node" id="BC" data-label="Detail BC (BC0400)" data-has-children="false">Detail BC (BC0400)</div>
-        <div class="node" id="BD" data-label="Detail BD (BD0410)" data-has-children="false">Detail BD (BD0410)</div>
-        <div class="node" id="BE" data-label="Detail BE (BE0420)" data-has-children="false">Detail BE (BE0420)</div>
-        <div class="node" id="BF" data-label="Detail BF (BF0430)" data-has-children="false">Detail BF (BF0430)</div>
-        <div class="node" id="BG" data-label="Detail BG (BG0440)" data-has-children="false">Detail BG (BG0440)</div>
-        <div class="node" id="BH" data-label="Detail BH (BH0450)" data-has-children="false">Detail BH (BH0450)</div>
-        <div class="node" id="BI" data-label="Detail BI (BI0460)" data-has-children="false">Detail BI (BI0460)</div>
-        <div class="node" id="BJ" data-label="Detail BJ (BJ0470)" data-has-children="false">Detail BJ (BJ0470)</div>
-        <div class="node" id="BK" data-label="Detail BK (BK0480)" data-has-children="false">Detail BK (BK0480)</div>
-        <div class="node" id="BL" data-label="Detail BL (BL0490)" data-has-children="false">Detail BL (BL0490)</div>
-        <div class="node" id="BM" data-label="Detail BM (BM0500)" data-has-children="false">Detail BM (BM0500)</div>
-        <div class="node" id="BN" data-label="Detail BN (BN0510)" data-has-children="false">Detail BN (BN0510)</div>
-        <div class="node" id="BO" data-label="Detail BO (BO0520)" data-has-children="false">Detail BO (BO0520)</div>
-        <div class="node" id="BP" data-label="Detail BP (BP0530)" data-has-children="false">Detail BP (BP0530)</div>
-        <div class="node" id="BQ" data-label="Detail BQ (BQ0540)" data-has-children="false">Detail BQ (BQ0540)</div>
-        <div class="node" id="BR" data-label="Detail BR (BR0550)" data-has-children="false">Detail BR (BR0550)</div>
-        <div class="node" id="BS" data-label="Detail BS (BS0560)" data-has-children="false">Detail BS (BS0560)</div>
-        <div class="node" id="BT" data-label="Detail BT (BT0570)" data-has-children="false">Detail BT (BT0570)</div>
-        <div class="node" id="BU" data-label="Detail BU (BU0580)" data-has-children="false">Detail BU (BU0580)</div>
-        <div class="node" id="BV" data-label="Detail BV (BV0590)" data-has-children="false">Detail BV (BV0590)</div>
-        <div class="node" id="BW" data-label="Detail BW (BW0600)" data-has-children="false">Detail BW (BW0600)</div>
-        <div class="node" id="BX" data-label="Detail BX (BX0610)" data-has-children="false">Detail BX (BX0610)</div>
-        <div class="node" id="BY" data-label="Detail BY (BY0620)" data-has-children="false">Detail BY (BY0620)</div>
-        <div class="node" id="BZ" data-label="Detail BZ (BZ0630)" data-has-children="false">Detail BZ (BZ0630)</div>
+        <div class="node" id="--" data-label="|短いラベル| B[処理1" data-has-children="false">|短いラベル| B[処理1</div>
+        <div class="node" id="A--" data-label="|これは非常に長い条件文でノードに重なる可能性がある| C[処理2" data-has-children="false">|これは非常に長い条件文でノードに重なる可能性がある| C[処理2</div>
+        <div class="node" id="B--" data-label="|次のステップ| E[完了" data-has-children="false">|次のステップ| E[完了</div>
+        <div class="node" id="C--" data-label="|エラー処理:タイムアウトまたはネットワークエラーが発生した場合| F[エラー" data-has-children="false">|エラー処理:タイムアウトまたはネットワークエラーが発生した場合| F[エラー</div>
+        <div class="node" id="E--" data-label="|Yes| G[終了" data-has-children="false">|Yes| G[終了</div>
+        <div class="node" id="A" data-label="A" data-has-children="true" onclick="toggleNodeCollapse('A')">A<span class="collapse-button" onclick="toggleNodeCollapse('A'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="C" data-label="C" data-has-children="true" onclick="toggleNodeCollapse('C')">C<span class="collapse-button" onclick="toggleNodeCollapse('C'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="D" data-label="D" data-has-children="true" onclick="toggleNodeCollapse('D')">D<span class="collapse-button" onclick="toggleNodeCollapse('D'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="B" data-label="B" data-has-children="true" onclick="toggleNodeCollapse('B')">B<span class="collapse-button" onclick="toggleNodeCollapse('B'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="E" data-label="E" data-has-children="true" onclick="toggleNodeCollapse('E')">E<span class="collapse-button" onclick="toggleNodeCollapse('E'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="F" data-label="F" data-has-children="true" onclick="toggleNodeCollapse('F')">F<span class="collapse-button" onclick="toggleNodeCollapse('F'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="G" data-label="G" data-has-children="false">G</div>
     </div>
     <script>
-        const nodes = [{"id":"A","label":"Main System (A0000)"},{"id":"B","label":"Subsystem 1 (B1000)"},{"id":"C","label":"Subsystem 2 (C2000)"},{"id":"D","label":"Subsystem 3 (D3000)"},{"id":"E","label":"Module 1.1 (E1100)"},{"id":"F","label":"Module 1.2 (F1200)"},{"id":"G","label":"Module 2.1 (G2100)"},{"id":"H","label":"Module 2.2 (H2200)"},{"id":"I","label":"Component 1.1.1 (I1110)"},{"id":"J","label":"Component 1.1.2 (J1120)"},{"id":"K","label":"Component 1.2.1 (K1210)"},{"id":"L","label":"Component 2.1.1 (L2110)"},{"id":"M","label":"Component 2.1.2 (M2120)"},{"id":"N","label":"Component 3.1 (N3100)"},{"id":"O","label":"Component 3.2 (O3200)"},{"id":"P","label":"Detail P (P0010)"},{"id":"Q","label":"Detail Q (Q0020)"},{"id":"R","label":"Detail R (R0030)"},{"id":"S","label":"Detail S (S0040)"},{"id":"T","label":"Detail T (T0050)"},{"id":"U","label":"Detail U (U0060)"},{"id":"V","label":"Detail V (V0070)"},{"id":"W","label":"Detail W (W0080)"},{"id":"X","label":"Detail X (X0090)"},{"id":"Y","label":"Detail Y (Y0100)"},{"id":"Z","label":"Detail Z (Z0110)"},{"id":"AA","label":"Detail AA (AA0120)"},{"id":"AB","label":"Detail AB (AB0130)"},{"id":"AC","label":"Detail AC (AC0140)"},{"id":"AD","label":"Detail AD (AD0150)"},{"id":"AE","label":"Detail AE (AE0160)"},{"id":"AF","label":"Detail AF (AF0170)"},{"id":"AG","label":"Detail AG (AG0180)"},{"id":"AH","label":"Detail AH (AH0190)"},{"id":"AI","label":"Detail AI (AI0200)"},{"id":"AJ","label":"Detail AJ (AJ0210)"},{"id":"AK","label":"Detail AK (AK0220)"},{"id":"AL","label":"Detail AL (AL0230)"},{"id":"AM","label":"Detail AM (AM0240)"},{"id":"AN","label":"Detail AN (AN0250)"},{"id":"AO","label":"Detail AO (AO0260)"},{"id":"AP","label":"Detail AP (AP0270)"},{"id":"AQ","label":"Detail AQ (AQ0280)"},{"id":"AR","label":"Detail AR (AR0290)"},{"id":"AS","label":"Detail AS (AS0300)"},{"id":"AT","label":"Detail AT (AT0310)"},{"id":"AU","label":"Detail AU (AU0320)"},{"id":"AV","label":"Detail AV (AV0330)"},{"id":"AW","label":"Detail AW (AW0340)"},{"id":"AX","label":"Detail AX (AX0350)"},{"id":"AY","label":"Detail AY (AY0360)"},{"id":"AZ","label":"Detail AZ (AZ0370)"},{"id":"BA","label":"Detail BA (BA0380)"},{"id":"BB","label":"Detail BB (BB0390)"},{"id":"BC","label":"Detail BC (BC0400)"},{"id":"BD","label":"Detail BD (BD0410)"},{"id":"BE","label":"Detail BE (BE0420)"},{"id":"BF","label":"Detail BF (BF0430)"},{"id":"BG","label":"Detail BG (BG0440)"},{"id":"BH","label":"Detail BH (BH0450)"},{"id":"BI","label":"Detail BI (BI0460)"},{"id":"BJ","label":"Detail BJ (BJ0470)"},{"id":"BK","label":"Detail BK (BK0480)"},{"id":"BL","label":"Detail BL (BL0490)"},{"id":"BM","label":"Detail BM (BM0500)"},{"id":"BN","label":"Detail BN (BN0510)"},{"id":"BO","label":"Detail BO (BO0520)"},{"id":"BP","label":"Detail BP (BP0530)"},{"id":"BQ","label":"Detail BQ (BQ0540)"},{"id":"BR","label":"Detail BR (BR0550)"},{"id":"BS","label":"Detail BS (BS0560)"},{"id":"BT","label":"Detail BT (BT0570)"},{"id":"BU","label":"Detail BU (BU0580)"},{"id":"BV","label":"Detail BV (BV0590)"},{"id":"BW","label":"Detail BW (BW0600)"},{"id":"BX","label":"Detail BX (BX0610)"},{"id":"BY","label":"Detail BY (BY0620)"},{"id":"BZ","label":"Detail BZ (BZ0630)"}];
-        const connections = [{"from":"A","to":"B","label":"is composed of"},{"from":"A","to":"C","label":"is composed of"},{"from":"A","to":"D","label":"is composed of"},{"from":"B","to":"E","label":"contains"},{"from":"B","to":"F","label":"contains"},{"from":"C","to":"G","label":"contains"},{"from":"C","to":"H","label":"contains"},{"from":"D","to":"N","label":"contains"},{"from":"D","to":"O","label":"contains"},{"from":"E","to":"I","label":"uses service"},{"from":"E","to":"J","label":"uses service"},{"from":"F","to":"K","label":"uses service"},{"from":"G","to":"L","label":"uses service"},{"from":"G","to":"M","label":"uses service"},{"from":"N","to":"Z","label":"uses service"},{"from":"N","to":"AA","label":"uses service"},{"from":"O","to":"AB","label":"uses service"},{"from":"O","to":"AC","label":"uses service"},{"from":"I","to":"P","label":"implements logic"},{"from":"I","to":"Q","label":"implements logic"},{"from":"J","to":"R","label":"implements logic"},{"from":"J","to":"S","label":"implements logic"},{"from":"K","to":"T","label":"implements logic"},{"from":"K","to":"U","label":"implements logic"},{"from":"L","to":"V","label":"implements logic"},{"from":"L","to":"W","label":"implements logic"},{"from":"M","to":"X","label":"implements logic"},{"from":"M","to":"Y","label":"implements logic"},{"from":"N","to":"Z","label":"implements logic"},{"from":"N","to":"AA","label":"implements logic"},{"from":"O","to":"AB","label":"implements logic"},{"from":"O","to":"AC","label":"implements logic"},{"from":"P","to":"AD","label":"calls"},{"from":"P","to":"AE","label":"calls"},{"from":"Q","to":"AF","label":"calls"},{"from":"Q","to":"AG","label":"calls"},{"from":"R","to":"AH","label":"calls"},{"from":"R","to":"AI","label":"calls"},{"from":"S","to":"AJ","label":"calls"},{"from":"S","to":"AK","label":"calls"},{"from":"T","to":"AL","label":"calls"},{"from":"T","to":"AM","label":"calls"},{"from":"U","to":"AN","label":"calls"},{"from":"U","to":"AO","label":"calls"},{"from":"V","to":"AP","label":"calls"},{"from":"V","to":"AQ","label":"calls"},{"from":"W","to":"AR","label":"calls"},{"from":"W","to":"AS","label":"calls"},{"from":"X","to":"AT","label":"calls"},{"from":"X","to":"AU","label":"calls"},{"from":"Y","to":"AV","label":"calls"},{"from":"Y","to":"AW","label":"calls"},{"from":"Z","to":"AX","label":"calls"},{"from":"Z","to":"AY","label":"calls"},{"from":"AA","to":"AZ","label":"calls"},{"from":"AA","to":"BA","label":"calls"},{"from":"AB","to":"BB","label":"calls"},{"from":"AB","to":"BC","label":"calls"},{"from":"AC","to":"BD","label":"calls"},{"from":"AC","to":"BE","label":"calls"},{"from":"AD","to":"BF","label":"calls"},{"from":"AD","to":"BG","label":"calls"},{"from":"AE","to":"BH","label":"calls"},{"from":"AE","to":"BI","label":"calls"},{"from":"AF","to":"BJ","label":"calls"},{"from":"AF","to":"BK","label":"calls"},{"from":"AG","to":"BL","label":"calls"},{"from":"AG","to":"BM","label":"calls"},{"from":"AH","to":"BN","label":"calls"},{"from":"AH","to":"BO","label":"calls"},{"from":"AI","to":"BP","label":"calls"},{"from":"AI","to":"BQ","label":"calls"},{"from":"AJ","to":"BR","label":"calls"},{"from":"AJ","to":"BS","label":"calls"},{"from":"AK","to":"BT","label":"calls"},{"from":"AK","to":"BU","label":"calls"},{"from":"AL","to":"BV","label":"calls"},{"from":"AL","to":"BW","label":"calls"},{"from":"AM","to":"BX","label":"calls"},{"from":"AM","to":"BY","label":"calls"},{"from":"AN","to":"BZ","label":"calls"}];
+        const nodes = [{"id":"--","label":"|短いラベル| B[処理1"},{"id":"A--","label":"|これは非常に長い条件文でノードに重なる可能性がある| C[処理2"},{"id":"B--","label":"|次のステップ| E[完了"},{"id":"C--","label":"|エラー処理:タイムアウトまたはネットワークエラーが発生した場合| F[エラー"},{"id":"E--","label":"|Yes| G[終了"},{"id":"A","label":"A"},{"id":"C","label":"C"},{"id":"D","label":"D"},{"id":"B","label":"B"},{"id":"E","label":"E"},{"id":"F","label":"F"},{"id":"G","label":"G"}];
+        const connections = [{"from":"A","to":"C","label":"これは非常に長い条件文でノードに重なる可能性がある"},{"from":"A","to":"D","label":"もう一つの長い条件:ユーザー入力が正しく、かつデータベース接続が有効な場合"},{"from":"B","to":"E","label":"次のステップ"},{"from":"C","to":"F","label":"エラー処理:タイムアウトまたはネットワークエラーが発生した場合"},{"from":"D","to":"E","label":"OK"},{"from":"E","to":"G","label":"Yes"},{"from":"F","to":"G","label":"No"}];
 
         // Import layout utilities
         
@@ -224,6 +158,27 @@
                     console.log("  Calculated: " + calculatedWidth + "px, Actual: " + actualWidth + "px, Difference: " + difference + "px");
                 }
             });
+        }
+
+        function calculateConnectionLabelSpacing(connections, parentId) {
+            const labelFont = '11px Arial, sans-serif';
+            const minSpacing = 60;
+            const labelPadding = 30;
+
+            let maxLabelWidth = 0;
+
+            connections.forEach(conn => {
+                if (conn.from === parentId && conn.label) {
+                    const labelWidth = measureTextWidth(conn.label, labelFont);
+                    maxLabelWidth = Math.max(maxLabelWidth, labelWidth);
+                }
+            });
+
+            if (maxLabelWidth > 0) {
+                return Math.max(minSpacing, maxLabelWidth + labelPadding);
+            }
+
+            return minSpacing;
         }
     
 
@@ -313,7 +268,8 @@
                                 const siblings = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
                                 const siblingIndex = siblings.indexOf(node.id);
 
-                                let startX = parentPos.x + parentPos.width + fixedSpacing;
+                                const dynamicSpacing = calculateConnectionLabelSpacing(connections, parentId);
+                                let startX = parentPos.x + parentPos.width + dynamicSpacing;
 
                                 for (let i = 0; i < siblingIndex; i++) {
                                     const siblingId = siblings[i];
@@ -361,13 +317,33 @@
             const treeStructure = analyzeTreeStructure(nodes, connections);
             const nodePositions = new Map();
 
-            const levelWidth = 200;
             const topMargin = 50;
             const fixedSpacing = 60;
             const nodeHeight = 40;
 
+            // レベルごとの最大ラベル幅を計算
+            const levelWidths = [];
             treeStructure.levels.forEach((level, levelIndex) => {
-                const x = 50 + levelIndex * levelWidth;
+                if (levelIndex === 0) {
+                    levelWidths.push(0);
+                } else {
+                    let maxSpacing = 200;
+                    level.forEach(node => {
+                        const parentId = connections.find(conn => conn.to === node.id)?.from;
+                        if (parentId) {
+                            const spacing = calculateConnectionLabelSpacing(connections, parentId);
+                            maxSpacing = Math.max(maxSpacing, spacing + 140);
+                        }
+                    });
+                    levelWidths.push(maxSpacing);
+                }
+            });
+
+            treeStructure.levels.forEach((level, levelIndex) => {
+                let x = 50;
+                for (let i = 0; i < levelIndex; i++) {
+                    x += levelWidths[i];
+                }
 
                 if (levelIndex === 0) {
                     let currentY = topMargin;

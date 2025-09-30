@@ -42,6 +42,18 @@ function getBaseTemplate() {
             border-top: 4px solid transparent;
             border-bottom: 4px solid transparent;
         }
+        .connection-label {
+            position: absolute;
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #333;
+            border: 1px solid #999;
+            white-space: nowrap;
+            z-index: 3;
+            pointer-events: none;
+        }
         .collapse-button {
             cursor: pointer;
             font-size: 10px;

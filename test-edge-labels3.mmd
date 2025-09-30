@@ -1,0 +1,170 @@
+graph TD
+    A["Main System (A0000)"]
+    B["Subsystem 1 (B1000)"]
+    C["Subsystem 2 (C2000)"]
+    D["Subsystem 3 (D3000)"]
+    E["Module 1.1 (E1100)"]
+    F["Module 1.2 (F1200)"]
+    G["Module 2.1 (G2100)"]
+    H["Module 2.2 (H2200)"]
+    I["Component 1.1.1 (I1110)"]
+    J["Component 1.1.2 (J1120)"]
+    K["Component 1.2.1 (K1210)"]
+    L["Component 2.1.1 (L2110)"]
+    M["Component 2.1.2 (M2120)"]
+    N["Component 3.1 (N3100)"]
+    O["Component 3.2 (O3200)"]
+    P["Detail P (P0010)"]
+    Q["Detail Q (Q0020)"]
+    R["Detail R (R0030)"]
+    S["Detail S (S0040)"]
+    T["Detail T (T0050)"]
+    U["Detail U (U0060)"]
+    V["Detail V (V0070)"]
+    W["Detail W (W0080)"]
+    X["Detail X (X0090)"]
+    Y["Detail Y (Y0100)"]
+    Z["Detail Z (Z0110)"]
+    AA["Detail AA (AA0120)"]
+    AB["Detail AB (AB0130)"]
+    AC["Detail AC (AC0140)"]
+    AD["Detail AD (AD0150)"]
+    AE["Detail AE (AE0160)"]
+    AF["Detail AF (AF0170)"]
+    AG["Detail AG (AG0180)"]
+    AH["Detail AH (AH0190)"]
+    AI["Detail AI (AI0200)"]
+    AJ["Detail AJ (AJ0210)"]
+    AK["Detail AK (AK0220)"]
+    AL["Detail AL (AL0230)"]
+    AM["Detail AM (AM0240)"]
+    AN["Detail AN (AN0250)"]
+    AO["Detail AO (AO0260)"]
+    AP["Detail AP (AP0270)"]
+    AQ["Detail AQ (AQ0280)"]
+    AR["Detail AR (AR0290)"]
+    AS["Detail AS (AS0300)"]
+    AT["Detail AT (AT0310)"]
+    AU["Detail AU (AU0320)"]
+    AV["Detail AV (AV0330)"]
+    AW["Detail AW (AW0340)"]
+    AX["Detail AX (AX0350)"]
+    AY["Detail AY (AY0360)"]
+    AZ["Detail AZ (AZ0370)"]
+    BA["Detail BA (BA0380)"]
+    BB["Detail BB (BB0390)"]
+    BC["Detail BC (BC0400)"]
+    BD["Detail BD (BD0410)"]
+    BE["Detail BE (BE0420)"]
+    BF["Detail BF (BF0430)"]
+    BG["Detail BG (BG0440)"]
+    BH["Detail BH (BH0450)"]
+    BI["Detail BI (BI0460)"]
+    BJ["Detail BJ (BJ0470)"]
+    BK["Detail BK (BK0480)"]
+    BL["Detail BL (BL0490)"]
+    BM["Detail BM (BM0500)"]
+    BN["Detail BN (BN0510)"]
+    BO["Detail BO (BO0520)"]
+    BP["Detail BP (BP0530)"]
+    BQ["Detail BQ (BQ0540)"]
+    BR["Detail BR (BR0550)"]
+    BS["Detail BS (BS0560)"]
+    BT["Detail BT (BT0570)"]
+    BU["Detail BU (BU0580)"]
+    BV["Detail BV (BV0590)"]
+    BW["Detail BW (BW0600)"]
+    BX["Detail BX (BX0610)"]
+    BY["Detail BY (BY0620)"]
+    BZ["Detail BZ (BZ0630)"]
+
+    %% Level 1: System -> Subsystem
+    A -->|"is composed of"| B
+    A -->|"is composed of"| C
+    A -->|"is composed of"| D
+
+    %% Level 2: Subsystem -> Module
+    B -->|"contains"| E
+    B -->|"contains"| F
+    C -->|"contains"| G
+    C -->|"contains"| H
+    D -->|"contains"| N
+    D -->|"contains"| O
+
+    %% Level 3: Module -> Component
+    E -->|"uses service"| I
+    E -->|"uses service"| J
+    F -->|"uses service"| K
+    G -->|"uses service"| L
+    G -->|"uses service"| M
+    N -->|"uses service"| Z
+    N -->|"uses service"| AA
+    O -->|"uses service"| AB
+    O -->|"uses service"| AC
+
+    %% Level 4: Component -> Detail
+    I -->|"implements logic"| P
+    I -->|"implements logic"| Q
+    J -->|"implements logic"| R
+    J -->|"implements logic"| S
+    K -->|"implements logic"| T
+    K -->|"implements logic"| U
+    L -->|"implements logic"| V
+    L -->|"implements logic"| W
+    M -->|"implements logic"| X
+    M -->|"implements logic"| Y
+    N -->|"implements logic"| Z
+    N -->|"implements logic"| AA
+    O -->|"implements logic"| AB
+    O -->|"implements logic"| AC
+
+    %% Level 5: Detail -> Further Detail (Uniform Labeling)
+    P -->|"calls"| AD
+    P -->|"calls"| AE
+    Q -->|"calls"| AF
+    Q -->|"calls"| AG
+    R -->|"calls"| AH
+    R -->|"calls"| AI
+    S -->|"calls"| AJ
+    S -->|"calls"| AK
+    T -->|"calls"| AL
+    T -->|"calls"| AM
+    U -->|"calls"| AN
+    U -->|"calls"| AO
+    V -->|"calls"| AP
+    V -->|"calls"| AQ
+    W -->|"calls"| AR
+    W -->|"calls"| AS
+    X -->|"calls"| AT
+    X -->|"calls"| AU
+    Y -->|"calls"| AV
+    Y -->|"calls"| AW
+    Z -->|"calls"| AX
+    Z -->|"calls"| AY
+    AA -->|"calls"| AZ
+    AA -->|"calls"| BA
+    AB -->|"calls"| BB
+    AB -->|"calls"| BC
+    AC -->|"calls"| BD
+    AC -->|"calls"| BE
+    AD -->|"calls"| BF
+    AD -->|"calls"| BG
+    AE -->|"calls"| BH
+    AE -->|"calls"| BI
+    AF -->|"calls"| BJ
+    AF -->|"calls"| BK
+    AG -->|"calls"| BL
+    AG -->|"calls"| BM
+    AH -->|"calls"| BN
+    AH -->|"calls"| BO
+    AI -->|"calls"| BP
+    AI -->|"calls"| BQ
+    AJ -->|"calls"| BR
+    AJ -->|"calls"| BS
+    AK -->|"calls"| BT
+    AK -->|"calls"| BU
+    AL -->|"calls"| BV
+    AL -->|"calls"| BW
+    AM -->|"calls"| BX
+    AM -->|"calls"| BY
+    AN -->|"calls"| BZ

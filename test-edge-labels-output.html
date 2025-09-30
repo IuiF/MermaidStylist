@@ -1,232 +1,121 @@
-const { getBaseTemplate } = require('../templates/base');
-
-function generateHTML(nodes, connections) {
-    const template = getBaseTemplate();
-
-    let html = template.htmlStructure.doctype + '\n';
-    html += template.htmlStructure.htmlOpen + '\n';
-    html += template.htmlStructure.headOpen + '\n';
-    html += '    ' + template.htmlStructure.title + '\n';
-    html += '    <style>\n';
-    html += template.css + '\n';
-    html += '    </style>\n';
-    html += template.htmlStructure.headClose + '\n';
-    html += template.htmlStructure.bodyOpen + '\n';
-    html += '    ' + template.htmlStructure.pageTitle + '\n';
-    html += '    ' + template.htmlStructure.layoutControls + '\n';
-    html += '    ' + template.htmlStructure.containerOpen + '\n';
-
-    for (const node of nodes) {
-        const hasChildren = connections.some(conn => conn.from === node.id);
-        const collapseButton = hasChildren ? '<span class="collapse-button" onclick="toggleNodeCollapse(\'' + node.id + '\'); event.stopPropagation();">▼</span>' : '';
-        const nodeOnClick = hasChildren ? ` onclick="toggleNodeCollapse('${node.id}')"` : '';
-        html += `        <div class="node" id="${node.id}" data-label="${node.label}" data-has-children="${hasChildren}"${nodeOnClick}>${node.label}${collapseButton}</div>\n`;
-    }
-
-    html += '    ' + template.htmlStructure.containerClose + '\n';
-    html += getJavaScriptContent(nodes, connections);
-    html += template.htmlStructure.bodyClose + '\n';
-    html += template.htmlStructure.htmlClose;
-
-    return html;
-}
-
-function getJavaScriptContent(nodes, connections) {
-    return `    <script>
-        const nodes = ${JSON.stringify(nodes)};
-        const connections = ${JSON.stringify(connections)};
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mermaid Tree</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .tree-container {
+            position: relative;
+            width: 100%;
+            height: 800px;
+            overflow: auto;
+            border: 1px solid #ddd;
+            background: #fafafa;
+        }
+        .node {
+            position: absolute;
+            border: 2px solid #333;
+            background: #f9f9f9;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            cursor: pointer;
+            z-index: 2;
+            box-sizing: content-box;
+        }
+        .connection-line {
+            position: absolute;
+            background-color: #666;
+            transform-origin: left center;
+            height: 2px;
+            z-index: 1;
+        }
+        .connection-line::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: -3px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid #666;
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+        }
+        .connection-label {
+            position: absolute;
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #333;
+            border: 1px solid #999;
+            white-space: nowrap;
+            z-index: 3;
+            pointer-events: none;
+        }
+        .collapse-button {
+            cursor: pointer;
+            font-size: 10px;
+            margin-left: 5px;
+            user-select: none;
+        }
+        .collapsed-node {
+            box-shadow:
+                5px 5px 0 0 #d0d0d0,
+                5px 5px 0 2px #333,
+                2px 2px 4px rgba(0,0,0,0.3);
+            background: #f9f9f9 !important;
+        }
+        .hidden {
+            display: none;
+        }
+        .layout-controls {
+            margin-bottom: 10px;
+        }
+        .layout-button {
+            padding: 6px 12px;
+            margin-right: 8px;
+            border: 1px solid #666;
+            background: #f0f0f0;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .layout-button:hover {
+            background: #e0e0e0;
+        }
+        .layout-button.active {
+            background: #333;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tree Structure</h1>
+    <div class="layout-controls"><button class="layout-button active" id="verticalBtn" onclick="switchLayout('vertical')">縦方向</button><button class="layout-button" id="horizontalBtn" onclick="switchLayout('horizontal')">横方向</button><button class="layout-button" onclick="collapseAll()">すべて折りたたむ</button><button class="layout-button" onclick="expandAll()">すべて展開</button></div>
+    <div class="tree-container" id="treeContainer">
+        <div class="node" id="A" data-label="A" data-has-children="true" onclick="toggleNodeCollapse('A')">A<span class="collapse-button" onclick="toggleNodeCollapse('A'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="B" data-label="B" data-has-children="true" onclick="toggleNodeCollapse('B')">B<span class="collapse-button" onclick="toggleNodeCollapse('B'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="C" data-label="C" data-has-children="true" onclick="toggleNodeCollapse('C')">C<span class="collapse-button" onclick="toggleNodeCollapse('C'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="D" data-label="D" data-has-children="true" onclick="toggleNodeCollapse('D')">D<span class="collapse-button" onclick="toggleNodeCollapse('D'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="E" data-label="E" data-has-children="true" onclick="toggleNodeCollapse('E')">E<span class="collapse-button" onclick="toggleNodeCollapse('E'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="F" data-label="F" data-has-children="true" onclick="toggleNodeCollapse('F')">F<span class="collapse-button" onclick="toggleNodeCollapse('F'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="G" data-label="G" data-has-children="true" onclick="toggleNodeCollapse('G')">G<span class="collapse-button" onclick="toggleNodeCollapse('G'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="H" data-label="H" data-has-children="true" onclick="toggleNodeCollapse('H')">H<span class="collapse-button" onclick="toggleNodeCollapse('H'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="I" data-label="I" data-has-children="true" onclick="toggleNodeCollapse('I')">I<span class="collapse-button" onclick="toggleNodeCollapse('I'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="J" data-label="J" data-has-children="true" onclick="toggleNodeCollapse('J')">J<span class="collapse-button" onclick="toggleNodeCollapse('J'); event.stopPropagation();">▼</span></div>
+        <div class="node" id="K" data-label="K" data-has-children="false">K</div>
+    </div>
+    <script>
+        const nodes = [{"id":"A","label":"A"},{"id":"B","label":"B"},{"id":"C","label":"C"},{"id":"D","label":"D"},{"id":"E","label":"E"},{"id":"F","label":"F"},{"id":"G","label":"G"},{"id":"H","label":"H"},{"id":"I","label":"I"},{"id":"J","label":"J"},{"id":"K","label":"K"}];
+        const connections = [{"from":"A","to":"B","label":"Yes"},{"from":"A","to":"C","label":"No"},{"from":"B","to":"D","label":"Maybe"},{"from":"C","to":"E","label":"With Spaces"},{"from":"D","to":"F","label":"Label"},{"from":"E","to":"F","label":"Quoted Label"},{"from":"F","to":"G","label":"Check"},{"from":"F","to":"H","label":"Check Again"},{"from":"G","to":"I","label":"Strong"},{"from":"H","to":"I","label":"Very Strong"},{"from":"I","to":"J"},{"from":"J","to":"K"}];
 
         // Import layout utilities
-        ${getLayoutUtilsCode()}
-
-        // Import hierarchical layout
-        ${getHierarchicalLayoutCode()}
-
-        // Collapse functionality
-        const collapseManager = {
-            collapsedNodes: new Set(),
-            childrenMap: new Map(),
-
-            init: function() {
-                connections.forEach(conn => {
-                    if (!this.childrenMap.has(conn.from)) {
-                        this.childrenMap.set(conn.from, []);
-                    }
-                    this.childrenMap.get(conn.from).push(conn.to);
-                });
-            },
-
-            isCollapsed: function(nodeId) {
-                return this.collapsedNodes.has(nodeId);
-            },
-
-            canCollapse: function(nodeId) {
-                return this.childrenMap.has(nodeId) && this.childrenMap.get(nodeId).length > 0;
-            },
-
-            toggleCollapse: function(nodeId) {
-                if (this.canCollapse(nodeId)) {
-                    const nodeElement = document.getElementById(nodeId);
-                    const collapseButton = nodeElement.querySelector('.collapse-button');
-
-                    if (this.collapsedNodes.has(nodeId)) {
-                        this.collapsedNodes.delete(nodeId);
-                        nodeElement.classList.remove('collapsed-node');
-                        if (collapseButton) collapseButton.textContent = '▼';
-                    } else {
-                        this.collapsedNodes.add(nodeId);
-                        nodeElement.classList.add('collapsed-node');
-                        if (collapseButton) collapseButton.textContent = '▲';
-                    }
-
-                    this.updateVisibility();
-
-                    // レイアウトを再計算
-                    setTimeout(() => {
-                        if (currentLayout === 'vertical') {
-                            currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
-                        } else {
-                            currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths);
-                        }
-                        createCSSLines(connections, currentNodePositions);
-                    }, 50);
-                }
-            },
-
-            isVisible: function(nodeId) {
-                const isRoot = !connections.some(conn => conn.to === nodeId);
-                if (isRoot) return true;
-
-                const parentConnection = connections.find(conn => conn.to === nodeId);
-                if (!parentConnection) return true;
-
-                if (this.isCollapsed(parentConnection.from)) return false;
-
-                return this.isVisible(parentConnection.from);
-            },
-
-            updateVisibility: function() {
-                nodes.forEach(node => {
-                    const element = document.getElementById(node.id);
-                    if (element) {
-                        if (this.isVisible(node.id)) {
-                            element.classList.remove('hidden');
-                        } else {
-                            element.classList.add('hidden');
-                        }
-                    }
-                });
-            },
-
-            collapseAll: function() {
-                nodes.forEach(node => {
-                    if (this.canCollapse(node.id) && !this.isCollapsed(node.id)) {
-                        const nodeElement = document.getElementById(node.id);
-                        const collapseButton = nodeElement.querySelector('.collapse-button');
-
-                        this.collapsedNodes.add(node.id);
-                        nodeElement.classList.add('collapsed-node');
-                        if (collapseButton) collapseButton.textContent = '▲';
-                    }
-                });
-
-                this.updateVisibility();
-
-                setTimeout(() => {
-                    if (currentLayout === 'vertical') {
-                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
-                    } else {
-                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths);
-                    }
-                    createCSSLines(connections, currentNodePositions);
-                }, 50);
-            },
-
-            expandAll: function() {
-                nodes.forEach(node => {
-                    if (this.isCollapsed(node.id)) {
-                        const nodeElement = document.getElementById(node.id);
-                        const collapseButton = nodeElement.querySelector('.collapse-button');
-
-                        this.collapsedNodes.delete(node.id);
-                        nodeElement.classList.remove('collapsed-node');
-                        if (collapseButton) collapseButton.textContent = '▼';
-                    }
-                });
-
-                this.updateVisibility();
-
-                setTimeout(() => {
-                    if (currentLayout === 'vertical') {
-                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
-                    } else {
-                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths);
-                    }
-                    createCSSLines(connections, currentNodePositions);
-                }, 50);
-            }
-        };
-
-        function toggleNodeCollapse(nodeId) {
-            collapseManager.toggleCollapse(nodeId);
-        }
-
-        function collapseAll() {
-            collapseManager.collapseAll();
-        }
-
-        function expandAll() {
-            collapseManager.expandAll();
-        }
-
-        // Layout state
-        let currentLayout = 'vertical';
-        let currentNodePositions = null;
-
-        function switchLayout(layoutType) {
-            currentLayout = layoutType;
-
-            // Update button states
-            document.getElementById('verticalBtn').classList.toggle('active', layoutType === 'vertical');
-            document.getElementById('horizontalBtn').classList.toggle('active', layoutType === 'horizontal');
-
-            // Apply layout
-            if (layoutType === 'vertical') {
-                currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
-            } else {
-                currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths);
-            }
-
-            // Redraw lines
-            setTimeout(() => {
-                createCSSLines(connections, currentNodePositions);
-            }, 50);
-        }
-
-        window.onload = function() {
-            collapseManager.init();
-
-            // Apply initial layout
-            currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
-
-            // コンテナの高さを動的に設定
-            const treeStructure = analyzeTreeStructure(nodes, connections);
-            const container = document.getElementById('treeContainer');
-            const requiredHeight = Math.max(800, treeStructure.levels.length * 80 + 100);
-
-            container.style.height = requiredHeight + 'px';
-
-            // デバッグ：実際の要素幅と計算値を比較
-            setTimeout(() => {
-                debugActualWidths(nodes);
-                createCSSLines(connections, currentNodePositions);
-            }, 200);
-        };
-    </script>`;
-}
-
-function getLayoutUtilsCode() {
-    return `
+        
         function measureTextWidth(text, font) {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
@@ -269,11 +158,10 @@ function getLayoutUtilsCode() {
                 }
             });
         }
-    `;
-}
+    
 
-function getHierarchicalLayoutCode() {
-    return `
+        // Import hierarchical layout
+        
         function analyzeTreeStructure(nodes, connections) {
             const childNodes = new Set(connections.map(c => c.to));
             const rootNodes = nodes.filter(node => !childNodes.has(node.id));
@@ -527,7 +415,7 @@ function getHierarchicalLayoutCode() {
                     line.style.left = x1 + 'px';
                     line.style.top = y1 + 'px';
                     line.style.width = length + 'px';
-                    line.style.transform = \`rotate(\${angle}deg)\`;
+                    line.style.transform = `rotate(${angle}deg)`;
 
                     container.appendChild(line);
                     connectionCount++;
@@ -553,27 +441,187 @@ function getHierarchicalLayoutCode() {
 
             console.log("Created " + connectionCount + " CSS lines");
         }
-    `;
-}
+    
 
-function generateHTMLWithCollapse(nodes, connections) {
-    const html = `<html>
-<head>
-<style>
-    .collapse-button { cursor: pointer; }
-    .collapsed-node {
-        box-shadow: 2px 2px 4px rgba(0,0,0,0.3),
-                    4px 4px 8px rgba(0,0,0,0.2);
-    }
-</style>
-</head>
-<body>
-</body>
-</html>`;
-    return html;
-}
+        // Collapse functionality
+        const collapseManager = {
+            collapsedNodes: new Set(),
+            childrenMap: new Map(),
 
-module.exports = {
-    generateHTML,
-    generateHTMLWithCollapse
-};
+            init: function() {
+                connections.forEach(conn => {
+                    if (!this.childrenMap.has(conn.from)) {
+                        this.childrenMap.set(conn.from, []);
+                    }
+                    this.childrenMap.get(conn.from).push(conn.to);
+                });
+            },
+
+            isCollapsed: function(nodeId) {
+                return this.collapsedNodes.has(nodeId);
+            },
+
+            canCollapse: function(nodeId) {
+                return this.childrenMap.has(nodeId) && this.childrenMap.get(nodeId).length > 0;
+            },
+
+            toggleCollapse: function(nodeId) {
+                if (this.canCollapse(nodeId)) {
+                    const nodeElement = document.getElementById(nodeId);
+                    const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                    if (this.collapsedNodes.has(nodeId)) {
+                        this.collapsedNodes.delete(nodeId);
+                        nodeElement.classList.remove('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▼';
+                    } else {
+                        this.collapsedNodes.add(nodeId);
+                        nodeElement.classList.add('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▲';
+                    }
+
+                    this.updateVisibility();
+
+                    // レイアウトを再計算
+                    setTimeout(() => {
+                        if (currentLayout === 'vertical') {
+                            currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
+                        } else {
+                            currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths);
+                        }
+                        createCSSLines(connections, currentNodePositions);
+                    }, 50);
+                }
+            },
+
+            isVisible: function(nodeId) {
+                const isRoot = !connections.some(conn => conn.to === nodeId);
+                if (isRoot) return true;
+
+                const parentConnection = connections.find(conn => conn.to === nodeId);
+                if (!parentConnection) return true;
+
+                if (this.isCollapsed(parentConnection.from)) return false;
+
+                return this.isVisible(parentConnection.from);
+            },
+
+            updateVisibility: function() {
+                nodes.forEach(node => {
+                    const element = document.getElementById(node.id);
+                    if (element) {
+                        if (this.isVisible(node.id)) {
+                            element.classList.remove('hidden');
+                        } else {
+                            element.classList.add('hidden');
+                        }
+                    }
+                });
+            },
+
+            collapseAll: function() {
+                nodes.forEach(node => {
+                    if (this.canCollapse(node.id) && !this.isCollapsed(node.id)) {
+                        const nodeElement = document.getElementById(node.id);
+                        const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                        this.collapsedNodes.add(node.id);
+                        nodeElement.classList.add('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▲';
+                    }
+                });
+
+                this.updateVisibility();
+
+                setTimeout(() => {
+                    if (currentLayout === 'vertical') {
+                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
+                    } else {
+                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths);
+                    }
+                    createCSSLines(connections, currentNodePositions);
+                }, 50);
+            },
+
+            expandAll: function() {
+                nodes.forEach(node => {
+                    if (this.isCollapsed(node.id)) {
+                        const nodeElement = document.getElementById(node.id);
+                        const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                        this.collapsedNodes.delete(node.id);
+                        nodeElement.classList.remove('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▼';
+                    }
+                });
+
+                this.updateVisibility();
+
+                setTimeout(() => {
+                    if (currentLayout === 'vertical') {
+                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
+                    } else {
+                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths);
+                    }
+                    createCSSLines(connections, currentNodePositions);
+                }, 50);
+            }
+        };
+
+        function toggleNodeCollapse(nodeId) {
+            collapseManager.toggleCollapse(nodeId);
+        }
+
+        function collapseAll() {
+            collapseManager.collapseAll();
+        }
+
+        function expandAll() {
+            collapseManager.expandAll();
+        }
+
+        // Layout state
+        let currentLayout = 'vertical';
+        let currentNodePositions = null;
+
+        function switchLayout(layoutType) {
+            currentLayout = layoutType;
+
+            // Update button states
+            document.getElementById('verticalBtn').classList.toggle('active', layoutType === 'vertical');
+            document.getElementById('horizontalBtn').classList.toggle('active', layoutType === 'horizontal');
+
+            // Apply layout
+            if (layoutType === 'vertical') {
+                currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
+            } else {
+                currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths);
+            }
+
+            // Redraw lines
+            setTimeout(() => {
+                createCSSLines(connections, currentNodePositions);
+            }, 50);
+        }
+
+        window.onload = function() {
+            collapseManager.init();
+
+            // Apply initial layout
+            currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
+
+            // コンテナの高さを動的に設定
+            const treeStructure = analyzeTreeStructure(nodes, connections);
+            const container = document.getElementById('treeContainer');
+            const requiredHeight = Math.max(800, treeStructure.levels.length * 80 + 100);
+
+            container.style.height = requiredHeight + 'px';
+
+            // デバッグ：実際の要素幅と計算値を比較
+            setTimeout(() => {
+                debugActualWidths(nodes);
+                createCSSLines(connections, currentNodePositions);
+            }, 200);
+        };
+    </script></body>
+</html>
