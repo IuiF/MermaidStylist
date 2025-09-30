@@ -15,6 +15,7 @@ function getBaseTemplate() {
             overflow: hidden;
             background: #fafafa;
             cursor: grab;
+            touch-action: none;
         }
         .tree-container:active {
             cursor: grabbing;
