@@ -1,7 +1,7 @@
 function getViewportManager() {
     return `
         const viewportManager = {
-            scale: 2.0,
+            scale: 1.0,
             translateX: 0,
             translateY: 0,
             isDragging: false,
@@ -236,7 +236,7 @@ function getViewportManager() {
             },
 
             resetView: function() {
-                this.scale = 2.0;
+                this.scale = 1.0;
                 this.translateX = 0;
                 this.translateY = 0;
                 this.applyTransform();
