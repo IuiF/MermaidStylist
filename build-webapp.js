@@ -67,15 +67,39 @@ function buildEmbeddedCode() {
     // 4. html.jsのgenerateHTML, getJavaScriptContent, generateErrorHTML
     const htmlContent = fs.readFileSync('./src/generators/html.js', 'utf8');
 
-    // requireを削除したバージョンのhtml.jsのコードを取得
-    const generateHTMLMatch = htmlContent.match(/function generateHTML\([^)]*\)\s*\{[\s\S]*?\n\}/);
-    const getJavaScriptContentMatch = htmlContent.match(/function getJavaScriptContent\([^)]*\)\s*\{[\s\S]*?\n\}/);
-    const generateErrorHTMLMatch = htmlContent.match(/function generateErrorHTML\([^)]*\)\s*\{[\s\S]*?\n\}/);
+    // 関数を抽出（次の関数定義またはmodule.exportsまで）
+    function extractFunction(content, functionName) {
+        const startPattern = new RegExp(`function ${functionName}\\([^)]*\\)\\s*\\{`);
+        const match = content.match(startPattern);
+        if (!match) return null;
+
+        const startIndex = match.index;
+
+        // 次の関数定義またはmodule.exportsを探す
+        const nextFunctionPattern = /\n(?:function |module\.exports)/g;
+        nextFunctionPattern.lastIndex = startIndex + match[0].length;
+        const nextMatch = nextFunctionPattern.exec(content);
+
+        let endIndex;
+        if (nextMatch) {
+            // 次の関数の直前までを取得（空行を1つ残す）
+            endIndex = nextMatch.index;
+        } else {
+            // 最後の関数の場合はファイル末尾まで
+            endIndex = content.length;
+        }
+
+        return content.substring(startIndex, endIndex).trim();
+    }
+
+    const generateHTMLCode = extractFunction(htmlContent, 'generateHTML');
+    const getJavaScriptContentCode = extractFunction(htmlContent, 'getJavaScriptContent');
+    const generateErrorHTMLCode = extractFunction(htmlContent, 'generateErrorHTML');
 
     code += '// ジェネレーター（html.jsから）\n';
-    if (generateHTMLMatch) code += generateHTMLMatch[0] + '\n\n';
-    if (getJavaScriptContentMatch) code += getJavaScriptContentMatch[0] + '\n\n';
-    if (generateErrorHTMLMatch) code += generateErrorHTMLMatch[0] + '\n\n';
+    if (generateHTMLCode) code += generateHTMLCode + '\n\n';
+    if (getJavaScriptContentCode) code += getJavaScriptContentCode + '\n\n';
+    if (generateErrorHTMLCode) code += generateErrorHTMLCode + '\n\n';
 
     return code;
 }
