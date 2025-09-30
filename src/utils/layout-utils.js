@@ -13,7 +13,11 @@ function getLayoutUtils() {
             const font = '12px Arial, sans-serif';
 
             nodes.forEach(node => {
-                if (!nodeWidthMap.has(node.label)) {
+                const element = document.getElementById(node.id);
+                if (element) {
+                    const actualWidth = element.offsetWidth;
+                    nodeWidthMap.set(node.label, actualWidth);
+                } else if (!nodeWidthMap.has(node.label)) {
                     const textWidth = measureTextWidth(node.label, font);
                     const calculatedWidth = Math.ceil(textWidth) + padding;
                     nodeWidthMap.set(node.label, calculatedWidth);
