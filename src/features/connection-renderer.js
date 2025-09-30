@@ -212,7 +212,10 @@ function getConnectionRenderer() {
                     // 1. 親から水平に出る
                     // 2. 垂直に移動
                     // 3. 水平に子に到達
-                    const horizontalOffset = 60;
+                    // 垂直セグメントの位置を接続ごとにずらして重複を回避
+                    const baseHorizontalOffset = 40;
+                    const offsetPerConnection = 15;
+                    const horizontalOffset = baseHorizontalOffset + (siblingIndex * offsetPerConnection);
                     const cornerRadius = 8;
 
                     const p1x = x1;
