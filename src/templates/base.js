@@ -28,6 +28,9 @@ function getBaseTemplate() {
             left: 0;
             transform-origin: 0 0;
             will-change: transform;
+            backface-visibility: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         .node {
             position: absolute;
@@ -40,6 +43,8 @@ function getBaseTemplate() {
             cursor: pointer;
             z-index: 2;
             box-sizing: content-box;
+            backface-visibility: hidden;
+            text-rendering: optimizeLegibility;
         }
         .connection-line {
             position: absolute;
@@ -47,6 +52,7 @@ function getBaseTemplate() {
             transform-origin: left center;
             height: 2px;
             z-index: 1;
+            backface-visibility: hidden;
         }
         .connection-line::after {
             content: '';
@@ -70,6 +76,8 @@ function getBaseTemplate() {
             white-space: nowrap;
             z-index: 3;
             pointer-events: none;
+            backface-visibility: hidden;
+            text-rendering: optimizeLegibility;
         }
         .collapse-button {
             cursor: pointer;
