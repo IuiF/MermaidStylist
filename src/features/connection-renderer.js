@@ -155,6 +155,56 @@ function getConnectionRenderer() {
             const existingLines = svgLayer.querySelectorAll('.connection-line, .connection-arrow, .connection-label');
             existingLines.forEach(line => line.remove());
 
+            // グローバルレーン管理システム
+            // 各レーンは { xPos, yMin, yMax, occupiedBy } の情報を持つ
+            const lanes = [];
+            const laneWidth = 25;
+            const minOffset = 30;
+
+            // レーンを占有する関数
+            function occupyLane(xPos, yMin, yMax, connectionId) {
+                // 既存のレーンで使えるものがあるか探す
+                for (let i = 0; i < lanes.length; i++) {
+                    const lane = lanes[i];
+                    // X位置が一致し、Y範囲が重ならないレーンを探す
+                    if (Math.abs(lane.xPos - xPos) < laneWidth / 2) {
+                        const hasOverlap = !(yMax < lane.yMin || yMin > lane.yMax);
+                        if (!hasOverlap) {
+                            // Y範囲を拡張
+                            lane.yMin = Math.min(lane.yMin, yMin);
+                            lane.yMax = Math.max(lane.yMax, yMax);
+                            lane.occupiedBy.push(connectionId);
+                            return i;
+                        }
+                    }
+                }
+                // 新しいレーンを作成
+                lanes.push({
+                    xPos: xPos,
+                    yMin: yMin,
+                    yMax: yMax,
+                    occupiedBy: [connectionId]
+                });
+                return lanes.length - 1;
+            }
+
+            // レーンを見つける関数（既存のレーンと衝突しないX位置を計算）
+            function findAvailableLane(x1, yMin, yMax, preferredOffset) {
+                const candidateX = x1 + preferredOffset;
+
+                // この位置で衝突するレーンがあるか確認
+                for (const lane of lanes) {
+                    if (Math.abs(lane.xPos - candidateX) < laneWidth / 2) {
+                        const hasOverlap = !(yMax < lane.yMin || yMin > lane.yMax);
+                        if (hasOverlap) {
+                            // 衝突する場合、さらに外側のレーンを試す
+                            return findAvailableLane(x1, yMin, yMax, preferredOffset + laneWidth);
+                        }
+                    }
+                }
+                return candidateX;
+            }
+
             // 同じ親から出る接続をグループ化し、子のY座標でソート
             const connectionsByParent = {};
             connections.forEach(conn => {
@@ -226,23 +276,22 @@ function getConnectionRenderer() {
                     const y2 = toTop + toHeight / 2; // 子ノードは中央で固定（簡易実装）
 
                     // ELKスタイル: 直交エッジ（orthogonal edges）
-                    // 交差を最小化するため、垂直セグメントの位置を子の相対位置に応じて計算
+                    // グローバルレーン管理で他のエッジとの衝突を回避
 
                     const dy = y2 - y1; // 親ポートから子ノードへの垂直距離
+                    const yMin = Math.min(y1, y2);
+                    const yMax = Math.max(y1, y2);
 
-                    // 戦略: レーンベースの配置で交差を回避
-                    // - 子が上にある接続（Y座標が小さい）: 外側のレーン（遠い）
-                    // - 子が下にある接続（Y座標が大きい）: 内側のレーン（近い）
-                    // これにより線が扇状に広がり、交差を最小化
-
-                    const minOffset = 30;
-                    const laneWidth = 25;
-
-                    // 逆順のインデックスを計算（子が上にあるほど大きい値）
+                    // 同じ親からの接続に基づく優先オフセット
                     const reversedIndex = (siblingCount - 1) - siblingIndex;
+                    const preferredOffset = minOffset + (reversedIndex * laneWidth);
 
-                    // レーンベースのオフセット
-                    const horizontalOffset = minOffset + (reversedIndex * laneWidth);
+                    // グローバルレーン管理を使用して実際のX位置を決定
+                    const verticalSegmentX = findAvailableLane(x1, yMin, yMax, preferredOffset);
+                    const horizontalOffset = verticalSegmentX - x1;
+
+                    // レーンを占有
+                    occupyLane(verticalSegmentX, yMin, yMax, conn.from + '->' + conn.to);
 
                     const cornerRadius = 8;
 
