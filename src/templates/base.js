@@ -84,6 +84,18 @@ function getBaseTemplate() {
         .hidden {
             display: none;
         }
+        .highlighted {
+            background: #fff3cd !important;
+            border-color: #ffc107 !important;
+            box-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+        }
+        .highlighted.collapsed-node {
+            box-shadow:
+                5px 5px 0 0 #d0d0d0,
+                5px 5px 0 2px #ffc107,
+                2px 2px 4px rgba(0,0,0,0.3),
+                0 0 8px rgba(255, 193, 7, 0.5) !important;
+        }
         .layout-controls {
             position: fixed;
             top: 0;

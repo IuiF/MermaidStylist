@@ -145,6 +145,30 @@ function getCollapseManager() {
                     }
                     createCSSLines(connections, currentNodePositions);
                 }, 50);
+            },
+
+            expandAllByLabel: function(label) {
+                nodes.forEach(node => {
+                    if (node.label === label && this.isCollapsed(node.id)) {
+                        const nodeElement = document.getElementById(node.id);
+                        const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                        this.collapsedNodes.delete(node.id);
+                        nodeElement.classList.remove('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▼';
+                    }
+                });
+
+                this.updateVisibility();
+
+                setTimeout(() => {
+                    if (currentLayout === 'vertical') {
+                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    } else {
+                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                    }
+                    createCSSLines(connections, currentNodePositions);
+                }, 50);
             }
         };
 
