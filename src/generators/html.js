@@ -79,7 +79,7 @@ function getJavaScriptContent(nodes, connections) {
             contextMenu.init();
 
             // Apply initial layout
-            currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+            currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
 
             // デバッグ：実際の要素幅と計算値を比較
             setTimeout(() => {
