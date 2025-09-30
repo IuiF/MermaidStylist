@@ -2,3 +2,4 @@ CLAUDE.md
 *.mmd
 !sample.mmd
 *.html
+!webapp-template.html

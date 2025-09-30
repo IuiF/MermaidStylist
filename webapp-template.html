@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid Tree Stylist - Web App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+        .button-group {
+            margin-top: 16px;
+            display: flex;
+            gap: 12px;
+        }
+        button {
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .error-message {
+            margin-top: 16px;
+            padding: 12px;
+            background: #ffebee;
+            border-left: 4px solid #d32f2f;
+            border-radius: 4px;
+            color: #d32f2f;
+            display: none;
+        }
+        .error-message.show {
+            display: block;
+        }
+        .success-message {
+            margin-top: 16px;
+            padding: 12px;
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            border-radius: 4px;
+            color: #2e7d32;
+            display: none;
+        }
+        .success-message.show {
+            display: block;
+        }
+        .info {
+            margin-top: 20px;
+            padding: 12px;
+            background: #e3f2fd;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mermaid Tree Stylist - Web App</h1>
+
+    <div class="container">
+        <label for="mermaidInput">Mermaid入力:</label>
+        <textarea id="mermaidInput" placeholder="flowchart TD&#10;    A[ルート]-->B[子1]&#10;    A-->C[子2]&#10;    B-->D[孫1]"></textarea>
+
+        <div class="button-group">
+            <button id="downloadBtn">HTMLをダウンロード</button>
+            <button id="clearBtn">クリア</button>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+
+        <div class="info">
+            <strong>使い方:</strong>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li>Mermaidの木構造を入力してください（flowchart TDまたはgraph TD形式）</li>
+                <li>「HTMLをダウンロード」ボタンでインタラクティブなHTMLファイルを生成します</li>
+                <li>生成されたHTMLはブラウザで開けます</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+${getEmbeddedCode()}
+
+        // UI制御
+        const mermaidInput = document.getElementById('mermaidInput');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        clearBtn.addEventListener('click', () => {
+            mermaidInput.value = '';
+            hideMessages();
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            hideMessages();
+
+            const mermaidContent = mermaidInput.value.trim();
+
+            if (!mermaidContent) {
+                showError('Mermaidコードを入力してください');
+                return;
+            }
+
+            try {
+                // パース
+                const nodes = parseMermaidNodes(mermaidContent);
+                const connections = parseMermaidConnections(mermaidContent);
+
+                if (nodes.length === 0) {
+                    showError('ノードが見つかりませんでした');
+                    return;
+                }
+
+                // バリデーション
+                const validation = validateTreeStructure(nodes, connections);
+
+                let html;
+                if (!validation.isValid) {
+                    html = generateErrorHTML(validation.errors);
+                } else {
+                    html = generateHTML(nodes, connections);
+                }
+
+                // ダウンロード
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'mermaid-tree.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showSuccess('HTMLファイルをダウンロードしました');
+            } catch (error) {
+                showError('エラー: ' + error.message);
+            }
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.classList.add('show');
+        }
+
+        function hideMessages() {
+            errorMessage.classList.remove('show');
+            successMessage.classList.remove('show');
+        }
+    </script>
+</body>
+</html>
