@@ -14,26 +14,29 @@ function getViewportManager() {
             lastTouchCenter: { x: 0, y: 0 },
             wheelHistory: [],
             activePointers: new Map(),
+            diagonalUnlocked: false,
+            lastValidDeltaX: 0,
+            lastValidDeltaY: 0,
+            lastWheelTime: 0,
 
             init: function() {
                 const container = document.getElementById('treeContainer');
 
-                // ホイールイベント（軸ロック検出機能付き）
+                // ホイールイベント（斜め検出による軸ロック解除）
                 container.addEventListener('wheel', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
 
                     const now = Date.now();
 
-                    // 履歴に追加
-                    this.wheelHistory.push({
-                        time: now,
-                        deltaX: e.deltaX,
-                        deltaY: e.deltaY
-                    });
-
-                    // 200ms以上古い履歴を削除
-                    this.wheelHistory = this.wheelHistory.filter(h => now - h.time < 200);
+                    // 500ms以上間隔が空いたらリセット（新しいジェスチャーと判断）
+                    if (now - this.lastWheelTime > 500) {
+                        this.diagonalUnlocked = false;
+                        this.wheelHistory = [];
+                        this.lastValidDeltaX = 0;
+                        this.lastValidDeltaY = 0;
+                    }
+                    this.lastWheelTime = now;
 
                     if (e.ctrlKey) {
                         // Ctrl+ホイール → ズーム
@@ -50,31 +53,66 @@ function getViewportManager() {
                         this.translateX = mouseX - worldX * newScale;
                         this.translateY = mouseY - worldY * newScale;
                         this.scale = newScale;
-                    } else {
-                        // 軸ロック検出：履歴に両軸の動きがあるか確認
-                        const hasXMovement = this.wheelHistory.some(h => Math.abs(h.deltaX) > 0.1);
-                        const hasYMovement = this.wheelHistory.some(h => Math.abs(h.deltaY) > 0.1);
 
-                        let deltaX = e.deltaX;
-                        let deltaY = e.deltaY;
+                        this.applyTransform();
+                        return;
+                    }
 
-                        // 両軸に動きがあったのに現在片方が0の場合、軸ロックされている
-                        if (hasXMovement && hasYMovement) {
-                            // 最近の動きの平均比率を計算
-                            const recentMoves = this.wheelHistory.slice(-5);
-                            const avgRatio = this.calculateAverageRatio(recentMoves);
+                    // 履歴に追加
+                    this.wheelHistory.push({
+                        time: now,
+                        deltaX: e.deltaX,
+                        deltaY: e.deltaY
+                    });
 
-                            // 現在のdeltaが0でも、履歴から推定して補完
-                            if (Math.abs(deltaX) < 0.1 && Math.abs(deltaY) > 0.1) {
-                                deltaX = deltaY * avgRatio.xToY;
-                            } else if (Math.abs(deltaY) < 0.1 && Math.abs(deltaX) > 0.1) {
-                                deltaY = deltaX * avgRatio.yToX;
+                    // 古い履歴を削除
+                    this.wheelHistory = this.wheelHistory.filter(h => now - h.time < 300);
+
+                    let deltaX = e.deltaX;
+                    let deltaY = e.deltaY;
+
+                    // 斜め移動の検出（過去3イベント内に両軸の動きがあるか）
+                    const recentEvents = this.wheelHistory.slice(-3);
+                    const hasRecentX = recentEvents.some(h => Math.abs(h.deltaX) > 0.5);
+                    const hasRecentY = recentEvents.some(h => Math.abs(h.deltaY) > 0.5);
+
+                    // 両軸に動きがあったら斜めモードを有効化
+                    if (hasRecentX && hasRecentY && !this.diagonalUnlocked) {
+                        this.diagonalUnlocked = true;
+                        console.log('Diagonal mode unlocked!');
+                    }
+
+                    // 有効なデルタ値を記録
+                    if (Math.abs(deltaX) > 0.5) {
+                        this.lastValidDeltaX = deltaX;
+                    }
+                    if (Math.abs(deltaY) > 0.5) {
+                        this.lastValidDeltaY = deltaY;
+                    }
+
+                    // 斜めモードが有効な場合、片方が0でも補完
+                    if (this.diagonalUnlocked) {
+                        const threshold = 0.5;
+
+                        // 両方の最後の有効値が存在する場合のみ補完
+                        if (Math.abs(this.lastValidDeltaX) > 0 && Math.abs(this.lastValidDeltaY) > 0) {
+                            const ratio = Math.abs(this.lastValidDeltaX / this.lastValidDeltaY);
+
+                            // Xが0だがYが動いている → Xを補完
+                            if (Math.abs(deltaX) < threshold && Math.abs(deltaY) > threshold) {
+                                deltaX = deltaY * ratio * Math.sign(this.lastValidDeltaX);
+                                console.log(\`Compensating X: \${deltaX}\`);
+                            }
+                            // Yが0だがXが動いている → Yを補完
+                            else if (Math.abs(deltaY) < threshold && Math.abs(deltaX) > threshold) {
+                                deltaY = deltaX / ratio * Math.sign(this.lastValidDeltaY);
+                                console.log(\`Compensating Y: \${deltaY}\`);
                             }
                         }
-
-                        this.translateX -= deltaX;
-                        this.translateY -= deltaY;
                     }
+
+                    this.translateX -= deltaX;
+                    this.translateY -= deltaY;
 
                     this.applyTransform();
                 }, { passive: false });
@@ -188,29 +226,6 @@ function getViewportManager() {
 
                 // 初期カーソル設定
                 container.style.cursor = 'grab';
-            },
-
-            calculateAverageRatio: function(moves) {
-                let totalXToY = 0;
-                let totalYToX = 0;
-                let countX = 0;
-                let countY = 0;
-
-                for (const move of moves) {
-                    if (Math.abs(move.deltaY) > 0.1) {
-                        totalXToY += move.deltaX / move.deltaY;
-                        countX++;
-                    }
-                    if (Math.abs(move.deltaX) > 0.1) {
-                        totalYToX += move.deltaY / move.deltaX;
-                        countY++;
-                    }
-                }
-
-                return {
-                    xToY: countX > 0 ? totalXToY / countX : 0,
-                    yToX: countY > 0 ? totalYToX / countY : 0
-                };
             },
 
             applyTransform: function() {
