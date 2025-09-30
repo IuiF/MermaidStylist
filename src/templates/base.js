@@ -98,13 +98,11 @@ function getBaseTemplate() {
         .highlighted.path-highlighted .node-rect {
             fill: #e3f2fd;
             stroke: #2196f3;
-            stroke-width: 4;
             filter: drop-shadow(0 0 8px rgba(33, 150, 243, 0.5)) drop-shadow(0 0 4px rgba(255, 193, 7, 0.8));
         }
         .highlighted.path-highlighted.collapsed-node .node-rect {
             fill: #e3f2fd;
             stroke: #2196f3;
-            stroke-width: 4;
         }
         .path-highlighted-line {
             stroke: #2196f3 !important;

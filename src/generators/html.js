@@ -110,7 +110,7 @@ function getJavaScriptContent(nodes, connections) {
                 text.setAttribute('class', 'node-text');
                 text.setAttribute('x', padding);
                 text.setAttribute('y', boxHeight / 2);
-                text.setAttribute('dominant-baseline', 'middle');
+                text.setAttribute('dominant-baseline', 'central');
                 text.textContent = node.label;
 
                 g.appendChild(rect);
@@ -122,7 +122,7 @@ function getJavaScriptContent(nodes, connections) {
                     button.setAttribute('class', 'collapse-button');
                     button.setAttribute('x', boxWidth - padding - 5);
                     button.setAttribute('y', boxHeight / 2);
-                    button.setAttribute('dominant-baseline', 'middle');
+                    button.setAttribute('dominant-baseline', 'central');
                     button.textContent = '▼';
                     g.appendChild(button);
                 }

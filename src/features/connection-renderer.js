@@ -109,7 +109,8 @@ function getConnectionRenderer() {
                         // テキスト
                         const labelText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                         labelText.setAttribute('x', toLeft + labelPadding);
-                        labelText.setAttribute('y', toTop - 5 - labelPadding);
+                        labelText.setAttribute('y', toTop - labelHeight / 2 - 5);
+                        labelText.setAttribute('dominant-baseline', 'central');
                         labelText.setAttribute('fill', '#333');
                         labelText.setAttribute('font-size', '11');
                         labelText.setAttribute('font-family', 'Arial, sans-serif');
