@@ -1,101 +1,93 @@
 const fs = require('fs');
-const path = require('path');
 
-// 各モジュールの読み込み
-const { parseMermaidNodes, parseMermaidConnections } = require('./src/parsers/mermaid');
-const { generateHTML, generateErrorHTML } = require('./src/generators/html');
-const { validateTreeStructure } = require('./src/validators/tree-validator');
+// main.jsが使う関数を全てブラウザ向けに変換
+function buildEmbeddedCode() {
+    let code = '\n';
 
-// ブラウザ向けのコードを生成
-function getEmbeddedCode() {
-    // パーサーのコード
-    const parserCode = '\n        ' +
-        parseMermaidNodes.toString() + '\n        ' +
-        parseMermaidConnections.toString() + '\n    ';
+    // 1. パーサー (parseMermaidNodes, parseMermaidConnections)
+    const parserContent = fs.readFileSync('./src/parsers/mermaid.js', 'utf8');
+    const parseMermaidNodesMatch = parserContent.match(/function parseMermaidNodes[\s\S]*?(?=\nfunction|module\.exports)/);
+    const parseMermaidConnectionsMatch = parserContent.match(/function parseMermaidConnections[\s\S]*?(?=\nmodule\.exports)/);
 
-    // バリデーターのコード
-    const treeValidator = fs.readFileSync('./src/validators/tree-validator.js', 'utf8')
-        .replace(/module\.exports = \{[^}]+\};/g, '');
+    code += '// パーサー\n';
+    if (parseMermaidNodesMatch) code += parseMermaidNodesMatch[0] + '\n\n';
+    if (parseMermaidConnectionsMatch) code += parseMermaidConnectionsMatch[0] + '\n\n';
 
-    // その他の必要なモジュール
-    const baseTemplate = fs.readFileSync('./src/templates/base.js', 'utf8')
-        .replace(/module\.exports = \{[^}]+\};/g, '');
+    // 2. バリデーター (validateTreeStructure)
+    const validatorContent = fs.readFileSync('./src/validators/tree-validator.js', 'utf8');
+    const validateTreeStructureMatch = validatorContent.match(/function validateTreeStructure[\s\S]*?(?=\nmodule\.exports)/);
 
-    const layoutUtils = fs.readFileSync('./src/utils/layout-utils.js', 'utf8')
-        .replace(/module\.exports = \{[^}]+\};/g, '');
+    code += '// バリデーター\n';
+    if (validateTreeStructureMatch) code += validateTreeStructureMatch[0] + '\n\n';
 
-    const treeStructure = fs.readFileSync('./src/utils/tree-structure.js', 'utf8')
-        .replace(/module\.exports = \{[^}]+\};/g, '');
+    // 3. 各getterファイルの内容を取得（module.exportsを削除）
+    const getBaseTemplate = fs.readFileSync('./src/templates/base.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getLayoutUtils = fs.readFileSync('./src/utils/layout-utils.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getTreeStructureAnalyzer = fs.readFileSync('./src/utils/tree-structure.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getVerticalLayout = fs.readFileSync('./src/layouts/vertical-layout.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getHorizontalLayout = fs.readFileSync('./src/layouts/horizontal-layout.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getConnectionRenderer = fs.readFileSync('./src/features/connection-renderer.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getCollapseManager = fs.readFileSync('./src/features/collapse-manager.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getLayoutSwitcher = fs.readFileSync('./src/features/layout-switcher.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getViewportManager = fs.readFileSync('./src/features/viewport-manager.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getHighlightManager = fs.readFileSync('./src/features/highlight-manager.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getPathHighlighter = fs.readFileSync('./src/features/path-highlighter.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getContextMenu = fs.readFileSync('./src/features/context-menu.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
 
-    const verticalLayout = fs.readFileSync('./src/layouts/vertical-layout.js', 'utf8')
-        .replace(/module\.exports = \{[^}]+\};/g, '');
+    code += '// テンプレートとユーティリティ\n';
+    code += getBaseTemplate + '\n';
+    code += getLayoutUtils + '\n';
+    code += getTreeStructureAnalyzer + '\n\n';
 
-    const horizontalLayout = fs.readFileSync('./src/layouts/horizontal-layout.js', 'utf8')
-        .replace(/module\.exports = \{[^}]+\};/g, '');
+    code += '// レイアウト\n';
+    code += getVerticalLayout + '\n';
+    code += getHorizontalLayout + '\n\n';
 
-    const connectionRenderer = fs.readFileSync('./src/features/connection-renderer.js', 'utf8')
-        .replace(/module\.exports = \{[^}]+\};/g, '');
+    code += '// 機能\n';
+    code += getConnectionRenderer + '\n';
+    code += getCollapseManager + '\n';
+    code += getLayoutSwitcher + '\n';
+    code += getViewportManager + '\n';
+    code += getHighlightManager + '\n';
+    code += getPathHighlighter + '\n';
+    code += getContextMenu + '\n\n';
 
-    const collapseManager = fs.readFileSync('./src/features/collapse-manager.js', 'utf8')
-        .replace(/module\.exports = \{[^}]+\};/g, '');
+    // 4. html.jsのgenerateHTML, getJavaScriptContent, generateErrorHTML
+    const htmlContent = fs.readFileSync('./src/generators/html.js', 'utf8');
 
-    const layoutSwitcher = fs.readFileSync('./src/features/layout-switcher.js', 'utf8')
-        .replace(/module\.exports = \{[^}]+\};/g, '');
+    // requireを削除したバージョンのhtml.jsのコードを取得
+    const generateHTMLMatch = htmlContent.match(/function generateHTML\([^)]*\)\s*\{[\s\S]*?\n\}/);
+    const getJavaScriptContentMatch = htmlContent.match(/function getJavaScriptContent\([^)]*\)\s*\{[\s\S]*?\n\}/);
+    const generateErrorHTMLMatch = htmlContent.match(/function generateErrorHTML\([^)]*\)\s*\{[\s\S]*?\n\}/);
 
-    const viewportManager = fs.readFileSync('./src/features/viewport-manager.js', 'utf8')
-        .replace(/module\.exports = \{[^}]+\};/g, '');
+    code += '// ジェネレーター（html.jsから）\n';
+    if (generateHTMLMatch) code += generateHTMLMatch[0] + '\n\n';
+    if (getJavaScriptContentMatch) code += getJavaScriptContentMatch[0] + '\n\n';
+    if (generateErrorHTMLMatch) code += generateErrorHTMLMatch[0] + '\n\n';
 
-    const highlightManager = fs.readFileSync('./src/features/highlight-manager.js', 'utf8')
-        .replace(/module\.exports = \{[^}]+\};/g, '');
-
-    const pathHighlighter = fs.readFileSync('./src/features/path-highlighter.js', 'utf8')
-        .replace(/module\.exports = \{[^}]+\};/g, '');
-
-    const contextMenu = fs.readFileSync('./src/features/context-menu.js', 'utf8')
-        .replace(/module\.exports = \{[^}]+\};/g, '');
-
-    // html.jsのgenerateHTML関数を文字列として取得し、ブラウザ向けに変換
-    const generateHTMLCode = generateHTML.toString();
-    const generateErrorHTMLCode = generateErrorHTML.toString();
-
-    // html.jsからgetJavaScriptContent関数を抽出
-    const htmlJsContent = fs.readFileSync('./src/generators/html.js', 'utf8');
-    const getJavaScriptContentMatch = htmlJsContent.match(/function getJavaScriptContent\([^)]*\)\s*\{[\s\S]*?\n\}/);
-    const getJavaScriptContentCode = getJavaScriptContentMatch ? getJavaScriptContentMatch[0] : '';
-
-    return '\n        // パーサー\n        ' +
-        parserCode + '\n\n' +
-        '        // バリデーター\n' +
-        treeValidator + '\n\n' +
-        '        // テンプレート\n' +
-        baseTemplate + '\n\n' +
-        '        // ユーティリティ\n' +
-        layoutUtils + '\n' +
-        treeStructure + '\n\n' +
-        '        // レイアウト\n' +
-        verticalLayout + '\n' +
-        horizontalLayout + '\n\n' +
-        '        // 機能\n' +
-        connectionRenderer + '\n' +
-        collapseManager + '\n' +
-        layoutSwitcher + '\n' +
-        viewportManager + '\n' +
-        highlightManager + '\n' +
-        pathHighlighter + '\n' +
-        contextMenu + '\n\n' +
-        '        // ジェネレーター（html.jsから自動取得）\n' +
-        '        ' + generateHTMLCode + '\n\n' +
-        '        ' + getJavaScriptContentCode + '\n\n' +
-        '        ' + generateErrorHTMLCode + '\n    ';
+    return code;
 }
 
 // webappテンプレートを読み込み
-const webappTemplate = fs.readFileSync('./webapp-template.html', 'utf8');
+const template = fs.readFileSync('./webapp-template.html', 'utf8');
 
-// ${getEmbeddedCode()}を実際のコードで置換
-const finalWebapp = webappTemplate.replace('${getEmbeddedCode()}', getEmbeddedCode());
+// ${EMBEDDED_CODE}を埋め込みコードで置換
+const embeddedCode = buildEmbeddedCode();
+const finalWebapp = template.replace('${EMBEDDED_CODE}', embeddedCode);
 
-// 最終的なwebapp.htmlを出力
+// webapp.htmlを出力
 fs.writeFileSync('./webapp.html', finalWebapp, 'utf8');
 
 console.log('webapp.html を生成しました');
