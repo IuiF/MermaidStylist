@@ -19,6 +19,7 @@ function getViewportManager() {
                 // ホイールイベント（Ctrl+ホイールでズーム、通常の2本指スライドでパン）
                 container.addEventListener('wheel', (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
 
                     if (e.ctrlKey) {
                         // Ctrl+ホイール → ズーム

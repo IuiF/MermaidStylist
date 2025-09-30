@@ -5,6 +5,7 @@ function getBaseTemplate() {
             margin: 0;
             padding: 0;
             overflow: hidden;
+            touch-action: none;
         }
         .tree-container {
             position: fixed;
@@ -16,6 +17,7 @@ function getBaseTemplate() {
             background: #fafafa;
             cursor: grab;
             touch-action: none;
+            overscroll-behavior: none;
         }
         .tree-container:active {
             cursor: grabbing;
