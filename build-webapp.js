@@ -98,7 +98,10 @@ function buildEmbeddedCode() {
 
     code += '// ジェネレーター（html.jsから）\n';
     if (generateHTMLCode) code += generateHTMLCode + '\n\n';
-    if (getJavaScriptContentCode) code += getJavaScriptContentCode + '\n\n';
+    if (getJavaScriptContentCode) {
+        // </script>をエスケープしてブラウザでscriptタグが閉じられないようにする
+        code += getJavaScriptContentCode.replace(/<\/script>/g, '<\\/script>') + '\n\n';
+    }
     if (generateErrorHTMLCode) code += generateErrorHTMLCode + '\n\n';
 
     return code;
