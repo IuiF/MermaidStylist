@@ -1,14 +1,14 @@
 function getViewportManager() {
     return `
         const viewportManager = {
-            scale: 1.0,
+            scale: 2.0,
             translateX: 0,
             translateY: 0,
             isDragging: false,
             startX: 0,
             startY: 0,
-            minScale: 0.1,
-            maxScale: 3.0,
+            minScale: 0.2,
+            maxScale: 6.0,
             initialTouchDistance: 0,
             initialTouchCenter: { x: 0, y: 0 },
             lastTouchCenter: { x: 0, y: 0 },
@@ -236,7 +236,7 @@ function getViewportManager() {
             },
 
             resetView: function() {
-                this.scale = 1.0;
+                this.scale = 2.0;
                 this.translateX = 0;
                 this.translateY = 0;
                 this.applyTransform();
