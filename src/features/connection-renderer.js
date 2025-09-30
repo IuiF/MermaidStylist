@@ -226,13 +226,24 @@ function getConnectionRenderer() {
                     const y2 = toTop + toHeight / 2; // 子ノードは中央で固定（簡易実装）
 
                     // ELKスタイル: 直交エッジ（orthogonal edges）
-                    // 1. 親から水平に出る
-                    // 2. 垂直に移動
-                    // 3. 水平に子に到達
-                    // 垂直セグメントの位置を接続ごとにずらして重複を回避
-                    const baseHorizontalOffset = 40;
-                    const offsetPerConnection = 15;
-                    const horizontalOffset = baseHorizontalOffset + (siblingIndex * offsetPerConnection);
+                    // 交差を最小化するため、垂直セグメントの位置を子の相対位置に応じて計算
+
+                    const dy = y2 - y1; // 親ポートから子ノードへの垂直距離
+
+                    // 戦略: レーンベースの配置で交差を回避
+                    // - 子が上にある接続（Y座標が小さい）: 外側のレーン（遠い）
+                    // - 子が下にある接続（Y座標が大きい）: 内側のレーン（近い）
+                    // これにより線が扇状に広がり、交差を最小化
+
+                    const minOffset = 30;
+                    const laneWidth = 25;
+
+                    // 逆順のインデックスを計算（子が上にあるほど大きい値）
+                    const reversedIndex = (siblingCount - 1) - siblingIndex;
+
+                    // レーンベースのオフセット
+                    const horizontalOffset = minOffset + (reversedIndex * laneWidth);
+
                     const cornerRadius = 8;
 
                     const p1x = x1;
