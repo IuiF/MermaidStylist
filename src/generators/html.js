@@ -1,9 +1,11 @@
 const { getBaseTemplate } = require('../templates/base');
 const { getLayoutUtils } = require('../utils/layout-utils');
 const { getTreeStructureAnalyzer } = require('../utils/tree-structure');
+const { getSVGHelpers } = require('../utils/svg-helpers');
 const { getVerticalLayout } = require('../layouts/vertical-layout');
 const { getHorizontalLayout } = require('../layouts/horizontal-layout');
 const { getConnectionRenderer } = require('../features/connection-renderer');
+const { getShadowManager } = require('../features/shadow-manager');
 const { getCollapseManager } = require('../features/collapse-manager');
 const { getLayoutSwitcher } = require('../features/layout-switcher');
 const { getViewportManager } = require('../features/viewport-manager');
@@ -40,6 +42,7 @@ function getJavaScriptContent(nodes, connections) {
 
         // Import utilities
         ${getLayoutUtils()}
+        ${getSVGHelpers()}
 
         // Import tree structure analyzer
         ${getTreeStructureAnalyzer()}
@@ -50,6 +53,9 @@ function getJavaScriptContent(nodes, connections) {
 
         // Import connection renderer
         ${getConnectionRenderer()}
+
+        // Import shadow manager
+        ${getShadowManager()}
 
         // Import collapse manager
         ${getCollapseManager()}
