@@ -50,37 +50,11 @@ function getBaseTemplate() {
         }
         .collapsed-node {
             position: relative;
-            box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        .collapsed-node::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: 2px solid #333;
-            background: #e9e9e9;
-            border-radius: 5px;
-            z-index: -2;
-            box-sizing: border-box;
-            transform: translate(-2px, -2px);
-            pointer-events: none;
-        }
-        .collapsed-node::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: 2px solid #333;
-            background: #ddd;
-            border-radius: 5px;
-            z-index: -3;
-            box-sizing: border-box;
-            transform: translate(-4px, -4px);
-            pointer-events: none;
+            box-shadow:
+                5px 5px 0 0 #d0d0d0,
+                5px 5px 0 2px #333,
+                2px 2px 4px rgba(0,0,0,0.3);
+            background: #f9f9f9 !important;
         }
         .hidden {
             display: none;
