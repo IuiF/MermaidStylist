@@ -8,6 +8,7 @@ const { getCollapseManager } = require('../features/collapse-manager');
 const { getLayoutSwitcher } = require('../features/layout-switcher');
 const { getViewportManager } = require('../features/viewport-manager');
 const { getContextMenu } = require('../features/context-menu');
+const { getHighlightManager } = require('../features/highlight-manager');
 
 function generateHTML(nodes, connections) {
     const template = getBaseTemplate();
@@ -65,6 +66,9 @@ function getJavaScriptContent(nodes, connections) {
 
         // Import viewport manager
         ${getViewportManager()}
+
+        // Import highlight manager
+        ${getHighlightManager()}
 
         // Import context menu
         ${getContextMenu()}
