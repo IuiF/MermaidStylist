@@ -17,8 +17,9 @@ function generateHTML(nodes, connections) {
 
     for (const node of nodes) {
         const hasChildren = connections.some(conn => conn.from === node.id);
-        const collapseButton = hasChildren ? '<span class="collapse-button" onclick="toggleNodeCollapse(\'' + node.id + '\')">▼</span>' : '';
-        html += `        <div class="node" id="${node.id}" data-label="${node.label}" data-has-children="${hasChildren}">${node.label}${collapseButton}</div>\n`;
+        const collapseButton = hasChildren ? '<span class="collapse-button" onclick="toggleNodeCollapse(\'' + node.id + '\'); event.stopPropagation();">▼</span>' : '';
+        const nodeOnClick = hasChildren ? ` onclick="toggleNodeCollapse('${node.id}')"` : '';
+        html += `        <div class="node" id="${node.id}" data-label="${node.label}" data-has-children="${hasChildren}"${nodeOnClick}>${node.label}${collapseButton}</div>\n`;
     }
 
     html += '    ' + template.htmlStructure.containerClose + '\n';
