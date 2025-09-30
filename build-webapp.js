@@ -25,6 +25,8 @@ function buildEmbeddedCode() {
         .replace(/module\.exports = \{[^}]+\};?/g, '');
     const getLayoutUtils = fs.readFileSync('./src/utils/layout-utils.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getSVGHelpers = fs.readFileSync('./src/utils/svg-helpers.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
     const getTreeStructureAnalyzer = fs.readFileSync('./src/utils/tree-structure.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
     const getVerticalLayout = fs.readFileSync('./src/layouts/vertical-layout.js', 'utf8')
@@ -32,6 +34,8 @@ function buildEmbeddedCode() {
     const getHorizontalLayout = fs.readFileSync('./src/layouts/horizontal-layout.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
     const getConnectionRenderer = fs.readFileSync('./src/features/connection-renderer.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getShadowManager = fs.readFileSync('./src/features/shadow-manager.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
     const getCollapseManager = fs.readFileSync('./src/features/collapse-manager.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
@@ -49,6 +53,7 @@ function buildEmbeddedCode() {
     code += '// テンプレートとユーティリティ\n';
     code += getBaseTemplate + '\n';
     code += getLayoutUtils + '\n';
+    code += getSVGHelpers + '\n';
     code += getTreeStructureAnalyzer + '\n\n';
 
     code += '// レイアウト\n';
@@ -57,6 +62,7 @@ function buildEmbeddedCode() {
 
     code += '// 機能\n';
     code += getConnectionRenderer + '\n';
+    code += getShadowManager + '\n';
     code += getCollapseManager + '\n';
     code += getLayoutSwitcher + '\n';
     code += getViewportManager + '\n';
