@@ -1,27 +1,31 @@
-class LayoutSwitcher {
-    constructor() {
-        this.currentLayout = 'vertical';
-    }
+function getLayoutSwitcher() {
+    return `
+        // Layout state
+        let currentLayout = 'vertical';
+        let currentNodePositions = null;
 
-    getCurrentLayout() {
-        return this.currentLayout;
-    }
+        function switchLayout(layoutType) {
+            currentLayout = layoutType;
 
-    setLayout(layoutType) {
-        if (layoutType !== 'vertical' && layoutType !== 'horizontal') {
-            console.error('Invalid layout type:', layoutType);
-            return false;
+            // Update button states
+            document.getElementById('verticalBtn').classList.toggle('active', layoutType === 'vertical');
+            document.getElementById('horizontalBtn').classList.toggle('active', layoutType === 'horizontal');
+
+            // Apply layout
+            if (layoutType === 'vertical') {
+                currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+            } else {
+                currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+            }
+
+            // Redraw lines
+            setTimeout(() => {
+                createCSSLines(connections, currentNodePositions);
+            }, 50);
         }
-        this.currentLayout = layoutType;
-        return true;
-    }
-
-    toggleLayout() {
-        this.currentLayout = this.currentLayout === 'vertical' ? 'horizontal' : 'vertical';
-        return this.currentLayout;
-    }
+    `;
 }
 
 module.exports = {
-    LayoutSwitcher
+    getLayoutSwitcher
 };

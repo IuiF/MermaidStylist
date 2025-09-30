@@ -114,7 +114,7 @@
         const nodes = [{"id":"A","label":"A"},{"id":"B","label":"B"},{"id":"C","label":"C"},{"id":"D","label":"D"},{"id":"E","label":"E"},{"id":"F","label":"F"},{"id":"G","label":"G"},{"id":"H","label":"H"},{"id":"I","label":"I"},{"id":"J","label":"J"},{"id":"K","label":"K"}];
         const connections = [{"from":"A","to":"B","label":"Yes"},{"from":"A","to":"C","label":"No"},{"from":"B","to":"D","label":"Maybe"},{"from":"C","to":"E","label":"With Spaces"},{"from":"D","to":"F","label":"Label"},{"from":"E","to":"F","label":"Quoted Label"},{"from":"F","to":"G","label":"Check"},{"from":"F","to":"H","label":"Check Again"},{"from":"G","to":"I","label":"Strong"},{"from":"H","to":"I","label":"Very Strong"},{"from":"I","to":"J"},{"from":"J","to":"K"}];
 
-        // Import layout utilities
+        // Import utilities
         
         function measureTextWidth(text, font) {
             const canvas = document.createElement('canvas');
@@ -158,9 +158,30 @@
                 }
             });
         }
+
+        function calculateConnectionLabelSpacing(connections, parentId) {
+            const labelFont = '11px Arial, sans-serif';
+            const minSpacing = 60;
+            const labelPadding = 30;
+
+            let maxLabelWidth = 0;
+
+            connections.forEach(conn => {
+                if (conn.from === parentId && conn.label) {
+                    const labelWidth = measureTextWidth(conn.label, labelFont);
+                    maxLabelWidth = Math.max(maxLabelWidth, labelWidth);
+                }
+            });
+
+            if (maxLabelWidth > 0) {
+                return Math.max(minSpacing, maxLabelWidth + labelPadding);
+            }
+
+            return minSpacing;
+        }
     
 
-        // Import hierarchical layout
+        // Import tree structure analyzer
         
         function analyzeTreeStructure(nodes, connections) {
             const childNodes = new Set(connections.map(c => c.to));
@@ -204,8 +225,11 @@
 
             return { rootNodes, levels, childrenMap };
         }
+    
 
-        function verticalLayout(nodes, connections, calculateAllNodeWidths) {
+        // Import layouts
+        
+        function verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure) {
             const container = document.getElementById('treeContainer');
             let containerWidth = Math.max(800, container.clientWidth || 800);
 
@@ -285,8 +309,9 @@
 
             return nodePositions;
         }
-
-        function horizontalLayout(nodes, connections, calculateAllNodeWidths) {
+    
+        
+        function horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure) {
             const container = document.getElementById('treeContainer');
             let containerHeight = Math.max(800, container.clientHeight || 800);
 
@@ -377,7 +402,10 @@
 
             return nodePositions;
         }
+    
 
+        // Import connection renderer
+        
         function createCSSLines(connections, nodePositions) {
             const container = document.getElementById('treeContainer');
             if (!container) {
@@ -450,7 +478,8 @@
         }
     
 
-        // Collapse functionality
+        // Import collapse manager
+        
         const collapseManager = {
             collapsedNodes: new Set(),
             childrenMap: new Map(),
@@ -492,9 +521,9 @@
                     // レイアウトを再計算
                     setTimeout(() => {
                         if (currentLayout === 'vertical') {
-                            currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
+                            currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
                         } else {
-                            currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths);
+                            currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
                         }
                         createCSSLines(connections, currentNodePositions);
                     }, 50);
@@ -542,9 +571,9 @@
 
                 setTimeout(() => {
                     if (currentLayout === 'vertical') {
-                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
+                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
                     } else {
-                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths);
+                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
                     }
                     createCSSLines(connections, currentNodePositions);
                 }, 50);
@@ -566,9 +595,9 @@
 
                 setTimeout(() => {
                     if (currentLayout === 'vertical') {
-                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
+                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
                     } else {
-                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths);
+                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
                     }
                     createCSSLines(connections, currentNodePositions);
                 }, 50);
@@ -586,7 +615,10 @@
         function expandAll() {
             collapseManager.expandAll();
         }
+    
 
+        // Import layout switcher
+        
         // Layout state
         let currentLayout = 'vertical';
         let currentNodePositions = null;
@@ -600,9 +632,9 @@
 
             // Apply layout
             if (layoutType === 'vertical') {
-                currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
+                currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
             } else {
-                currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths);
+                currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
             }
 
             // Redraw lines
@@ -610,12 +642,13 @@
                 createCSSLines(connections, currentNodePositions);
             }, 50);
         }
+    
 
         window.onload = function() {
             collapseManager.init();
 
             // Apply initial layout
-            currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
+            currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
 
             // コンテナの高さを動的に設定
             const treeStructure = analyzeTreeStructure(nodes, connections);
