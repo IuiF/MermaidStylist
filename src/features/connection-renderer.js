@@ -162,6 +162,23 @@ function getConnectionRenderer() {
             // パス1: すべての接続情報を収集
             const edgeInfos = [];
 
+            // ノードの階層を計算（ルートからの深さ）
+            const nodeDepths = {};
+            function calculateDepth(nodeId, depth = 0) {
+                if (nodeDepths[nodeId] !== undefined) {
+                    return;
+                }
+                nodeDepths[nodeId] = depth;
+                const children = connections.filter(c => c.from === nodeId);
+                children.forEach(c => calculateDepth(c.to, depth + 1));
+            }
+
+            // ルートノードを見つけて深さ計算を開始
+            const allNodeIds = new Set([...connections.map(c => c.from), ...connections.map(c => c.to)]);
+            const childNodeIds = new Set(connections.map(c => c.to));
+            const rootNodeIds = [...allNodeIds].filter(id => !childNodeIds.has(id));
+            rootNodeIds.forEach(rootId => calculateDepth(rootId, 0));
+
             // 同じ親から出る接続をグループ化し、子のY座標でソート
             const connectionsByParent = {};
             connections.forEach(conn => {
@@ -209,6 +226,9 @@ function getConnectionRenderer() {
                 const x2 = toPos.left;
                 const y2 = toPos.top + toDim.height / 2;
 
+                // エッジの階層（親の深さ）
+                const edgeDepth = nodeDepths[conn.from] || 0;
+
                 edgeInfos.push({
                     conn: conn,
                     x1: x1,
@@ -220,7 +240,8 @@ function getConnectionRenderer() {
                     siblingIndex: siblingIndex,
                     siblingCount: siblingCount,
                     parentX: fromPos.left,
-                    parentY: fromPos.top
+                    parentY: fromPos.top,
+                    depth: edgeDepth
                 });
             });
 
@@ -248,21 +269,25 @@ function getConnectionRenderer() {
                 parentRanks[id] = index;
             });
 
-            // グローバルレーン管理
-            const occupiedLanes = []; // { laneIndex, segments: [{yMin, yMax, xRange}] }
-            const parentAssignedLanes = {}; // 親ごとに割り当てられたレーン
+            // 階層ごとのレーン管理
+            const lanesByDepth = {}; // depth -> [{ laneIndex, segments: [{yMin, yMax}] }]
+            const parentAssignedLanes = {}; // parentId -> laneIndex
 
-            function findBestLaneForParent(parentId, x1, childrenYMin, childrenYMax, preferredLane) {
+            function findBestLaneForParent(parentId, depth, x1, childrenYMin, childrenYMax, preferredLane) {
                 // すでに割り当て済みの場合はそれを返す
                 if (parentAssignedLanes[parentId] !== undefined) {
                     return parentAssignedLanes[parentId];
                 }
 
+                // この階層のレーン配列を取得または作成
+                if (!lanesByDepth[depth]) {
+                    lanesByDepth[depth] = [];
+                }
+                const occupiedLanes = lanesByDepth[depth];
+
                 let laneIndex = preferredLane;
 
                 while (true) {
-                    const laneX = x1 + minOffset + (laneIndex * laneWidth);
-
                     // このレーンで衝突があるか確認
                     let hasConflict = false;
                     for (const lane of occupiedLanes) {
@@ -288,9 +313,7 @@ function getConnectionRenderer() {
                         }
                         lane.segments.push({
                             yMin: childrenYMin,
-                            yMax: childrenYMax,
-                            xMin: laneX,
-                            xMax: laneX
+                            yMax: childrenYMax
                         });
 
                         // 親にレーンを割り当て
@@ -314,22 +337,29 @@ function getConnectionRenderer() {
             });
 
             let connectionCount = 0;
-            const totalParents = parentIds.length;
 
             edgeInfos.forEach(edgeInfo => {
-                const { conn, x1, y1, x2, y2, yMin, yMax, siblingIndex, siblingCount } = edgeInfo;
+                const { conn, x1, y1, x2, y2, yMin, yMax, siblingIndex, siblingCount, depth } = edgeInfo;
                 const fromElement = svgHelpers.getNodeElement(conn.from);
                 const toElement = svgHelpers.getNodeElement(conn.to);
 
-                // 優先レーンを計算（親ごとに1回だけ）
-                const parentRank = parentRanks[conn.from];
-                const basePreference = totalParents - 1 - parentRank;
+                // この階層内での親のランクを計算
+                const parentsAtThisDepth = edgeInfos
+                    .filter(e => e.depth === depth)
+                    .map(e => e.conn.from)
+                    .filter((v, i, a) => a.indexOf(v) === i) // ユニーク
+                    .sort((a, b) => (parentYPositions[a] || 0) - (parentYPositions[b] || 0));
+
+                const parentRankInDepth = parentsAtThisDepth.indexOf(conn.from);
+                const totalParentsInDepth = parentsAtThisDepth.length;
+                const basePreference = totalParentsInDepth - 1 - parentRankInDepth;
                 const preferredLane = basePreference * 3;
 
                 // 親のレーンを取得または割り当て
                 const childrenRange = parentChildrenYRanges[conn.from];
                 const assignedLane = findBestLaneForParent(
                     conn.from,
+                    depth,
                     x1,
                     childrenRange.yMin,
                     childrenRange.yMax,
