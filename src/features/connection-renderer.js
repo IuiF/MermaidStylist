@@ -45,7 +45,7 @@ function getConnectionRenderer() {
                     line.className = 'connection-line';
                     line.style.left = x1 + 'px';
                     line.style.top = y1 + 'px';
-                    line.style.width = length + 'px';
+                    line.style.width = (length - 8) + 'px';
                     line.style.transform = \`rotate(\${angle}deg)\`;
 
                     contentWrapper.appendChild(line);
