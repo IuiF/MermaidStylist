@@ -9,20 +9,15 @@ const { validateTreeStructure } = require('./src/validators/tree-validator');
 // ブラウザ向けのコードを生成
 function getEmbeddedCode() {
     // パーサーのコード
-    const parserCode = `
-        ${parseMermaidNodes.toString()}
-        ${parseMermaidConnections.toString()}
-    `;
+    const parserCode = '\n        ' +
+        parseMermaidNodes.toString() + '\n        ' +
+        parseMermaidConnections.toString() + '\n    ';
 
     // バリデーターのコード
-    const validatorCode = `
-        ${validateTreeStructure.toString()}
-    `;
+    const validatorCode = '\n        ' +
+        validateTreeStructure.toString() + '\n    ';
 
-    // ジェネレーターのコード（依存関係を含む）
-    const generatorCode = fs.readFileSync('./src/generators/html.js', 'utf8')
-        .replace(/const \{ .+ \} = require\(.+\);/g, '') // require文を削除
-        .replace(/module\.exports = \{[^}]+\};/g, ''); // module.exports削除
+    // ジェネレーターのコードは使用しない（ブラウザ向けに別途定義）
 
     // その他の必要なモジュール
     const baseTemplate = fs.readFileSync('./src/templates/base.js', 'utf8')
@@ -61,35 +56,25 @@ function getEmbeddedCode() {
     const treeValidator = fs.readFileSync('./src/validators/tree-validator.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};/g, '');
 
-    return `
-        // パーサー
-        ${parserCode}
-
-        // バリデーター
-        ${treeValidator}
-
-        // テンプレート
-        ${baseTemplate}
-
-        // ユーティリティ
-        ${layoutUtils}
-        ${treeStructure}
-
-        // レイアウト
-        ${verticalLayout}
-        ${horizontalLayout}
-
-        // 機能
-        ${connectionRenderer}
-        ${collapseManager}
-        ${layoutSwitcher}
-        ${viewportManager}
-        ${highlightManager}
-        ${contextMenu}
-
-        // ジェネレーター
-        ${generatorCode}
-    `;
+    return '\n        // パーサー\n        ' +
+        parserCode + '\n\n' +
+        '        // バリデーター\n' +
+        treeValidator + '\n\n' +
+        '        // テンプレート\n' +
+        baseTemplate + '\n\n' +
+        '        // ユーティリティ\n' +
+        layoutUtils + '\n' +
+        treeStructure + '\n\n' +
+        '        // レイアウト\n' +
+        verticalLayout + '\n' +
+        horizontalLayout + '\n\n' +
+        '        // 機能\n' +
+        connectionRenderer + '\n' +
+        collapseManager + '\n' +
+        layoutSwitcher + '\n' +
+        viewportManager + '\n' +
+        highlightManager + '\n' +
+        contextMenu + '\n    ';
 }
 
 // webappテンプレートを読み込み
