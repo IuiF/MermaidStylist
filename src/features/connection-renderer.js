@@ -194,25 +194,37 @@ function getConnectionRenderer() {
                     const x2 = toLeft;
                     const y2 = toTop + toHeight / 2;
 
-                    // 同じ親から出る接続の数とこの接続のインデックスを取得
-                    const siblings = connectionsByParent[conn.from];
-                    const siblingIndex = siblings.findIndex(c => c.to === conn.to);
-                    const siblingCount = siblings.length;
+                    // ELKスタイル: 直交エッジ（orthogonal edges）
+                    // 1. 親から水平に出る
+                    // 2. 垂直に移動
+                    // 3. 水平に子に到達
+                    const horizontalOffset = 60;
+                    const cornerRadius = 8;
 
-                    // 曲線の制御点を計算
-                    const dx = x2 - x1;
-                    const dy = y2 - y1;
-                    const midX = x1 + dx / 2;
+                    const p1x = x1;
+                    const p1y = y1;
+                    const p2x = x1 + horizontalOffset;
+                    const p2y = y1;
+                    const p3x = p2x;
+                    const p3y = y2;
+                    const p4x = x2;
+                    const p4y = y2;
 
-                    // 複数の子がある場合、それぞれに異なる曲率を設定
-                    let offsetY = 0;
-                    if (siblingCount > 1) {
-                        const spreadRange = Math.min(siblingCount * 20, 100);
-                        offsetY = ((siblingIndex / (siblingCount - 1)) - 0.5) * spreadRange;
+                    // 角を丸める場合のパス
+                    let pathData;
+                    if (Math.abs(p3y - p2y) > cornerRadius * 2) {
+                        // 角を丸める
+                        if (p3y > p2y) {
+                            // 下向き
+                            pathData = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
+                        } else {
+                            // 上向き
+                            pathData = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
+                        }
+                    } else {
+                        // 直線
+                        pathData = \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
                     }
-
-                    // ベジェ曲線のパスを作成
-                    const pathData = \`M \${x1} \${y1} C \${midX} \${y1 + offsetY}, \${midX} \${y2 - offsetY}, \${x2} \${y2}\`;
 
                     const path = svgHelpers.createPath(pathData, {
                         class: 'connection-line',
@@ -223,23 +235,20 @@ function getConnectionRenderer() {
 
                     svgLayer.appendChild(path);
 
-                    // 矢印を作成（終点での接線を計算）
-                    // ベジェ曲線の終点での接線は、終点と最後の制御点の差で決まる
-                    const cp2x = midX;
-                    const cp2y = y2 - offsetY;
-                    const angle = Math.atan2(y2 - cp2y, x2 - cp2x);
+                    // 矢印を作成（水平方向に進入）
+                    const angle = 0; // 水平方向
                     const arrowSize = 8;
                     const arrowX = x2;
                     const arrowY = y2;
 
-                    const p1x = arrowX;
-                    const p1y = arrowY;
-                    const p2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
-                    const p2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
-                    const p3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
-                    const p3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
+                    const ap1x = arrowX;
+                    const ap1y = arrowY;
+                    const ap2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
+                    const ap2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
+                    const ap3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
+                    const ap3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
 
-                    const arrow = svgHelpers.createPolygon(\`\${p1x},\${p1y} \${p2x},\${p2y} \${p3x},\${p3y}\`, {
+                    const arrow = svgHelpers.createPolygon(\`\${ap1x},\${ap1y} \${ap2x},\${ap2y} \${ap3x},\${ap3y}\`, {
                         class: 'connection-arrow',
                         'data-from': conn.from,
                         'data-to': conn.to
@@ -294,7 +303,7 @@ function getConnectionRenderer() {
                 }
             });
 
-            console.log("Created " + connectionCount + " curved SVG lines");
+            console.log("Created " + connectionCount + " elk-style orthogonal SVG lines");
         }
     `;
 }
