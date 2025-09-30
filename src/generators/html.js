@@ -116,11 +116,67 @@ function getJavaScriptContent(nodes, connections) {
                         }
                     }
                 });
+            },
+
+            collapseAll: function() {
+                nodes.forEach(node => {
+                    if (this.canCollapse(node.id) && !this.isCollapsed(node.id)) {
+                        const nodeElement = document.getElementById(node.id);
+                        const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                        this.collapsedNodes.add(node.id);
+                        nodeElement.classList.add('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▲';
+                    }
+                });
+
+                this.updateVisibility();
+
+                setTimeout(() => {
+                    if (currentLayout === 'vertical') {
+                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
+                    } else {
+                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths);
+                    }
+                    createCSSLines(connections, currentNodePositions);
+                }, 50);
+            },
+
+            expandAll: function() {
+                nodes.forEach(node => {
+                    if (this.isCollapsed(node.id)) {
+                        const nodeElement = document.getElementById(node.id);
+                        const collapseButton = nodeElement.querySelector('.collapse-button');
+
+                        this.collapsedNodes.delete(node.id);
+                        nodeElement.classList.remove('collapsed-node');
+                        if (collapseButton) collapseButton.textContent = '▼';
+                    }
+                });
+
+                this.updateVisibility();
+
+                setTimeout(() => {
+                    if (currentLayout === 'vertical') {
+                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
+                    } else {
+                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths);
+                    }
+                    createCSSLines(connections, currentNodePositions);
+                }, 50);
             }
         };
 
         function toggleNodeCollapse(nodeId) {
             collapseManager.toggleCollapse(nodeId);
+        }
+
+        function collapseAll() {
+            collapseManager.collapseAll();
+        }
+
+        function expandAll() {
+            collapseManager.expandAll();
         }
 
         // Layout state
