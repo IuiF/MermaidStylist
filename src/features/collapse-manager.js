@@ -69,6 +69,30 @@ function getCollapseManager() {
                 }
             },
 
+            updateShadowPositions: function() {
+                this.collapsedNodes.forEach(nodeId => {
+                    const nodeElement = document.getElementById(nodeId);
+                    if (nodeElement) {
+                        const svgLayer = document.getElementById('svgLayer');
+                        const shadowElement = svgLayer.querySelector(\`[data-shadow-for="\${nodeId}"]\`);
+                        if (shadowElement) {
+                            // ノードの現在位置を取得
+                            const transform = nodeElement.getAttribute('transform');
+                            let nodeX = 0, nodeY = 0;
+                            if (transform) {
+                                const match = transform.match(/translate\\(([^,\\s]+)\\s*,\\s*([^)]+)\\)/);
+                                if (match) {
+                                    nodeX = parseFloat(match[1]);
+                                    nodeY = parseFloat(match[2]);
+                                }
+                            }
+                            // 影の位置を更新
+                            shadowElement.setAttribute('transform', \`translate(\${nodeX + 5}, \${nodeY + 5})\`);
+                        }
+                    }
+                });
+            },
+
             isCollapsed: function(nodeId) {
                 return this.collapsedNodes.has(nodeId);
             },
@@ -104,6 +128,7 @@ function getCollapseManager() {
                             currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
                         }
                         createCSSLines(connections, currentNodePositions);
+                        this.updateShadowPositions();
                     }, 50);
                 }
             },
@@ -168,6 +193,7 @@ function getCollapseManager() {
                         currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
                     }
                     createCSSLines(connections, currentNodePositions);
+                    this.updateShadowPositions();
                 }, 50);
             },
 
@@ -193,6 +219,7 @@ function getCollapseManager() {
                         currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
                     }
                     createCSSLines(connections, currentNodePositions);
+                    this.updateShadowPositions();
                 }, 50);
             },
 
@@ -218,6 +245,7 @@ function getCollapseManager() {
                         currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
                     }
                     createCSSLines(connections, currentNodePositions);
+                    this.updateShadowPositions();
                 }, 50);
             },
 
@@ -243,6 +271,7 @@ function getCollapseManager() {
                         currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
                     }
                     createCSSLines(connections, currentNodePositions);
+                    this.updateShadowPositions();
                 }, 50);
             }
         };
