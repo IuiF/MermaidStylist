@@ -49,7 +49,6 @@ function getBaseTemplate() {
             user-select: none;
         }
         .collapsed-node {
-            position: relative;
             box-shadow:
                 5px 5px 0 0 #d0d0d0,
                 5px 5px 0 2px #333,

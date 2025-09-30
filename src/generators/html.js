@@ -68,6 +68,11 @@ function getJavaScriptContent(nodes, connections) {
                     const nodeElement = document.getElementById(nodeId);
                     const collapseButton = nodeElement.querySelector('.collapse-button');
 
+                    // 折りたたみ前の位置を記録
+                    const beforeRect = nodeElement.getBoundingClientRect();
+                    const beforeTop = nodeElement.style.top;
+                    const beforeLeft = nodeElement.style.left;
+
                     if (this.collapsedNodes.has(nodeId)) {
                         this.collapsedNodes.delete(nodeId);
                         nodeElement.classList.remove('collapsed-node');
@@ -76,6 +81,18 @@ function getJavaScriptContent(nodes, connections) {
                         this.collapsedNodes.add(nodeId);
                         nodeElement.classList.add('collapsed-node');
                         if (collapseButton) collapseButton.textContent = '▲';
+                    }
+
+                    // 位置が変わっていないことを確認
+                    const afterRect = nodeElement.getBoundingClientRect();
+                    const afterTop = nodeElement.style.top;
+                    const afterLeft = nodeElement.style.left;
+
+                    if (beforeTop !== afterTop || beforeLeft !== afterLeft) {
+                        console.warn('Node position changed on collapse!', {
+                            before: { top: beforeTop, left: beforeLeft, rect: beforeRect },
+                            after: { top: afterTop, left: afterLeft, rect: afterRect }
+                        });
                     }
 
                     this.updateVisibility();
