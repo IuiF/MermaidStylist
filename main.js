@@ -1,6 +1,7 @@
 const { parseMermaidNodes, parseMermaidConnections } = require('./src/parsers/mermaid');
-const { generateHTML } = require('./src/generators/html');
+const { generateHTML, generateErrorHTML } = require('./src/generators/html');
 const { readMermaidFile, writeHtmlFile } = require('./src/utils/file');
+const { validateTreeStructure } = require('./src/validators/tree-validator');
 const path = require('path');
 
 // Main function - simplified after code refactoring
@@ -22,8 +23,19 @@ function main() {
 
         console.log(`Parsed ${nodes.length} nodes and ${connections.length} connections`);
 
-        // Generate HTML using the new generator
-        const html = generateHTML(nodes, connections);
+        // Validate tree structure
+        const validation = validateTreeStructure(nodes, connections);
+
+        let html;
+        if (!validation.isValid) {
+            console.error('Validation failed: Tree structure is invalid');
+            validation.errors.forEach(err => console.error(`  - ${err}`));
+            html = generateErrorHTML(validation.errors);
+        } else {
+            console.log('Validation passed: Valid tree structure');
+            // Generate HTML using the new generator
+            html = generateHTML(nodes, connections);
+        }
 
         // Write to output file using the new utility
         writeHtmlFile(outputFile, html);
