@@ -21,6 +21,7 @@ function getContextMenu() {
                 const label = nodeElement.querySelector('.label').textContent;
                 const isCollapsed = nodeElement.classList.contains('collapsed-node');
                 const hasChildren = collapseManager.canCollapse(nodeElement.id);
+                const isHighlighted = nodeElement.classList.contains('highlighted');
 
                 let menuHTML = '';
 
@@ -32,7 +33,11 @@ function getContextMenu() {
                     }
                 }
 
-                menuHTML += '<div class="context-menu-item" data-action="highlightSame">同じ名前のノードを強調</div>';
+                if (isHighlighted) {
+                    menuHTML += '<div class="context-menu-item" data-action="clearHighlight">強調表示を解除</div>';
+                } else {
+                    menuHTML += '<div class="context-menu-item" data-action="highlightSame">同じ名前のノードを強調</div>';
+                }
 
                 this.menuElement.innerHTML = menuHTML;
             },
@@ -66,6 +71,8 @@ function getContextMenu() {
                             collapseManager.expandAllByLabel(label);
                         } else if (action === 'highlightSame') {
                             highlightManager.highlightAllByLabel(label);
+                        } else if (action === 'clearHighlight') {
+                            highlightManager.clearHighlight();
                         }
 
                         this.hideMenu();
