@@ -20,10 +20,9 @@ function getVerticalLayout() {
                     level.forEach(node => {
                         const element = document.getElementById(node.id);
                         if (element && !element.classList.contains('hidden')) {
-                            const nodeWidth = nodeWidthMap.get(node.label);
                             element.style.left = currentX + 'px';
                             element.style.top = y + 'px';
-                            element.style.width = nodeWidth + 'px';
+                            const nodeWidth = element.offsetWidth;
                             nodePositions.set(node.id, { x: currentX, y: y, width: nodeWidth });
                             currentX += nodeWidth + fixedSpacing;
                         }
@@ -34,7 +33,6 @@ function getVerticalLayout() {
                     level.forEach(node => {
                         const element = document.getElementById(node.id);
                         if (element && !element.classList.contains('hidden')) {
-                            const nodeWidth = nodeWidthMap.get(node.label);
                             const parentId = connections.find(conn => conn.to === node.id)?.from;
                             if (parentId && nodePositions.has(parentId)) {
                                 const parentPos = nodePositions.get(parentId);
@@ -55,14 +53,14 @@ function getVerticalLayout() {
 
                                 element.style.left = startX + 'px';
                                 element.style.top = y + 'px';
-                                element.style.width = nodeWidth + 'px';
+                                const nodeWidth = element.offsetWidth;
                                 nodePositions.set(node.id, { x: startX, y: y, width: nodeWidth });
 
                                 levelMaxX = Math.max(levelMaxX, startX + nodeWidth + fixedSpacing);
                             } else {
                                 element.style.left = levelMaxX + 'px';
                                 element.style.top = y + 'px';
-                                element.style.width = nodeWidth + 'px';
+                                const nodeWidth = element.offsetWidth;
                                 nodePositions.set(node.id, { x: levelMaxX, y: y, width: nodeWidth });
                                 levelMaxX += nodeWidth + fixedSpacing;
                             }

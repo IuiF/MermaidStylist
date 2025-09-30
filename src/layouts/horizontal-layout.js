@@ -11,66 +11,69 @@ function getHorizontalLayout() {
             const leftMargin = 50;
             const topMargin = 50;
             const fixedSpacing = 60;
-            const nodeHeight = 40;
+
+            // 各階層の最大ノード幅を事前に計算
+            const levelMaxWidths = [];
+            treeStructure.levels.forEach((level, levelIndex) => {
+                let maxWidth = 0;
+                level.forEach(node => {
+                    const element = document.getElementById(node.id);
+                    if (element && !element.classList.contains('hidden')) {
+                        maxWidth = Math.max(maxWidth, element.offsetWidth);
+                    }
+                });
+                levelMaxWidths[levelIndex] = maxWidth;
+            });
+
+            // 各階層のX座標を計算
+            const levelXPositions = [leftMargin];
+            for (let i = 1; i < treeStructure.levels.length; i++) {
+                levelXPositions[i] = levelXPositions[i - 1] + levelMaxWidths[i - 1] + fixedSpacing * 2;
+            }
 
             treeStructure.levels.forEach((level, levelIndex) => {
-                if (levelIndex === 0) {
-                    let currentY = topMargin;
-                    level.forEach(node => {
-                        const element = document.getElementById(node.id);
-                        if (element && !element.classList.contains('hidden')) {
-                            const nodeWidth = nodeWidthMap.get(node.label);
-                            element.style.left = leftMargin + 'px';
+                const levelX = levelXPositions[levelIndex];
+                let currentY = topMargin;
+
+                level.forEach(node => {
+                    const element = document.getElementById(node.id);
+                    if (element && !element.classList.contains('hidden')) {
+                        const parentId = connections.find(conn => conn.to === node.id)?.from;
+
+                        if (parentId && nodePositions.has(parentId)) {
+                            const parentPos = nodePositions.get(parentId);
+                            const siblings = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
+                            const siblingIndex = siblings.indexOf(node.id);
+
+                            let startY = parentPos.y;
+
+                            for (let i = 0; i < siblingIndex; i++) {
+                                const siblingId = siblings[i];
+                                if (nodePositions.has(siblingId)) {
+                                    const siblingPos = nodePositions.get(siblingId);
+                                    startY = Math.max(startY, siblingPos.y + siblingPos.height + fixedSpacing);
+                                }
+                            }
+
+                            startY = Math.max(startY, currentY);
+
+                            element.style.left = levelX + 'px';
+                            element.style.top = startY + 'px';
+                            const nodeWidth = element.offsetWidth;
+                            const nodeHeight = element.offsetHeight;
+                            nodePositions.set(node.id, { x: levelX, y: startY, width: nodeWidth, height: nodeHeight });
+
+                            currentY = Math.max(currentY, startY + nodeHeight + fixedSpacing);
+                        } else {
+                            element.style.left = levelX + 'px';
                             element.style.top = currentY + 'px';
-                            element.style.width = nodeWidth + 'px';
-                            nodePositions.set(node.id, { x: leftMargin, y: currentY, width: nodeWidth, height: nodeHeight });
+                            const nodeWidth = element.offsetWidth;
+                            const nodeHeight = element.offsetHeight;
+                            nodePositions.set(node.id, { x: levelX, y: currentY, width: nodeWidth, height: nodeHeight });
                             currentY += nodeHeight + fixedSpacing;
                         }
-                    });
-                } else {
-                    let levelMaxY = topMargin;
-
-                    level.forEach(node => {
-                        const element = document.getElementById(node.id);
-                        if (element && !element.classList.contains('hidden')) {
-                            const nodeWidth = nodeWidthMap.get(node.label);
-                            const parentId = connections.find(conn => conn.to === node.id)?.from;
-                            if (parentId && nodePositions.has(parentId)) {
-                                const parentPos = nodePositions.get(parentId);
-                                const siblings = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
-                                const siblingIndex = siblings.indexOf(node.id);
-
-                                // 親子間の距離を一定にする（横方向は倍のスペース）
-                                const nodeX = parentPos.x + parentPos.width + fixedSpacing * 2;
-
-                                let startY = parentPos.y;
-
-                                for (let i = 0; i < siblingIndex; i++) {
-                                    const siblingId = siblings[i];
-                                    if (nodePositions.has(siblingId)) {
-                                        const siblingPos = nodePositions.get(siblingId);
-                                        startY = Math.max(startY, siblingPos.y + siblingPos.height + fixedSpacing);
-                                    }
-                                }
-
-                                startY = Math.max(startY, levelMaxY);
-
-                                element.style.left = nodeX + 'px';
-                                element.style.top = startY + 'px';
-                                element.style.width = nodeWidth + 'px';
-                                nodePositions.set(node.id, { x: nodeX, y: startY, width: nodeWidth, height: nodeHeight });
-
-                                levelMaxY = Math.max(levelMaxY, startY + nodeHeight + fixedSpacing);
-                            } else {
-                                element.style.left = leftMargin + 'px';
-                                element.style.top = levelMaxY + 'px';
-                                element.style.width = nodeWidth + 'px';
-                                nodePositions.set(node.id, { x: leftMargin, y: levelMaxY, width: nodeWidth, height: nodeHeight });
-                                levelMaxY += nodeHeight + fixedSpacing;
-                            }
-                        }
-                    });
-                }
+                    }
+                });
             });
 
             const maxY = Math.max(...Array.from(nodePositions.values()).map(pos => pos.y + pos.height));

@@ -116,6 +116,28 @@ function getBaseTemplate() {
             margin-left: auto;
             font-size: 11px;
             color: #666;
+        }
+        .context-menu {
+            position: fixed;
+            background: #fff;
+            border: 1px solid #999;
+            border-radius: 3px;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+            padding: 4px 0;
+            z-index: 10000;
+            display: none;
+        }
+        .context-menu.visible {
+            display: block;
+        }
+        .context-menu-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .context-menu-item:hover {
+            background: #f0f0f0;
         }`,
 
         htmlStructure: {

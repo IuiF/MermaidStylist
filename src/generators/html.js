@@ -7,6 +7,7 @@ const { getConnectionRenderer } = require('../features/connection-renderer');
 const { getCollapseManager } = require('../features/collapse-manager');
 const { getLayoutSwitcher } = require('../features/layout-switcher');
 const { getViewportManager } = require('../features/viewport-manager');
+const { getContextMenu } = require('../features/context-menu');
 
 function generateHTML(nodes, connections) {
     const template = getBaseTemplate();
@@ -27,7 +28,7 @@ function generateHTML(nodes, connections) {
         const hasChildren = connections.some(conn => conn.from === node.id);
         const collapseButton = hasChildren ? '<span class="collapse-button" onclick="toggleNodeCollapse(\'' + node.id + '\'); event.stopPropagation();">▼</span>' : '';
         const nodeOnClick = hasChildren ? ` onclick="toggleNodeCollapse('${node.id}')"` : '';
-        html += `        <div class="node" id="${node.id}" data-label="${node.label}" data-has-children="${hasChildren}"${nodeOnClick}>${node.label}${collapseButton}</div>\n`;
+        html += `        <div class="node" id="${node.id}" data-label="${node.label}" data-has-children="${hasChildren}"${nodeOnClick}><span class="label">${node.label}</span>${collapseButton}</div>\n`;
     }
 
     html += '    ' + template.htmlStructure.containerClose + '\n';
@@ -65,9 +66,13 @@ function getJavaScriptContent(nodes, connections) {
         // Import viewport manager
         ${getViewportManager()}
 
+        // Import context menu
+        ${getContextMenu()}
+
         window.onload = function() {
             collapseManager.init();
             viewportManager.init();
+            contextMenu.init();
 
             // Apply initial layout
             currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
