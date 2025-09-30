@@ -269,11 +269,29 @@ function getConnectionRenderer() {
                 parentRanks[id] = index;
             });
 
+            // 階層ごとに親の右端の最大位置を計算
+            const depthMaxParentRight = {}; // depth -> max(parentRight)
+            const depthMinChildLeft = {}; // depth -> min(childLeft)
+
+            edgeInfos.forEach(info => {
+                const depth = info.depth;
+
+                // 親の右端
+                if (!depthMaxParentRight[depth] || info.x1 > depthMaxParentRight[depth]) {
+                    depthMaxParentRight[depth] = info.x1;
+                }
+
+                // 子の左端
+                if (!depthMinChildLeft[depth] || info.x2 < depthMinChildLeft[depth]) {
+                    depthMinChildLeft[depth] = info.x2;
+                }
+            });
+
             // 階層ごとのレーン管理
             const lanesByDepth = {}; // depth -> [{ laneIndex, segments: [{yMin, yMax}] }]
             const parentAssignedLanes = {}; // parentId -> laneIndex
 
-            function findBestLaneForParent(parentId, depth, x1, childrenYMin, childrenYMax, preferredLane) {
+            function findBestLaneForParent(parentId, depth, childrenYMin, childrenYMax, preferredLane) {
                 // すでに割り当て済みの場合はそれを返す
                 if (parentAssignedLanes[parentId] !== undefined) {
                     return parentAssignedLanes[parentId];
@@ -360,12 +378,23 @@ function getConnectionRenderer() {
                 const assignedLane = findBestLaneForParent(
                     conn.from,
                     depth,
-                    x1,
                     childrenRange.yMin,
                     childrenRange.yMax,
                     preferredLane
                 );
-                const horizontalOffset = minOffset + (assignedLane * laneWidth);
+
+                // この階層での垂直セグメントの配置範囲を計算
+                const maxParentRight = depthMaxParentRight[depth] || x1;
+                const minChildLeft = depthMinChildLeft[depth] || x2;
+                const availableWidth = Math.max(minChildLeft - maxParentRight - minOffset * 2, 50);
+
+                // レーンをこの範囲内に配置
+                const maxLanes = Math.max(totalParentsInDepth * 3, 10);
+                const laneSpacing = Math.max(5, Math.min(laneWidth, availableWidth / maxLanes));
+
+                // 垂直セグメントのX座標
+                const verticalSegmentX = maxParentRight + minOffset + (assignedLane * laneSpacing);
+                const horizontalOffset = verticalSegmentX - x1;
 
                 const cornerRadius = 8;
 
