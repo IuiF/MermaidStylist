@@ -114,6 +114,20 @@ function getBaseTemplate() {
         .path-highlighted-line::after {
             border-left-color: #2196f3 !important;
         }
+        .highlighted-line {
+            background-color: #ffc107 !important;
+        }
+        .highlighted-line::after {
+            border-left-color: #ffc107 !important;
+        }
+        .path-highlighted-line.highlighted-line {
+            background-color: #2196f3 !important;
+            box-shadow: 0 -3px 0 0 #ffc107, 0 3px 0 0 #ffc107;
+        }
+        .path-highlighted-line.highlighted-line::after {
+            border-left-color: #2196f3 !important;
+            filter: drop-shadow(0 -3px 0 #ffc107) drop-shadow(0 3px 0 #ffc107);
+        }
         .layout-controls {
             position: fixed;
             top: 0;
