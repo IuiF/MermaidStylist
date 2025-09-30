@@ -43,6 +43,8 @@ function getConnectionRenderer() {
 
                     const line = document.createElement('div');
                     line.className = 'connection-line';
+                    line.dataset.from = conn.from;
+                    line.dataset.to = conn.to;
                     line.style.left = x1 + 'px';
                     line.style.top = y1 + 'px';
                     line.style.width = (length - 8) + 'px';

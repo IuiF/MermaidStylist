@@ -96,6 +96,24 @@ function getBaseTemplate() {
                 2px 2px 4px rgba(0,0,0,0.3),
                 0 0 8px rgba(255, 193, 7, 0.5) !important;
         }
+        .path-highlighted {
+            background: #e3f2fd !important;
+            border-color: #2196f3 !important;
+            box-shadow: 0 0 8px rgba(33, 150, 243, 0.5);
+        }
+        .path-highlighted.collapsed-node {
+            box-shadow:
+                5px 5px 0 0 #d0d0d0,
+                5px 5px 0 2px #2196f3,
+                2px 2px 4px rgba(0,0,0,0.3),
+                0 0 8px rgba(33, 150, 243, 0.5) !important;
+        }
+        .path-highlighted-line {
+            background-color: #2196f3 !important;
+        }
+        .path-highlighted-line::after {
+            border-left-color: #2196f3 !important;
+        }
         .layout-controls {
             position: fixed;
             top: 0;

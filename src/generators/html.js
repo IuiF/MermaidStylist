@@ -9,6 +9,7 @@ const { getLayoutSwitcher } = require('../features/layout-switcher');
 const { getViewportManager } = require('../features/viewport-manager');
 const { getContextMenu } = require('../features/context-menu');
 const { getHighlightManager } = require('../features/highlight-manager');
+const { getPathHighlighter } = require('../features/path-highlighter');
 
 function generateHTML(nodes, connections) {
     const template = getBaseTemplate();
@@ -69,6 +70,9 @@ function getJavaScriptContent(nodes, connections) {
 
         // Import highlight manager
         ${getHighlightManager()}
+
+        // Import path highlighter
+        ${getPathHighlighter()}
 
         // Import context menu
         ${getContextMenu()}
