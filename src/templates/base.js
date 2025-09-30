@@ -22,6 +22,13 @@ function getBaseTemplate() {
         .tree-container:active {
             cursor: grabbing;
         }
+        #svgCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
         #contentWrapper {
             position: absolute;
             top: 0;
@@ -29,132 +36,96 @@ function getBaseTemplate() {
             transform-origin: 0 0;
             transform: translateZ(0);
             will-change: transform;
-            backface-visibility: hidden;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            pointer-events: none;
         }
         .node {
-            position: absolute;
-            border: 2px solid #333;
-            background: #f9f9f9;
-            padding: 8px 12px;
-            border-radius: 5px;
-            font-size: 12px;
-            white-space: nowrap;
             cursor: pointer;
-            z-index: 2;
-            box-sizing: content-box;
-            backface-visibility: hidden;
-            text-rendering: optimizeLegibility;
+            pointer-events: all;
         }
-        .connection-line {
-            position: absolute;
-            background-color: #666;
-            transform-origin: left center;
-            height: 2px;
-            z-index: 1;
-            backface-visibility: hidden;
+        .node-rect {
+            fill: #f9f9f9;
+            stroke: #333;
+            stroke-width: 2;
         }
-        .connection-line::after {
-            content: '';
-            position: absolute;
-            right: -8px;
-            top: -3px;
-            width: 0;
-            height: 0;
-            border-left: 8px solid #666;
-            border-top: 4px solid transparent;
-            border-bottom: 4px solid transparent;
-        }
-        .connection-label {
-            position: absolute;
-            background: #fff;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 11px;
-            color: #333;
-            border: 1px solid #999;
-            white-space: nowrap;
-            z-index: 3;
+        .node-text {
+            fill: #333;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
             pointer-events: none;
-            backface-visibility: hidden;
-            text-rendering: optimizeLegibility;
         }
         .collapse-button {
-            cursor: pointer;
+            fill: #333;
             font-size: 10px;
-            margin-left: 5px;
+            font-family: Arial, sans-serif;
+            cursor: pointer;
             user-select: none;
+            pointer-events: none;
         }
-        .collapsed-node {
-            box-shadow:
-                5px 5px 0 0 #d0d0d0,
-                5px 5px 0 2px #333,
-                2px 2px 4px rgba(0,0,0,0.3);
-            background: #f9f9f9 !important;
+        .connection-line {
+            stroke: #666;
+            stroke-width: 2;
+            fill: none;
+        }
+        .connection-arrow {
+            fill: #666;
+        }
+        .connection-label {
+            pointer-events: none;
         }
         .hidden {
             display: none;
         }
-        .highlighted {
-            background: #fff3cd !important;
-            border-color: #ffc107 !important;
-            box-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+        .collapsed-node .node-rect {
         }
-        .highlighted.collapsed-node {
-            box-shadow:
-                5px 5px 0 0 #d0d0d0,
-                5px 5px 0 2px #ffc107,
-                2px 2px 4px rgba(0,0,0,0.3),
-                0 0 8px rgba(255, 193, 7, 0.5) !important;
+        .highlighted .node-rect {
+            fill: #fff3cd;
+            stroke: #ffc107;
+            filter: drop-shadow(0 0 8px rgba(255, 193, 7, 0.5));
         }
-        .path-highlighted {
-            background: #e3f2fd !important;
-            border-color: #2196f3 !important;
-            box-shadow: 0 0 8px rgba(33, 150, 243, 0.5);
+        .highlighted.collapsed-node .node-rect {
+            fill: #fff3cd;
+            stroke: #ffc107;
         }
-        .path-highlighted.collapsed-node {
-            box-shadow:
-                5px 5px 0 0 #d0d0d0,
-                5px 5px 0 2px #2196f3,
-                2px 2px 4px rgba(0,0,0,0.3),
-                0 0 8px rgba(33, 150, 243, 0.5) !important;
+        .path-highlighted .node-rect {
+            fill: #e3f2fd;
+            stroke: #2196f3;
+            filter: drop-shadow(0 0 8px rgba(33, 150, 243, 0.5));
         }
-        .highlighted.path-highlighted {
-            background: #e3f2fd !important;
-            border-color: #2196f3 !important;
-            box-shadow: 0 0 8px rgba(33, 150, 243, 0.5);
-            outline: 3px solid #ffc107;
-            outline-offset: 2px;
+        .path-highlighted.collapsed-node .node-rect {
+            fill: #e3f2fd;
+            stroke: #2196f3;
         }
-        .highlighted.path-highlighted.collapsed-node {
-            box-shadow:
-                5px 5px 0 0 #d0d0d0,
-                5px 5px 0 2px #ffc107,
-                2px 2px 4px rgba(0,0,0,0.3),
-                0 0 8px rgba(33, 150, 243, 0.5) !important;
-            outline: 3px solid #ffc107;
-            outline-offset: 2px;
+        .highlighted.path-highlighted .node-rect {
+            fill: #e3f2fd;
+            stroke: #2196f3;
+            stroke-width: 4;
+            filter: drop-shadow(0 0 8px rgba(33, 150, 243, 0.5)) drop-shadow(0 0 4px rgba(255, 193, 7, 0.8));
+        }
+        .highlighted.path-highlighted.collapsed-node .node-rect {
+            fill: #e3f2fd;
+            stroke: #2196f3;
+            stroke-width: 4;
         }
         .path-highlighted-line {
-            background-color: #2196f3 !important;
+            stroke: #2196f3 !important;
         }
-        .path-highlighted-line::after {
-            border-left-color: #2196f3 !important;
+        .path-highlighted-line.connection-arrow {
+            fill: #2196f3 !important;
         }
         .highlighted-line {
-            background-color: #ffc107 !important;
+            stroke: #ffc107 !important;
         }
-        .highlighted-line::after {
-            border-left-color: #ffc107 !important;
+        .highlighted-line.connection-arrow {
+            fill: #ffc107 !important;
         }
         .path-highlighted-line.highlighted-line {
-            background-color: #2196f3 !important;
-            box-shadow: 0 -3px 0 0 #ffc107, 0 3px 0 0 #ffc107;
+            stroke: #2196f3 !important;
+            stroke-width: 4;
+            filter: drop-shadow(0 0 2px #ffc107);
         }
-        .path-highlighted-line.highlighted-line::after {
-            border-left-color: #2196f3 !important;
-            filter: drop-shadow(0 -3px 0 #ffc107) drop-shadow(0 3px 0 #ffc107);
+        .path-highlighted-line.highlighted-line.connection-arrow {
+            fill: #2196f3 !important;
+            filter: drop-shadow(0 0 2px #ffc107);
         }
         .layout-controls {
             position: fixed;
@@ -229,7 +200,7 @@ function getBaseTemplate() {
             bodyOpen: '<body>',
             pageTitle: '<h1>Tree Structure</h1>',
             layoutControls: '<div class="layout-controls"><div class="button-group"><button class="layout-button active" id="horizontalBtn" onclick="switchLayout(\'horizontal\')">横方向</button><button class="layout-button" id="verticalBtn" onclick="switchLayout(\'vertical\')">縦方向</button></div><div class="button-group"><button class="layout-button" onclick="collapseAll()">すべて折りたたむ</button><button class="layout-button" onclick="expandAll()">すべて展開</button></div><button class="layout-button" onclick="viewportManager.resetView()">位置リセット</button><span class="viewport-info">ドラッグで移動 | ホイールで拡大縮小</span></div>',
-            containerOpen: '<div class="tree-container" id="treeContainer"><div id="contentWrapper">',
+            containerOpen: '<div class="tree-container" id="treeContainer"><svg id="svgCanvas"><g id="svgLayer"></g></svg><div id="contentWrapper">',
             containerClose: '</div></div>',
             bodyClose: '</body>',
             htmlClose: '</html>'

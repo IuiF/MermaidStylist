@@ -19,7 +19,8 @@ function getHorizontalLayout() {
                 level.forEach(node => {
                     const element = document.getElementById(node.id);
                     if (element && !element.classList.contains('hidden')) {
-                        maxWidth = Math.max(maxWidth, element.offsetWidth);
+                        const dimensions = getNodeDimensions(element);
+                        maxWidth = Math.max(maxWidth, dimensions.width);
                     }
                 });
                 levelMaxWidths[levelIndex] = maxWidth;
@@ -57,20 +58,16 @@ function getHorizontalLayout() {
 
                             startY = Math.max(startY, currentY);
 
-                            element.style.left = levelX + 'px';
-                            element.style.top = startY + 'px';
-                            const nodeWidth = element.offsetWidth;
-                            const nodeHeight = element.offsetHeight;
-                            nodePositions.set(node.id, { x: levelX, y: startY, width: nodeWidth, height: nodeHeight });
+                            setNodePosition(element, levelX, startY);
+                            const dimensions = getNodeDimensions(element);
+                            nodePositions.set(node.id, { x: levelX, y: startY, width: dimensions.width, height: dimensions.height });
 
-                            currentY = Math.max(currentY, startY + nodeHeight + fixedSpacing);
+                            currentY = Math.max(currentY, startY + dimensions.height + fixedSpacing);
                         } else {
-                            element.style.left = levelX + 'px';
-                            element.style.top = currentY + 'px';
-                            const nodeWidth = element.offsetWidth;
-                            const nodeHeight = element.offsetHeight;
-                            nodePositions.set(node.id, { x: levelX, y: currentY, width: nodeWidth, height: nodeHeight });
-                            currentY += nodeHeight + fixedSpacing;
+                            setNodePosition(element, levelX, currentY);
+                            const dimensions = getNodeDimensions(element);
+                            nodePositions.set(node.id, { x: levelX, y: currentY, width: dimensions.width, height: dimensions.height });
+                            currentY += dimensions.height + fixedSpacing;
                         }
                     }
                 });

@@ -48,11 +48,10 @@ function getPathHighlighter() {
                 });
 
                 // 接続線を強調表示
-                const allLines = document.querySelectorAll('.connection-line');
+                const allLines = document.querySelectorAll('.connection-line, .connection-arrow');
                 allLines.forEach(line => {
-                    // data属性から接続情報を取得（後で追加）
-                    const from = line.dataset.from;
-                    const to = line.dataset.to;
+                    const from = line.getAttribute('data-from');
+                    const to = line.getAttribute('data-to');
                     if (from && to) {
                         const connKey = from + '->' + to;
                         if (pathConnections.has(connKey)) {
@@ -63,12 +62,10 @@ function getPathHighlighter() {
             },
 
             clearPathHighlight: function() {
-                // ノードからpath-highlightedクラスを削除
                 document.querySelectorAll('.path-highlighted').forEach(element => {
                     element.classList.remove('path-highlighted');
                 });
 
-                // 接続線からpath-highlighted-lineクラスを削除
                 document.querySelectorAll('.path-highlighted-line').forEach(element => {
                     element.classList.remove('path-highlighted-line');
                 });

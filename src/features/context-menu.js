@@ -18,7 +18,7 @@ function getContextMenu() {
             },
 
             updateMenuItems: function(nodeElement) {
-                const label = nodeElement.querySelector('.label').textContent;
+                const label = nodeElement.getAttribute('data-label');
                 const isCollapsed = nodeElement.classList.contains('collapsed-node');
                 const hasChildren = collapseManager.canCollapse(nodeElement.id);
                 const isHighlighted = nodeElement.classList.contains('highlighted');
@@ -70,7 +70,7 @@ function getContextMenu() {
                     if (item && this.targetNode) {
                         e.stopPropagation();
                         const action = item.getAttribute('data-action');
-                        const label = this.targetNode.querySelector('.label').textContent;
+                        const label = this.targetNode.getAttribute('data-label');
 
                         if (action === 'collapseAllSame') {
                             collapseManager.collapseAllByLabel(label);

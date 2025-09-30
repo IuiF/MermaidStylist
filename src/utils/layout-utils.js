@@ -15,8 +15,15 @@ function getLayoutUtils() {
             nodes.forEach(node => {
                 const element = document.getElementById(node.id);
                 if (element) {
-                    const actualWidth = element.offsetWidth;
-                    nodeWidthMap.set(node.label, actualWidth);
+                    // SVGノードの場合はdata-width属性から取得
+                    const dataWidth = element.getAttribute('data-width');
+                    if (dataWidth) {
+                        nodeWidthMap.set(node.label, parseFloat(dataWidth));
+                    } else {
+                        // 従来のHTML要素の場合
+                        const actualWidth = element.offsetWidth;
+                        nodeWidthMap.set(node.label, actualWidth);
+                    }
                 } else if (!nodeWidthMap.has(node.label)) {
                     const textWidth = measureTextWidth(node.label, font);
                     const calculatedWidth = Math.ceil(textWidth) + padding;
@@ -37,7 +44,8 @@ function getLayoutUtils() {
             nodes.forEach(node => {
                 const element = document.getElementById(node.id);
                 if (element && node.label.length > 10) {
-                    const actualWidth = element.offsetWidth;
+                    const dataWidth = element.getAttribute('data-width');
+                    const actualWidth = dataWidth ? parseFloat(dataWidth) : element.offsetWidth;
                     const calculatedWidth = nodeWidthMap.get(node.label);
                     const difference = actualWidth - calculatedWidth;
 
@@ -66,6 +74,52 @@ function getLayoutUtils() {
             }
 
             return minSpacing;
+        }
+
+        function setNodePosition(element, x, y) {
+            if (element.tagName === 'g') {
+                // SVGノードの場合
+                element.setAttribute('transform', 'translate(' + x + ',' + y + ')');
+            } else {
+                // HTML要素の場合
+                element.style.left = x + 'px';
+                element.style.top = y + 'px';
+            }
+        }
+
+        function getNodeDimensions(element) {
+            if (element.tagName === 'g') {
+                // SVGノードの場合
+                const width = parseFloat(element.getAttribute('data-width')) || 0;
+                const height = parseFloat(element.getAttribute('data-height')) || 0;
+                return { width: width, height: height };
+            } else {
+                // HTML要素の場合
+                return { width: element.offsetWidth, height: element.offsetHeight };
+            }
+        }
+
+        function getNodePosition(element) {
+            if (element.tagName === 'g') {
+                // SVGノードの場合
+                const transform = element.getAttribute('transform');
+                if (transform) {
+                    const match = transform.match(/translate\\(([^,\\s]+)\\s*,\\s*([^)]+)\\)/);
+                    if (match) {
+                        return {
+                            left: parseFloat(match[1]),
+                            top: parseFloat(match[2])
+                        };
+                    }
+                }
+                return { left: 0, top: 0 };
+            } else {
+                // HTML要素の場合
+                return {
+                    left: parseFloat(element.style.left) || 0,
+                    top: parseFloat(element.style.top) || 0
+                };
+            }
         }
     `;
 }

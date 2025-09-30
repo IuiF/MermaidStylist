@@ -25,14 +25,6 @@ function generateHTML(nodes, connections) {
     html += template.htmlStructure.bodyOpen + '\n';
     html += '    ' + template.htmlStructure.layoutControls + '\n';
     html += '    ' + template.htmlStructure.containerOpen + '\n';
-
-    for (const node of nodes) {
-        const hasChildren = connections.some(conn => conn.from === node.id);
-        const collapseButton = hasChildren ? '<span class="collapse-button" onclick="toggleNodeCollapse(\'' + node.id + '\'); event.stopPropagation();">▼</span>' : '';
-        const nodeOnClick = hasChildren ? ` onclick="toggleNodeCollapse('${node.id}')"` : '';
-        html += `        <div class="node" id="${node.id}" data-label="${node.label}" data-has-children="${hasChildren}"${nodeOnClick}><span class="label">${node.label}</span>${collapseButton}</div>\n`;
-    }
-
     html += '    ' + template.htmlStructure.containerClose + '\n';
     html += getJavaScriptContent(nodes, connections);
     html += template.htmlStructure.bodyClose + '\n';
@@ -77,19 +69,99 @@ function getJavaScriptContent(nodes, connections) {
         // Import context menu
         ${getContextMenu()}
 
+        // Create SVG nodes
+        function createSVGNodes() {
+            const svgLayer = document.getElementById('svgLayer');
+
+            nodes.forEach(node => {
+                const hasChildren = connections.some(conn => conn.from === node.id);
+
+                // グループ要素を作成
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('id', node.id);
+                g.setAttribute('class', 'node');
+                g.setAttribute('data-label', node.label);
+                g.setAttribute('data-has-children', hasChildren);
+
+                // 一時的なテキスト要素でテキスト幅を測定
+                const tempText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                tempText.textContent = node.label;
+                tempText.setAttribute('font-size', '12');
+                tempText.setAttribute('font-family', 'Arial, sans-serif');
+                svgLayer.appendChild(tempText);
+                const textWidth = tempText.getBBox().width;
+                svgLayer.removeChild(tempText);
+
+                const padding = 12;
+                const buttonWidth = hasChildren ? 15 : 0;
+                const boxWidth = textWidth + padding * 2 + buttonWidth;
+                const boxHeight = 28;
+
+                // 背景矩形
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('class', 'node-rect');
+                rect.setAttribute('width', boxWidth);
+                rect.setAttribute('height', boxHeight);
+                rect.setAttribute('rx', 5);
+                rect.setAttribute('ry', 5);
+
+                // テキスト
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('class', 'node-text');
+                text.setAttribute('x', padding);
+                text.setAttribute('y', boxHeight / 2);
+                text.setAttribute('dominant-baseline', 'middle');
+                text.textContent = node.label;
+
+                g.appendChild(rect);
+                g.appendChild(text);
+
+                // 折りたたみボタン
+                if (hasChildren) {
+                    const button = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    button.setAttribute('class', 'collapse-button');
+                    button.setAttribute('x', boxWidth - padding - 5);
+                    button.setAttribute('y', boxHeight / 2);
+                    button.setAttribute('dominant-baseline', 'middle');
+                    button.textContent = '▼';
+                    g.appendChild(button);
+                }
+
+                // データ属性を保存
+                g.setAttribute('data-width', boxWidth);
+                g.setAttribute('data-height', boxHeight);
+
+                // 初期位置を(0,0)に設定
+                g.setAttribute('transform', 'translate(0,0)');
+
+                // イベントリスナーを追加
+                if (hasChildren) {
+                    g.addEventListener('click', function() {
+                        toggleNodeCollapse(node.id);
+                    });
+                }
+
+                svgLayer.appendChild(g);
+            });
+        }
+
         window.onload = function() {
+            createSVGNodes();
             collapseManager.init();
             viewportManager.init();
             contextMenu.init();
 
-            // Apply initial layout
-            currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
-
-            // デバッグ：実際の要素幅と計算値を比較
+            // SVGノードが配置されるまで少し待つ
             setTimeout(() => {
-                debugActualWidths(nodes);
-                createCSSLines(connections, currentNodePositions);
-            }, 200);
+                // Apply initial layout
+                currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+
+                // レイアウト完了後に接続線を描画
+                setTimeout(() => {
+                    debugActualWidths(nodes);
+                    createCSSLines(connections, currentNodePositions);
+                }, 100);
+            }, 50);
         };
     </script>`;
 }

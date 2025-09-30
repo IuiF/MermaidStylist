@@ -135,14 +135,15 @@ function getViewportManager() {
                             y: (pointers[0].y + pointers[1].y) / 2
                         };
                         this.lastTouchCenter = { ...this.initialTouchCenter };
-                    } else if (this.activePointers.size === 1 &&
-                              (e.target === container || e.target.classList.contains('connection-line') ||
-                               e.target.classList.contains('connection-label'))) {
-                        // 1本指/マウスでドラッグ開始
-                        this.isDragging = true;
-                        this.startX = e.clientX - this.translateX;
-                        this.startY = e.clientY - this.translateY;
-                        container.style.cursor = 'grabbing';
+                    } else if (this.activePointers.size === 1) {
+                        // ノード以外の場所をクリックした場合のみドラッグ開始
+                        const clickedNode = e.target.closest('.node');
+                        if (!clickedNode) {
+                            this.isDragging = true;
+                            this.startX = e.clientX - this.translateX;
+                            this.startY = e.clientY - this.translateY;
+                            container.style.cursor = 'grabbing';
+                        }
                     }
                 });
 
@@ -232,6 +233,11 @@ function getViewportManager() {
                 const contentWrapper = document.getElementById('contentWrapper');
                 if (contentWrapper) {
                     contentWrapper.style.transform = \`translate(\${this.translateX}px, \${this.translateY}px) scale(\${this.scale})\`;
+                }
+
+                const svgLayer = document.getElementById('svgLayer');
+                if (svgLayer) {
+                    svgLayer.setAttribute('transform', \`translate(\${this.translateX}, \${this.translateY}) scale(\${this.scale})\`);
                 }
             },
 
