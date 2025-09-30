@@ -24,6 +24,20 @@ function getLayoutSwitcher() {
                 pathHighlighter.reapplyPathHighlight();
             });
         }
+
+        function toggleConnectionLineStyle() {
+            const isCurved = toggleLineStyle();
+
+            // Update button states
+            document.getElementById('straightLineBtn').classList.toggle('active', !isCurved);
+            document.getElementById('curvedLineBtn').classList.toggle('active', isCurved);
+
+            // Redraw lines
+            requestAnimationFrame(() => {
+                createCSSLines(connections, currentNodePositions);
+                pathHighlighter.reapplyPathHighlight();
+            });
+        }
     `;
 }
 

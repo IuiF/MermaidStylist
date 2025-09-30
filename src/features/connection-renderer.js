@@ -3,12 +3,12 @@ function getConnectionRenderer() {
         // 依存: svgHelpers (svg-helpers.js), getNodePosition, getNodeDimensions (layout-utils.js)
         let useCurvedLines = false;
 
-        function toggleLineStyle() {
+        window.toggleLineStyle = function() {
             useCurvedLines = !useCurvedLines;
             return useCurvedLines;
         }
 
-        function createCSSLines(connections, nodePositions) {
+        window.createCSSLines = function(connections, nodePositions) {
             if (useCurvedLines) {
                 return createCurvedLines(connections, nodePositions);
             }

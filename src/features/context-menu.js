@@ -88,9 +88,7 @@ function getContextMenu() {
                         } else if (action === 'clearPath') {
                             pathHighlighter.clearPathHighlight();
                         } else if (action === 'toggleLineStyle') {
-                            const isCurved = toggleLineStyle();
-                            createCSSLines(treeConnections, {});
-                            console.log('切り替え: ' + (isCurved ? '曲線' : '直線'));
+                            toggleConnectionLineStyle();
                         }
 
                         this.hideMenu();
