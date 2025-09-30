@@ -1,18 +1,47 @@
 # MermaidTreeStylist
 
-A tool to convert Mermaid tree diagrams to styled HTML with fixed node spacing.
+Mermaid木構造図をインタラクティブなHTMLに変換するツール
 
-## Files
+## 機能
 
-- `main.js` - Main conversion script
-- `test.js` - Test suite
-- `sample_mermaid.mmd` - Sample Mermaid file
-- `output.html` - Generated HTML output
+- 木構造のMermaid図を視覚化
+- 縦方向・横方向レイアウト切り替え
+- ノードの折りたたみ・展開
+- パン・ズーム操作
+- 同名ノードの一括操作・強調表示
+- 右クリックコンテキストメニュー
 
-## Usage
+## Webアプリの使い方
+
+1. ブラウザで`webapp.html`を開く
+2. テキストエリアにMermaidコードを入力
+3. 「HTMLをダウンロード」ボタンでインタラクティブなHTMLを生成
+
+## CLIの使い方
 
 ```bash
-node main.js
+node main.js <input.mmd>
 ```
 
-Converts `sample_mermaid.mmd` to `output.html` with proper tree layout and CSS-based connections.
+`output.html`が生成されます。
+
+## Webアプリのビルド
+
+```bash
+node build-webapp.js
+```
+
+`webapp-template.html`からすべてのソースコードを埋め込んだ`webapp.html`を生成します。
+
+## プロジェクト構造
+
+```
+src/
+├── parsers/         # Mermaidパーサー
+├── generators/      # HTML生成
+├── validators/      # 木構造バリデーション
+├── templates/       # HTMLテンプレート
+├── layouts/         # レイアウトアルゴリズム
+├── features/        # 機能（折りたたみ、ビューポート等）
+└── utils/           # ユーティリティ
+```
