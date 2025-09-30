@@ -155,13 +155,25 @@ function getConnectionRenderer() {
             const existingLines = svgLayer.querySelectorAll('.connection-line, .connection-arrow, .connection-label');
             existingLines.forEach(line => line.remove());
 
-            // 同じ親から出る接続をグループ化
+            // 同じ親から出る接続をグループ化し、子のY座標でソート
             const connectionsByParent = {};
             connections.forEach(conn => {
                 if (!connectionsByParent[conn.from]) {
                     connectionsByParent[conn.from] = [];
                 }
                 connectionsByParent[conn.from].push(conn);
+            });
+
+            // 各親の接続を子ノードのY座標でソート
+            Object.keys(connectionsByParent).forEach(parentId => {
+                connectionsByParent[parentId].sort((a, b) => {
+                    const aElement = svgHelpers.getNodeElement(a.to);
+                    const bElement = svgHelpers.getNodeElement(b.to);
+                    if (!aElement || !bElement) return 0;
+                    const aPos = getNodePosition(aElement);
+                    const bPos = getNodePosition(bElement);
+                    return aPos.top - bPos.top;
+                });
             });
 
             let connectionCount = 0;
@@ -189,24 +201,29 @@ function getConnectionRenderer() {
                     const toWidth = toDim.width;
                     const toHeight = toDim.height;
 
-                    const x2 = toLeft;
-                    const y2 = toTop + toHeight / 2;
-
-                    // 同じ親から出る接続の数とこの接続のインデックスを取得
+                    // 同じ親から出る接続の数とソート済みインデックスを取得
                     const siblings = connectionsByParent[conn.from];
                     const siblingIndex = siblings.findIndex(c => c.to === conn.to);
                     const siblingCount = siblings.length;
 
-                    // 親ノードの出発点を垂直方向に分散
-                    let y1;
+                    // ポート割り当て: 親ノードの出発点を子の位置に応じて最適化
+                    let y1, x1;
+                    const portMargin = 4; // ノード端からのマージン
                     if (siblingCount === 1) {
+                        // 単一の接続: 中央から出発
                         y1 = fromTop + fromHeight / 2;
+                        x1 = fromLeft + fromWidth;
                     } else {
-                        const spacing = Math.min(fromHeight / (siblingCount + 1), 12);
-                        const startY = fromTop + fromHeight / 2 - ((siblingCount - 1) * spacing) / 2;
-                        y1 = startY + siblingIndex * spacing;
+                        // 複数の接続: ノードの高さに沿って均等に配置
+                        const availableHeight = fromHeight - (portMargin * 2);
+                        const portSpacing = availableHeight / (siblingCount - 1);
+                        y1 = fromTop + portMargin + (siblingIndex * portSpacing);
+                        x1 = fromLeft + fromWidth;
                     }
-                    const x1 = fromLeft + fromWidth;
+
+                    // 子ノードの到達点も同様に最適化
+                    const x2 = toLeft;
+                    const y2 = toTop + toHeight / 2; // 子ノードは中央で固定（簡易実装）
 
                     // ELKスタイル: 直交エッジ（orthogonal edges）
                     // 1. 親から水平に出る
