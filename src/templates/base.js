@@ -57,6 +57,25 @@ function getBaseTemplate() {
         }
         .hidden {
             display: none;
+        }
+        .layout-controls {
+            margin-bottom: 10px;
+        }
+        .layout-button {
+            padding: 6px 12px;
+            margin-right: 8px;
+            border: 1px solid #666;
+            background: #f0f0f0;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .layout-button:hover {
+            background: #e0e0e0;
+        }
+        .layout-button.active {
+            background: #333;
+            color: #fff;
         }`,
 
         htmlStructure: {
@@ -67,6 +86,7 @@ function getBaseTemplate() {
             headClose: '</head>',
             bodyOpen: '<body>',
             pageTitle: '<h1>Tree Structure</h1>',
+            layoutControls: '<div class="layout-controls"><button class="layout-button active" id="verticalBtn" onclick="switchLayout(\'vertical\')">縦方向</button><button class="layout-button" id="horizontalBtn" onclick="switchLayout(\'horizontal\')">横方向</button></div>',
             containerOpen: '<div class="tree-container" id="treeContainer">',
             containerClose: '</div>',
             bodyClose: '</body>',
