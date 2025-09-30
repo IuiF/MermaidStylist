@@ -69,11 +69,6 @@ function getJavaScriptContent(nodes, connections) {
                     const nodeElement = document.getElementById(nodeId);
                     const collapseButton = nodeElement.querySelector('.collapse-button');
 
-                    // 折りたたみ前の位置を記録
-                    const beforeRect = nodeElement.getBoundingClientRect();
-                    const beforeTop = nodeElement.style.top;
-                    const beforeLeft = nodeElement.style.left;
-
                     if (this.collapsedNodes.has(nodeId)) {
                         this.collapsedNodes.delete(nodeId);
                         nodeElement.classList.remove('collapsed-node');
@@ -84,21 +79,16 @@ function getJavaScriptContent(nodes, connections) {
                         if (collapseButton) collapseButton.textContent = '▲';
                     }
 
-                    // 位置が変わっていないことを確認
-                    const afterRect = nodeElement.getBoundingClientRect();
-                    const afterTop = nodeElement.style.top;
-                    const afterLeft = nodeElement.style.left;
-
-                    if (beforeTop !== afterTop || beforeLeft !== afterLeft) {
-                        console.warn('Node position changed on collapse!', {
-                            before: { top: beforeTop, left: beforeLeft, rect: beforeRect },
-                            after: { top: afterTop, left: afterLeft, rect: afterRect }
-                        });
-                    }
-
                     this.updateVisibility();
+
+                    // レイアウトを再計算
                     setTimeout(() => {
-                        createCSSLines(connections, null);
+                        if (currentLayout === 'vertical') {
+                            currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths);
+                        } else {
+                            currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths);
+                        }
+                        createCSSLines(connections, currentNodePositions);
                     }, 50);
                 }
             },
@@ -290,7 +280,7 @@ function getHierarchicalLayoutCode() {
                     let currentX = leftMargin;
                     level.forEach(node => {
                         const element = document.getElementById(node.id);
-                        if (element) {
+                        if (element && !element.classList.contains('hidden')) {
                             const nodeWidth = nodeWidthMap.get(node.label);
                             element.style.left = currentX + 'px';
                             element.style.top = y + 'px';
@@ -304,7 +294,7 @@ function getHierarchicalLayoutCode() {
 
                     level.forEach(node => {
                         const element = document.getElementById(node.id);
-                        if (element) {
+                        if (element && !element.classList.contains('hidden')) {
                             const nodeWidth = nodeWidthMap.get(node.label);
                             const parentId = connections.find(conn => conn.to === node.id)?.from;
                             if (parentId && nodePositions.has(parentId)) {
@@ -372,7 +362,7 @@ function getHierarchicalLayoutCode() {
                     let currentY = topMargin;
                     level.forEach(node => {
                         const element = document.getElementById(node.id);
-                        if (element) {
+                        if (element && !element.classList.contains('hidden')) {
                             const nodeWidth = nodeWidthMap.get(node.label);
                             element.style.left = x + 'px';
                             element.style.top = currentY + 'px';
@@ -386,7 +376,7 @@ function getHierarchicalLayoutCode() {
 
                     level.forEach(node => {
                         const element = document.getElementById(node.id);
-                        if (element) {
+                        if (element && !element.classList.contains('hidden')) {
                             const nodeWidth = nodeWidthMap.get(node.label);
                             const parentId = connections.find(conn => conn.to === node.id)?.from;
                             if (parentId && nodePositions.has(parentId)) {
