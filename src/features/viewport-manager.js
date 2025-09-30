@@ -79,49 +79,6 @@ function getViewportManager() {
                 this.translateX = 0;
                 this.translateY = 0;
                 this.applyTransform();
-            },
-
-            fitToView: function() {
-                const container = document.getElementById('treeContainer');
-                const contentWrapper = document.getElementById('contentWrapper');
-
-                if (!contentWrapper) return;
-
-                // すべてのノードの境界を計算
-                const nodes = contentWrapper.querySelectorAll('.node');
-                if (nodes.length === 0) return;
-
-                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-                nodes.forEach(node => {
-                    const x = parseFloat(node.style.left);
-                    const y = parseFloat(node.style.top);
-                    const width = node.offsetWidth;
-                    const height = node.offsetHeight;
-
-                    minX = Math.min(minX, x);
-                    minY = Math.min(minY, y);
-                    maxX = Math.max(maxX, x + width);
-                    maxY = Math.max(maxY, y + height);
-                });
-
-                const contentWidth = maxX - minX;
-                const contentHeight = maxY - minY;
-                const containerWidth = container.clientWidth;
-                const containerHeight = container.clientHeight;
-
-                // パディングを考慮したスケール計算
-                const padding = 50;
-                const scaleX = (containerWidth - padding * 2) / contentWidth;
-                const scaleY = (containerHeight - padding * 2) / contentHeight;
-                const newScale = Math.min(scaleX, scaleY, this.maxScale);
-
-                // コンテンツを中央に配置
-                this.scale = newScale;
-                this.translateX = (containerWidth - contentWidth * newScale) / 2 - minX * newScale;
-                this.translateY = (containerHeight - contentHeight * newScale) / 2 - minY * newScale;
-
-                this.applyTransform();
             }
         };
     `;

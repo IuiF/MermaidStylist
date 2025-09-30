@@ -93,14 +93,10 @@ graph TD
 
     %% Level 3: Module -> Component
     E -->|"uses service"| I
-    E -->|"uses service"| J
     F -->|"uses service"| K
     G -->|"uses service"| L
-    G -->|"uses service"| M
     N -->|"uses service"| Z
-    N -->|"uses service"| AA
     O -->|"uses service"| AB
-    O -->|"uses service"| AC
 
     %% Level 4: Component -> Detail
     I -->|"implements logic"| P
@@ -113,10 +109,6 @@ graph TD
     L -->|"implements logic"| W
     M -->|"implements logic"| X
     M -->|"implements logic"| Y
-    N -->|"implements logic"| Z
-    N -->|"implements logic"| AA
-    O -->|"implements logic"| AB
-    O -->|"implements logic"| AC
 
     %% Level 5: Detail -> Further Detail (Uniform Labeling)
     P -->|"calls"| AD
@@ -140,10 +132,8 @@ graph TD
     Y -->|"calls"| AV
     Y -->|"calls"| AW
     Z -->|"calls"| AX
-    Z -->|"calls"| AY
     AA -->|"calls"| AZ
     AA -->|"calls"| BA
-    AB -->|"calls"| BB
     AB -->|"calls"| BC
     AC -->|"calls"| BD
     AC -->|"calls"| BE
