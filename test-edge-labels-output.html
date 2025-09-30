@@ -426,13 +426,10 @@
                         labelElement.className = 'connection-label';
                         labelElement.textContent = conn.label;
 
-                        // ラベルを接続線の中央に配置
-                        const centerX = x1 + dx / 2;
-                        const centerY = y1 + dy / 2;
-
-                        labelElement.style.left = centerX + 'px';
-                        labelElement.style.top = centerY + 'px';
-                        labelElement.style.transform = 'translate(-50%, -50%)';
+                        // ラベルを子ノード（toElement）の左上に配置
+                        labelElement.style.left = toRect.left + 'px';
+                        labelElement.style.top = toRect.top + 'px';
+                        labelElement.style.transform = 'translate(0, -100%)';
 
                         container.appendChild(labelElement);
                     }
