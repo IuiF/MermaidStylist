@@ -1,6 +1,32 @@
 function getPathHighlighter() {
     return `
         const pathHighlighter = {
+            addDoubleStroke: function(nodeElement) {
+                const rect = nodeElement.querySelector('.node-rect');
+                if (!rect) return;
+
+                const existingOverlay = nodeElement.querySelector('.double-stroke-overlay');
+                if (existingOverlay) {
+                    existingOverlay.remove();
+                }
+
+                const overlayRect = svgHelpers.createRect({
+                    class: 'double-stroke-overlay',
+                    x: rect.getAttribute('x'),
+                    y: rect.getAttribute('y'),
+                    width: rect.getAttribute('width'),
+                    height: rect.getAttribute('height'),
+                    rx: rect.getAttribute('rx'),
+                    ry: rect.getAttribute('ry'),
+                    fill: 'none',
+                    stroke: '#ffc107',
+                    'stroke-width': '2',
+                    'pointer-events': 'none'
+                });
+
+                rect.parentNode.insertBefore(overlayRect, rect.nextSibling);
+            },
+
             highlightPathToRoot: function(nodeId) {
                 this.clearPathHighlight();
 
@@ -39,7 +65,7 @@ function getPathHighlighter() {
                         element.classList.add('path-highlighted');
 
                         if (element.classList.contains('highlighted')) {
-                            svgHelpers.addDoubleStroke(element);
+                            this.addDoubleStroke(element);
                         }
                     }
                 });

@@ -1,5 +1,6 @@
 function getConnectionRenderer() {
     return `
+        // 依存: svgHelpers (svg-helpers.js), getNodePosition, getNodeDimensions (layout-utils.js)
         function createCSSLines(connections, nodePositions) {
             const svgLayer = svgHelpers.getSVGLayer();
             if (!svgLayer) {

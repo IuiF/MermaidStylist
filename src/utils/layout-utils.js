@@ -103,16 +103,8 @@ function getLayoutUtils() {
             if (element.tagName === 'g') {
                 // SVGノードの場合
                 const transform = element.getAttribute('transform');
-                if (transform) {
-                    const match = transform.match(/translate\\(([^,\\s]+)\\s*,\\s*([^)]+)\\)/);
-                    if (match) {
-                        return {
-                            left: parseFloat(match[1]),
-                            top: parseFloat(match[2])
-                        };
-                    }
-                }
-                return { left: 0, top: 0 };
+                const pos = svgHelpers.parseTransform(transform);
+                return { left: pos.x, top: pos.y };
             } else {
                 // HTML要素の場合
                 return {
