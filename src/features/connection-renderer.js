@@ -372,40 +372,103 @@ function getConnectionRenderer() {
             edgeInfos.forEach(edgeInfo => {
                 const { conn, x1, y1, x2, y2, yMin, yMax, siblingIndex, siblingCount, depth, is1to1 } = edgeInfo;
 
-                // 1:1の親子関係は直線で描画
+                // 1:1の親子関係の処理
                 if (is1to1) {
-                    const line = svgHelpers.createLine({
-                        class: 'connection-line',
-                        x1: x1,
-                        y1: y1,
-                        x2: x2,
-                        y2: y2,
-                        'data-from': conn.from,
-                        'data-to': conn.to
-                    });
-                    svgLayer.appendChild(line);
+                    const yDiff = Math.abs(y2 - y1);
+                    const isHorizontal = yDiff < 5; // 閾値5px
 
-                    // 矢印を作成
-                    const angle = Math.atan2(y2 - y1, x2 - x1);
-                    const arrowSize = 8;
-                    const arrowX = x2;
-                    const arrowY = y2;
+                    if (isHorizontal) {
+                        // 真横の場合は直線で描画
+                        const line = svgHelpers.createLine({
+                            class: 'connection-line',
+                            x1: x1,
+                            y1: y1,
+                            x2: x2,
+                            y2: y2,
+                            'data-from': conn.from,
+                            'data-to': conn.to
+                        });
+                        svgLayer.appendChild(line);
 
-                    const ap1x = arrowX;
-                    const ap1y = arrowY;
-                    const ap2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
-                    const ap2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
-                    const ap3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
-                    const ap3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
+                        // 矢印を作成（水平方向）
+                        const angle = 0;
+                        const arrowSize = 8;
+                        const arrowX = x2;
+                        const arrowY = y2;
 
-                    const arrow = svgHelpers.createPolygon(\`\${ap1x},\${ap1y} \${ap2x},\${ap2y} \${ap3x},\${ap3y}\`, {
-                        class: 'connection-arrow',
-                        'data-from': conn.from,
-                        'data-to': conn.to
-                    });
-                    svgLayer.appendChild(arrow);
+                        const ap1x = arrowX;
+                        const ap1y = arrowY;
+                        const ap2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
+                        const ap2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
+                        const ap3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
+                        const ap3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
 
-                    // ラベルがあれば追加（直線描画と同じ処理）
+                        const arrow = svgHelpers.createPolygon(\`\${ap1x},\${ap1y} \${ap2x},\${ap2y} \${ap3x},\${ap3y}\`, {
+                            class: 'connection-arrow',
+                            'data-from': conn.from,
+                            'data-to': conn.to
+                        });
+                        svgLayer.appendChild(arrow);
+                    } else {
+                        // Y座標にずれがある場合は曲線で描画
+                        const horizontalOffset = (x2 - x1) / 2;
+                        const cornerRadius = 8;
+
+                        const p1x = x1;
+                        const p1y = y1;
+                        const p2x = x1 + horizontalOffset;
+                        const p2y = y1;
+                        const p3x = p2x;
+                        const p3y = y2;
+                        const p4x = x2;
+                        const p4y = y2;
+
+                        // 角を丸める場合のパス
+                        let pathData;
+                        if (Math.abs(p3y - p2y) > cornerRadius * 2) {
+                            // 角を丸める
+                            if (p3y > p2y) {
+                                // 下向き
+                                pathData = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
+                            } else {
+                                // 上向き
+                                pathData = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
+                            }
+                        } else {
+                            // 直線
+                            pathData = \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
+                        }
+
+                        const path = svgHelpers.createPath(pathData, {
+                            class: 'connection-line',
+                            'data-from': conn.from,
+                            'data-to': conn.to,
+                            fill: 'none'
+                        });
+                        svgLayer.appendChild(path);
+
+                        // 矢印を作成（水平方向に進入）
+                        const angle = 0;
+                        const arrowSize = 8;
+                        const arrowX = x2;
+                        const arrowY = y2;
+
+                        const ap1x = arrowX;
+                        const ap1y = arrowY;
+                        const ap2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
+                        const ap2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
+                        const ap3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
+                        const ap3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
+
+                        const arrow = svgHelpers.createPolygon(\`\${ap1x},\${ap1y} \${ap2x},\${ap2y} \${ap3x},\${ap3y}\`, {
+                            class: 'connection-arrow',
+                            'data-from': conn.from,
+                            'data-to': conn.to
+                        });
+                        svgLayer.appendChild(arrow);
+                    }
+
+                    // ラベルがあれば追加
                     if (conn.label) {
                         const toElement = svgHelpers.getNodeElement(conn.to);
                         const toPos = getNodePosition(toElement);
