@@ -109,14 +109,12 @@ function getHorizontalLayout() {
             if (maxY + 100 > containerHeight) {
                 containerHeight = maxY + 100;
                 container.style.height = containerHeight + 'px';
-                console.log("Container height expanded to: " + containerHeight + "px for horizontal layout");
             }
 
             let containerWidth = Math.max(800, container.clientWidth || 800);
             if (maxX + 100 > containerWidth) {
                 containerWidth = maxX + 100;
                 container.style.width = containerWidth + 'px';
-                console.log("Container width expanded to: " + containerWidth + "px for horizontal layout");
             }
 
             return nodePositions;

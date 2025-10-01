@@ -140,8 +140,6 @@ function getConnectionRenderer() {
                     }
                 }
             });
-
-            console.log("Created " + connectionCount + " SVG lines");
         }
 
         function createCurvedLines(connections, nodePositions) {
@@ -600,8 +598,6 @@ function getConnectionRenderer() {
                     svgLayer.appendChild(labelGroup);
                 }
             });
-
-            console.log("Created " + connectionCount + " elk-style orthogonal SVG lines");
         }
     `;
 }

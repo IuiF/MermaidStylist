@@ -104,7 +104,6 @@ function getVerticalLayout() {
             if (maxX + 100 > containerWidth) {
                 containerWidth = maxX + 100;
                 container.style.width = containerWidth + 'px';
-                console.log("Container width expanded to: " + containerWidth + "px for vertical layout");
             }
 
             return nodePositions;

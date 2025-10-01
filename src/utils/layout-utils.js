@@ -28,10 +28,6 @@ function getLayoutUtils() {
                     const textWidth = measureTextWidth(node.label, font);
                     const calculatedWidth = Math.ceil(textWidth) + padding;
                     nodeWidthMap.set(node.label, calculatedWidth);
-
-                    if (node.label.length > 8) {
-                        console.log("Debug: label=" + node.label + ", measured width=" + Math.ceil(textWidth) + "px, total width=" + calculatedWidth + "px");
-                    }
                 }
             });
 
@@ -39,20 +35,7 @@ function getLayoutUtils() {
         }
 
         function debugActualWidths(nodes) {
-            const nodeWidthMap = calculateAllNodeWidths(nodes);
-
-            nodes.forEach(node => {
-                const element = document.getElementById(node.id);
-                if (element && node.label.length > 10) {
-                    const dataWidth = element.getAttribute('data-width');
-                    const actualWidth = dataWidth ? parseFloat(dataWidth) : element.offsetWidth;
-                    const calculatedWidth = nodeWidthMap.get(node.label);
-                    const difference = actualWidth - calculatedWidth;
-
-                    console.log("Width comparison: " + node.label);
-                    console.log("  Calculated: " + calculatedWidth + "px, Actual: " + actualWidth + "px, Difference: " + difference + "px");
-                }
-            });
+            // デバッグ用関数（現在は何もしない）
         }
 
         function calculateConnectionLabelSpacing(connections, parentId) {
