@@ -267,52 +267,50 @@ function getViewportManager() {
                 const svgLayer = document.getElementById('svgLayer');
                 if (!svgLayer) return;
 
-                // 座標をリセット
-                this.contentBounds = {
-                    minX: Infinity,
-                    minY: Infinity,
-                    maxX: -Infinity,
-                    maxY: -Infinity
-                };
+                // 現在のtransformを一時的に保存してリセット
+                const currentTransform = svgLayer.getAttribute('transform');
+                svgLayer.setAttribute('transform', '');
 
-                // ノードの座標を取得
-                const nodes = svgLayer.querySelectorAll('.node');
-                nodes.forEach(node => {
-                    if (node.classList.contains('hidden')) return;
+                // svgLayer全体のbboxを取得
+                try {
+                    const bbox = svgLayer.getBBox();
+                    this.contentBounds = {
+                        minX: bbox.x,
+                        minY: bbox.y,
+                        maxX: bbox.x + bbox.width,
+                        maxY: bbox.y + bbox.height
+                    };
+                } catch (e) {
+                    // フォールバック: 個別要素から計算
+                    this.contentBounds = {
+                        minX: Infinity,
+                        minY: Infinity,
+                        maxX: -Infinity,
+                        maxY: -Infinity
+                    };
 
-                    const transform = node.getAttribute('transform');
-                    if (!transform) return;
-
-                    const match = transform.match(/translate\\(([^,]+),\\s*([^)]+)\\)/);
-                    if (!match) return;
-
-                    const x = parseFloat(match[1]);
-                    const y = parseFloat(match[2]);
-                    const width = parseFloat(node.getAttribute('data-width')) || 0;
-                    const height = parseFloat(node.getAttribute('data-height')) || 0;
-
-                    this.contentBounds.minX = Math.min(this.contentBounds.minX, x);
-                    this.contentBounds.minY = Math.min(this.contentBounds.minY, y);
-                    this.contentBounds.maxX = Math.max(this.contentBounds.maxX, x + width);
-                    this.contentBounds.maxY = Math.max(this.contentBounds.maxY, y + height);
-                });
-
-                // エッジラベルの座標を取得
-                const labels = svgLayer.querySelectorAll('.connection-label');
-                labels.forEach(label => {
-                    const rect = label.querySelector('rect');
-                    if (rect) {
-                        const x = parseFloat(rect.getAttribute('x'));
-                        const y = parseFloat(rect.getAttribute('y'));
-                        const width = parseFloat(rect.getAttribute('width'));
-                        const height = parseFloat(rect.getAttribute('height'));
-
+                    const nodes = svgLayer.querySelectorAll('.node');
+                    nodes.forEach(node => {
+                        if (node.classList.contains('hidden')) return;
+                        const transform = node.getAttribute('transform');
+                        if (!transform) return;
+                        const match = transform.match(/translate\\(([^,]+),\\s*([^)]+)\\)/);
+                        if (!match) return;
+                        const x = parseFloat(match[1]);
+                        const y = parseFloat(match[2]);
+                        const width = parseFloat(node.getAttribute('data-width')) || 0;
+                        const height = parseFloat(node.getAttribute('data-height')) || 0;
                         this.contentBounds.minX = Math.min(this.contentBounds.minX, x);
                         this.contentBounds.minY = Math.min(this.contentBounds.minY, y);
                         this.contentBounds.maxX = Math.max(this.contentBounds.maxX, x + width);
                         this.contentBounds.maxY = Math.max(this.contentBounds.maxY, y + height);
-                    }
-                });
+                    });
+                }
+
+                // transformを元に戻す
+                if (currentTransform) {
+                    svgLayer.setAttribute('transform', currentTransform);
+                }
             },
 
             fitToContent: function() {
@@ -345,8 +343,9 @@ function getViewportManager() {
                 if (!container) return;
 
                 const containerRect = container.getBoundingClientRect();
-                const containerWidth = containerRect.width;
-                const containerHeight = containerRect.height;
+                // 実際の表示可能な幅と高さを使用
+                const containerWidth = window.innerWidth - containerRect.left;
+                const containerHeight = window.innerHeight - containerRect.top;
 
                 // コンテンツのサイズ
                 const contentWidth = this.contentBounds.maxX - this.contentBounds.minX;
