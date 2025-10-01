@@ -248,11 +248,18 @@ function getViewportManager() {
             },
 
             resetView: function() {
-                this.scale = 1.0;
-                // 最も左と最も上の位置が枠内に収まるように配置
+                // 座標を更新
+                this.updateContentBounds();
+
+                // 有効な境界が見つからない場合は何もしない
+                if (!isFinite(this.contentBounds.minX) || !isFinite(this.contentBounds.minY)) return;
+
+                // 最も左と最も上の位置が枠内に収まるように配置（スケール1.0固定）
                 const margin = 50;
                 this.translateX = margin - this.contentBounds.minX;
                 this.translateY = margin - this.contentBounds.minY;
+                this.scale = 1.0;
+
                 this.applyTransform();
             },
 
