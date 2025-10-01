@@ -254,7 +254,7 @@ function generateErrorHTML(errors) {
 </head>
 <body>
     <div class="error-container">
-        <h1>⚠ 木構造ではないため描画できません</h1>
+        <h1>⚠ グラフ構造が不正なため描画できません</h1>
         <div class="error-message">
             <strong>検出されたエラー:</strong>
             <ul>
@@ -262,12 +262,12 @@ ${errorList}
             </ul>
         </div>
         <div class="info">
-            <p>このツールは木構造のMermaid図のみをサポートしています。</p>
-            <p>木構造の条件:</p>
+            <p>このツールはDAG（有向非巡環グラフ）構造のMermaid図をサポートしています。</p>
+            <p>サポートされる構造の条件:</p>
             <ul>
-                <li>各ノードは最大1つの親を持つ</li>
                 <li>ルートノード（親を持たないノード）が存在する</li>
                 <li>サイクル（循環参照）が存在しない</li>
+                <li>複数の親を持つノードは許容されます</li>
             </ul>
         </div>
     </div>
