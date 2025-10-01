@@ -223,14 +223,18 @@ function getConnectionRenderer() {
                 // 子が持つ親の数をカウント
                 const parentCount = connections.filter(c => c.to === conn.to).length;
 
-                // 1:1の親子関係を判定（親が1つの子のみ、子が1つの親のみ）
-                const is1to1 = (siblingCount === 1 && parentCount === 1);
-
                 // すべてのエッジは親の中央から出発
                 const y1 = fromPos.top + fromDim.height / 2;
                 const x1 = fromPos.left + fromDim.width;
                 const x2 = toPos.left;
                 const y2 = toPos.top + toDim.height / 2;
+
+                // 1:1の親子関係を判定（親が1つの子のみ、子が1つの親のみ）
+                const is1to1 = (siblingCount === 1 && parentCount === 1);
+
+                // 真横にある1:1（Y座標差が小さい）を判定
+                const yDiff = Math.abs(y2 - y1);
+                const is1to1Horizontal = is1to1 && (yDiff < 5);
 
                 // エッジの階層（親の深さ）
                 const edgeDepth = nodeDepths[conn.from] || 0;
@@ -248,7 +252,8 @@ function getConnectionRenderer() {
                     parentX: fromPos.left,
                     parentY: fromPos.top,
                     depth: edgeDepth,
-                    is1to1: is1to1
+                    is1to1: is1to1,
+                    is1to1Horizontal: is1to1Horizontal
                 });
             });
 
@@ -276,13 +281,13 @@ function getConnectionRenderer() {
                 parentRanks[id] = index;
             });
 
-            // 階層ごとに親の右端の最大位置を計算（1:1の関係は除外）
+            // 階層ごとに親の右端の最大位置を計算（真横の1:1のみ除外）
             const depthMaxParentRight = {}; // depth -> max(parentRight)
             const depthMinChildLeft = {}; // depth -> min(childLeft)
 
             edgeInfos.forEach(info => {
-                // 1:1の関係はレーン計算から除外
-                if (info.is1to1) return;
+                // 真横の1:1のみレーン計算から除外
+                if (info.is1to1Horizontal) return;
 
                 const depth = info.depth;
 
@@ -353,11 +358,11 @@ function getConnectionRenderer() {
                 }
             }
 
-            // 親ごとに子のY範囲を計算（1:1の関係は除外）
+            // 親ごとに子のY範囲を計算（真横の1:1のみ除外）
             const parentChildrenYRanges = {};
             edgeInfos.forEach(info => {
-                // 1:1の関係はレーン計算から除外
-                if (info.is1to1) return;
+                // 真横の1:1のみレーン計算から除外
+                if (info.is1to1Horizontal) return;
 
                 if (!parentChildrenYRanges[info.conn.from]) {
                     parentChildrenYRanges[info.conn.from] = { yMin: Infinity, yMax: -Infinity };
@@ -370,103 +375,40 @@ function getConnectionRenderer() {
             let connectionCount = 0;
 
             edgeInfos.forEach(edgeInfo => {
-                const { conn, x1, y1, x2, y2, yMin, yMax, siblingIndex, siblingCount, depth, is1to1 } = edgeInfo;
+                const { conn, x1, y1, x2, y2, yMin, yMax, siblingIndex, siblingCount, depth, is1to1, is1to1Horizontal } = edgeInfo;
 
-                // 1:1の親子関係の処理
-                if (is1to1) {
-                    const yDiff = Math.abs(y2 - y1);
-                    const isHorizontal = yDiff < 5; // 閾値5px
+                // 真横の1:1親子関係は直線で描画
+                if (is1to1Horizontal) {
+                    const line = svgHelpers.createLine({
+                        class: 'connection-line',
+                        x1: x1,
+                        y1: y1,
+                        x2: x2,
+                        y2: y2,
+                        'data-from': conn.from,
+                        'data-to': conn.to
+                    });
+                    svgLayer.appendChild(line);
 
-                    if (isHorizontal) {
-                        // 真横の場合は直線で描画
-                        const line = svgHelpers.createLine({
-                            class: 'connection-line',
-                            x1: x1,
-                            y1: y1,
-                            x2: x2,
-                            y2: y2,
-                            'data-from': conn.from,
-                            'data-to': conn.to
-                        });
-                        svgLayer.appendChild(line);
+                    // 矢印を作成（水平方向）
+                    const angle = 0;
+                    const arrowSize = 8;
+                    const arrowX = x2;
+                    const arrowY = y2;
 
-                        // 矢印を作成（水平方向）
-                        const angle = 0;
-                        const arrowSize = 8;
-                        const arrowX = x2;
-                        const arrowY = y2;
+                    const ap1x = arrowX;
+                    const ap1y = arrowY;
+                    const ap2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
+                    const ap2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
+                    const ap3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
+                    const ap3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
 
-                        const ap1x = arrowX;
-                        const ap1y = arrowY;
-                        const ap2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
-                        const ap2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
-                        const ap3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
-                        const ap3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
-
-                        const arrow = svgHelpers.createPolygon(\`\${ap1x},\${ap1y} \${ap2x},\${ap2y} \${ap3x},\${ap3y}\`, {
-                            class: 'connection-arrow',
-                            'data-from': conn.from,
-                            'data-to': conn.to
-                        });
-                        svgLayer.appendChild(arrow);
-                    } else {
-                        // Y座標にずれがある場合は曲線で描画
-                        const horizontalOffset = (x2 - x1) / 2;
-                        const cornerRadius = 8;
-
-                        const p1x = x1;
-                        const p1y = y1;
-                        const p2x = x1 + horizontalOffset;
-                        const p2y = y1;
-                        const p3x = p2x;
-                        const p3y = y2;
-                        const p4x = x2;
-                        const p4y = y2;
-
-                        // 角を丸める場合のパス
-                        let pathData;
-                        if (Math.abs(p3y - p2y) > cornerRadius * 2) {
-                            // 角を丸める
-                            if (p3y > p2y) {
-                                // 下向き
-                                pathData = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
-                            } else {
-                                // 上向き
-                                pathData = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
-                            }
-                        } else {
-                            // 直線
-                            pathData = \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
-                        }
-
-                        const path = svgHelpers.createPath(pathData, {
-                            class: 'connection-line',
-                            'data-from': conn.from,
-                            'data-to': conn.to,
-                            fill: 'none'
-                        });
-                        svgLayer.appendChild(path);
-
-                        // 矢印を作成（水平方向に進入）
-                        const angle = 0;
-                        const arrowSize = 8;
-                        const arrowX = x2;
-                        const arrowY = y2;
-
-                        const ap1x = arrowX;
-                        const ap1y = arrowY;
-                        const ap2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
-                        const ap2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
-                        const ap3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
-                        const ap3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
-
-                        const arrow = svgHelpers.createPolygon(\`\${ap1x},\${ap1y} \${ap2x},\${ap2y} \${ap3x},\${ap3y}\`, {
-                            class: 'connection-arrow',
-                            'data-from': conn.from,
-                            'data-to': conn.to
-                        });
-                        svgLayer.appendChild(arrow);
-                    }
+                    const arrow = svgHelpers.createPolygon(\`\${ap1x},\${ap1y} \${ap2x},\${ap2y} \${ap3x},\${ap3y}\`, {
+                        class: 'connection-arrow',
+                        'data-from': conn.from,
+                        'data-to': conn.to
+                    });
+                    svgLayer.appendChild(arrow);
 
                     // ラベルがあれば追加
                     if (conn.label) {
@@ -515,9 +457,9 @@ function getConnectionRenderer() {
                 const fromElement = svgHelpers.getNodeElement(conn.from);
                 const toElement = svgHelpers.getNodeElement(conn.to);
 
-                // この階層内での親のランクを計算（1:1の関係は除外）
+                // この階層内での親のランクを計算（真横の1:1のみ除外）
                 const parentsAtThisDepth = edgeInfos
-                    .filter(e => e.depth === depth && !e.is1to1)
+                    .filter(e => e.depth === depth && !e.is1to1Horizontal)
                     .map(e => e.conn.from)
                     .filter((v, i, a) => a.indexOf(v) === i) // ユニーク
                     .sort((a, b) => (parentYPositions[a] || 0) - (parentYPositions[b] || 0));
