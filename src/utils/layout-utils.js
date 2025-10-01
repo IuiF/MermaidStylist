@@ -96,6 +96,46 @@ function getLayoutUtils() {
                 };
             }
         }
+
+        // 階層間の動的スペーシングを計算
+        function calculateLevelSpacing(fromLevel, toLevel, connections) {
+            const parentNodes = new Set();
+            connections.forEach(conn => {
+                const fromInLevel = fromLevel.find(n => n.id === conn.from);
+                const toInLevel = toLevel.find(n => n.id === conn.to);
+                if (fromInLevel && toInLevel) {
+                    parentNodes.add(conn.from);
+                }
+            });
+
+            const baseSpacing = 60;
+            const laneSpacing = 12;
+            const minSpacing = 80;
+            const maxSpacing = 250;
+
+            return Math.max(minSpacing, Math.min(maxSpacing, baseSpacing + parentNodes.size * laneSpacing));
+        }
+
+        // 兄弟ノードの開始位置を計算
+        function calculateSiblingStartPosition(nodeId, parentId, connections, nodePositions, currentPos, fixedSpacing) {
+            if (!parentId || !nodePositions.has(parentId)) {
+                return currentPos;
+            }
+
+            const siblings = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
+            const siblingIndex = siblings.indexOf(nodeId);
+
+            let startPos = currentPos;
+            for (let i = 0; i < siblingIndex; i++) {
+                const siblingId = siblings[i];
+                if (nodePositions.has(siblingId)) {
+                    const siblingPos = nodePositions.get(siblingId);
+                    startPos = Math.max(startPos, siblingPos.endPos + fixedSpacing);
+                }
+            }
+
+            return Math.max(startPos, currentPos);
+        }
     `;
 }
 

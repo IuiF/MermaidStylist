@@ -15,6 +15,164 @@ function getConnectionRenderer() {
             return createStraightLines(connections, nodePositions);
         }
 
+        // ラベル描画の共通処理
+        function createConnectionLabel(conn, toElement) {
+            if (!conn.label) return null;
+
+            const svgLayer = svgHelpers.getSVGLayer();
+            const tempText = svgHelpers.createText(conn.label, {
+                'font-size': '11',
+                'font-family': 'Arial, sans-serif'
+            });
+            svgLayer.appendChild(tempText);
+            const textBBox = tempText.getBBox();
+            svgLayer.removeChild(tempText);
+
+            const labelPadding = 4;
+            const labelWidth = textBBox.width + labelPadding * 2;
+            const labelHeight = textBBox.height + labelPadding * 2;
+
+            const toPos = getNodePosition(toElement);
+            const toLeft = toPos.left;
+            const toTop = toPos.top;
+
+            const labelGroup = svgHelpers.createGroup({
+                class: 'connection-label'
+            });
+
+            const labelRect = svgHelpers.createRect({
+                x: toLeft,
+                y: toTop - labelHeight - 5,
+                width: labelWidth,
+                height: labelHeight,
+                fill: '#fff',
+                stroke: '#999',
+                'stroke-width': '1',
+                rx: '3',
+                ry: '3'
+            });
+
+            const labelText = svgHelpers.createText(conn.label, {
+                x: toLeft + labelPadding,
+                y: toTop - labelHeight / 2 - 5,
+                'dominant-baseline': 'central',
+                fill: '#333',
+                'font-size': '11',
+                'font-family': 'Arial, sans-serif'
+            });
+
+            labelGroup.appendChild(labelRect);
+            labelGroup.appendChild(labelText);
+            return labelGroup;
+        }
+
+        // 矢印描画の共通処理
+        function createArrow(x1, y1, x2, y2, conn) {
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            const arrowSize = 8;
+            const arrowX = x2;
+            const arrowY = y2;
+
+            const p1x = arrowX;
+            const p1y = arrowY;
+            const p2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
+            const p2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
+            const p3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
+            const p3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
+
+            return svgHelpers.createPolygon(\`\${p1x},\${p1y} \${p2x},\${p2y} \${p3x},\${p3y}\`, {
+                class: 'connection-arrow',
+                'data-from': conn.from,
+                'data-to': conn.to
+            });
+        }
+
+        // 水平矢印（曲線用）
+        function createHorizontalArrow(x2, y2, conn) {
+            const angle = 0;
+            const arrowSize = 8;
+
+            const p1x = x2;
+            const p1y = y2;
+            const p2x = x2 - arrowSize * Math.cos(angle - Math.PI / 6);
+            const p2y = y2 - arrowSize * Math.sin(angle - Math.PI / 6);
+            const p3x = x2 - arrowSize * Math.cos(angle + Math.PI / 6);
+            const p3y = y2 - arrowSize * Math.sin(angle + Math.PI / 6);
+
+            return svgHelpers.createPolygon(\`\${p1x},\${p1y} \${p2x},\${p2y} \${p3x},\${p3y}\`, {
+                class: 'connection-arrow',
+                'data-from': conn.from,
+                'data-to': conn.to
+            });
+        }
+
+        // ノードの階層（深さ）を計算
+        function calculateNodeDepths(connections) {
+            const nodeDepths = {};
+
+            function calculateDepth(nodeId, depth = 0) {
+                if (nodeDepths[nodeId] !== undefined) return;
+                nodeDepths[nodeId] = depth;
+                const children = connections.filter(c => c.from === nodeId);
+                children.forEach(c => calculateDepth(c.to, depth + 1));
+            }
+
+            // ルートノードを見つけて深さ計算を開始
+            const allNodeIds = new Set([...connections.map(c => c.from), ...connections.map(c => c.to)]);
+            const childNodeIds = new Set(connections.map(c => c.to));
+            const rootNodeIds = [...allNodeIds].filter(id => !childNodeIds.has(id));
+            rootNodeIds.forEach(rootId => calculateDepth(rootId, 0));
+
+            return nodeDepths;
+        }
+
+        // 親ごとの接続をY座標でソート
+        function sortConnectionsByParent(connections) {
+            const connectionsByParent = {};
+            connections.forEach(conn => {
+                if (!connectionsByParent[conn.from]) {
+                    connectionsByParent[conn.from] = [];
+                }
+                connectionsByParent[conn.from].push(conn);
+            });
+
+            Object.keys(connectionsByParent).forEach(parentId => {
+                connectionsByParent[parentId].sort((a, b) => {
+                    const aElement = svgHelpers.getNodeElement(a.to);
+                    const bElement = svgHelpers.getNodeElement(b.to);
+                    if (!aElement || !bElement) return 0;
+                    const aPos = getNodePosition(aElement);
+                    const bPos = getNodePosition(bElement);
+                    return aPos.top - bPos.top;
+                });
+            });
+
+            return connectionsByParent;
+        }
+
+        // 曲線パスを生成
+        function createCurvedPath(x1, y1, x2, y2, verticalSegmentX) {
+            const cornerRadius = 8;
+            const p1x = x1;
+            const p1y = y1;
+            const p2x = verticalSegmentX;
+            const p2y = y1;
+            const p3x = p2x;
+            const p3y = y2;
+            const p4x = x2;
+            const p4y = y2;
+
+            if (Math.abs(p3y - p2y) > cornerRadius * 2) {
+                if (p3y > p2y) {
+                    return \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
+                } else {
+                    return \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
+                }
+            } else {
+                return \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
+            }
+        }
+
         function createStraightLines(connections, nodePositions) {
             const svgLayer = svgHelpers.getSVGLayer();
             if (!svgLayer) {
@@ -70,72 +228,13 @@ function getConnectionRenderer() {
                     svgLayer.appendChild(line);
 
                     // 矢印を作成
-                    const angle = Math.atan2(y2 - y1, x2 - x1);
-                    const arrowSize = 8;
-                    const arrowX = x2;
-                    const arrowY = y2;
-
-                    const p1x = arrowX;
-                    const p1y = arrowY;
-                    const p2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
-                    const p2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
-                    const p3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
-                    const p3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
-
-                    const arrow = svgHelpers.createPolygon(\`\${p1x},\${p1y} \${p2x},\${p2y} \${p3x},\${p3y}\`, {
-                        class: 'connection-arrow',
-                        'data-from': conn.from,
-                        'data-to': conn.to
-                    });
-
+                    const arrow = createArrow(x1, y1, x2, y2, conn);
                     svgLayer.appendChild(arrow);
                     connectionCount++;
 
-                    // ラベルがある場合は表示（SVG rect + text要素として）
-                    if (conn.label) {
-                        // テキストサイズを測定
-                        const tempText = svgHelpers.createText(conn.label, {
-                            'font-size': '11',
-                            'font-family': 'Arial, sans-serif'
-                        });
-                        svgLayer.appendChild(tempText);
-                        const textBBox = tempText.getBBox();
-                        svgLayer.removeChild(tempText);
-
-                        const labelPadding = 4;
-                        const labelWidth = textBBox.width + labelPadding * 2;
-                        const labelHeight = textBBox.height + labelPadding * 2;
-
-                        // グループを作成
-                        const labelGroup = svgHelpers.createGroup({
-                            class: 'connection-label'
-                        });
-
-                        // 背景矩形
-                        const labelRect = svgHelpers.createRect({
-                            x: toLeft,
-                            y: toTop - labelHeight - 5,
-                            width: labelWidth,
-                            height: labelHeight,
-                            fill: '#fff',
-                            stroke: '#999',
-                            'stroke-width': '1',
-                            rx: '3',
-                            ry: '3'
-                        });
-
-                        // テキスト
-                        const labelText = svgHelpers.createText(conn.label, {
-                            x: toLeft + labelPadding,
-                            y: toTop - labelHeight / 2 - 5,
-                            'dominant-baseline': 'central',
-                            fill: '#333',
-                            'font-size': '11',
-                            'font-family': 'Arial, sans-serif'
-                        });
-
-                        labelGroup.appendChild(labelRect);
-                        labelGroup.appendChild(labelText);
+                    // ラベルがある場合は表示
+                    const labelGroup = createConnectionLabel(conn, toElement);
+                    if (labelGroup) {
                         svgLayer.appendChild(labelGroup);
                     }
                 }
@@ -160,43 +259,11 @@ function getConnectionRenderer() {
             // パス1: すべての接続情報を収集
             const edgeInfos = [];
 
-            // ノードの階層を計算（ルートからの深さ）
-            const nodeDepths = {};
-            function calculateDepth(nodeId, depth = 0) {
-                if (nodeDepths[nodeId] !== undefined) {
-                    return;
-                }
-                nodeDepths[nodeId] = depth;
-                const children = connections.filter(c => c.from === nodeId);
-                children.forEach(c => calculateDepth(c.to, depth + 1));
-            }
+            // ノードの階層を計算
+            const nodeDepths = calculateNodeDepths(connections);
 
-            // ルートノードを見つけて深さ計算を開始
-            const allNodeIds = new Set([...connections.map(c => c.from), ...connections.map(c => c.to)]);
-            const childNodeIds = new Set(connections.map(c => c.to));
-            const rootNodeIds = [...allNodeIds].filter(id => !childNodeIds.has(id));
-            rootNodeIds.forEach(rootId => calculateDepth(rootId, 0));
-
-            // 同じ親から出る接続をグループ化し、子のY座標でソート
-            const connectionsByParent = {};
-            connections.forEach(conn => {
-                if (!connectionsByParent[conn.from]) {
-                    connectionsByParent[conn.from] = [];
-                }
-                connectionsByParent[conn.from].push(conn);
-            });
-
-            // 各親の接続を子ノードのY座標でソート
-            Object.keys(connectionsByParent).forEach(parentId => {
-                connectionsByParent[parentId].sort((a, b) => {
-                    const aElement = svgHelpers.getNodeElement(a.to);
-                    const bElement = svgHelpers.getNodeElement(b.to);
-                    if (!aElement || !bElement) return 0;
-                    const aPos = getNodePosition(aElement);
-                    const bPos = getNodePosition(bElement);
-                    return aPos.top - bPos.top;
-                });
-            });
+            // 親ごとの接続をソート
+            const connectionsByParent = sortConnectionsByParent(connections);
 
             // パス1: すべての接続の情報を収集
             connections.forEach(conn => {
@@ -388,64 +455,12 @@ function getConnectionRenderer() {
                     });
                     svgLayer.appendChild(line);
 
-                    // 矢印を作成（水平方向）
-                    const angle = 0;
-                    const arrowSize = 8;
-                    const arrowX = x2;
-                    const arrowY = y2;
-
-                    const ap1x = arrowX;
-                    const ap1y = arrowY;
-                    const ap2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
-                    const ap2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
-                    const ap3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
-                    const ap3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
-
-                    const arrow = svgHelpers.createPolygon(\`\${ap1x},\${ap1y} \${ap2x},\${ap2y} \${ap3x},\${ap3y}\`, {
-                        class: 'connection-arrow',
-                        'data-from': conn.from,
-                        'data-to': conn.to
-                    });
+                    const arrow = createHorizontalArrow(x2, y2, conn);
                     svgLayer.appendChild(arrow);
 
-                    // ラベルがあれば追加
-                    if (conn.label) {
-                        const toElement = svgHelpers.getNodeElement(conn.to);
-                        const toPos = getNodePosition(toElement);
-                        const toLeft = toPos.left;
-                        const toTop = toPos.top;
-
-                        const labelPadding = 4;
-                        const labelWidth = conn.label.length * 6 + labelPadding * 2;
-                        const labelHeight = 16;
-
-                        const labelGroup = svgHelpers.createGroup({
-                            class: 'connection-label'
-                        });
-
-                        const labelRect = svgHelpers.createRect({
-                            x: toLeft,
-                            y: toTop - labelHeight - 5,
-                            width: labelWidth,
-                            height: labelHeight,
-                            fill: '#fff',
-                            stroke: '#999',
-                            'stroke-width': 1,
-                            rx: 2,
-                            ry: 2
-                        });
-
-                        const labelText = svgHelpers.createText(conn.label, {
-                            x: toLeft + labelPadding,
-                            y: toTop - labelHeight / 2 - 5,
-                            'dominant-baseline': 'central',
-                            fill: '#333',
-                            'font-size': '11',
-                            'font-family': 'Arial, sans-serif'
-                        });
-
-                        labelGroup.appendChild(labelRect);
-                        labelGroup.appendChild(labelText);
+                    const toElement = svgHelpers.getNodeElement(conn.to);
+                    const labelGroup = createConnectionLabel(conn, toElement);
+                    if (labelGroup) {
                         svgLayer.appendChild(labelGroup);
                     }
 
@@ -488,34 +503,9 @@ function getConnectionRenderer() {
 
                 // 垂直セグメントのX座標
                 const verticalSegmentX = maxParentRight + minOffset + (assignedLane * laneSpacing);
-                const horizontalOffset = verticalSegmentX - x1;
 
-                const cornerRadius = 8;
-
-                const p1x = x1;
-                const p1y = y1;
-                const p2x = x1 + horizontalOffset;
-                const p2y = y1;
-                const p3x = p2x;
-                const p3y = y2;
-                const p4x = x2;
-                const p4y = y2;
-
-                // 角を丸める場合のパス
-                let pathData;
-                if (Math.abs(p3y - p2y) > cornerRadius * 2) {
-                    // 角を丸める
-                    if (p3y > p2y) {
-                        // 下向き
-                        pathData = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
-                    } else {
-                        // 上向き
-                        pathData = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
-                    }
-                } else {
-                    // 直線
-                    pathData = \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
-                }
+                // パスデータを生成
+                const pathData = createCurvedPath(x1, y1, x2, y2, verticalSegmentX);
 
                 const path = svgHelpers.createPath(pathData, {
                     class: 'connection-line',
@@ -523,78 +513,16 @@ function getConnectionRenderer() {
                     'data-to': conn.to,
                     fill: 'none'
                 });
-
                 svgLayer.appendChild(path);
 
-                // 矢印を作成（水平方向に進入）
-                const angle = 0; // 水平方向
-                const arrowSize = 8;
-                const arrowX = x2;
-                const arrowY = y2;
-
-                const ap1x = arrowX;
-                const ap1y = arrowY;
-                const ap2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
-                const ap2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
-                const ap3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
-                const ap3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
-
-                const arrow = svgHelpers.createPolygon(\`\${ap1x},\${ap1y} \${ap2x},\${ap2y} \${ap3x},\${ap3y}\`, {
-                    class: 'connection-arrow',
-                    'data-from': conn.from,
-                    'data-to': conn.to
-                });
-
+                // 矢印を作成
+                const arrow = createHorizontalArrow(x2, y2, conn);
                 svgLayer.appendChild(arrow);
                 connectionCount++;
 
                 // ラベルがある場合は表示
-                if (conn.label) {
-                    const tempText = svgHelpers.createText(conn.label, {
-                        'font-size': '11',
-                        'font-family': 'Arial, sans-serif'
-                    });
-                    svgLayer.appendChild(tempText);
-                    const textBBox = tempText.getBBox();
-                    svgLayer.removeChild(tempText);
-
-                    const labelPadding = 4;
-                    const labelWidth = textBBox.width + labelPadding * 2;
-                    const labelHeight = textBBox.height + labelPadding * 2;
-
-                    const labelGroup = svgHelpers.createGroup({
-                        class: 'connection-label'
-                    });
-
-                    // 子ノードの位置情報を取得（直線描画と同じ基準）
-                    const toElement = svgHelpers.getNodeElement(conn.to);
-                    const toPos = getNodePosition(toElement);
-                    const toLeft = toPos.left;
-                    const toTop = toPos.top;
-
-                    const labelRect = svgHelpers.createRect({
-                        x: toLeft,
-                        y: toTop - labelHeight - 5,
-                        width: labelWidth,
-                        height: labelHeight,
-                        fill: '#fff',
-                        stroke: '#999',
-                        'stroke-width': '1',
-                        rx: '3',
-                        ry: '3'
-                    });
-
-                    const labelText = svgHelpers.createText(conn.label, {
-                        x: toLeft + labelPadding,
-                        y: toTop - labelHeight / 2 - 5,
-                        'dominant-baseline': 'central',
-                        fill: '#333',
-                        'font-size': '11',
-                        'font-family': 'Arial, sans-serif'
-                    });
-
-                    labelGroup.appendChild(labelRect);
-                    labelGroup.appendChild(labelText);
+                const labelGroup = createConnectionLabel(conn, toElement);
+                if (labelGroup) {
                     svgLayer.appendChild(labelGroup);
                 }
             });

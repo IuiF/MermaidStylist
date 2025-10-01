@@ -31,28 +31,7 @@ function getHorizontalLayout() {
             for (let i = 0; i < treeStructure.levels.length - 1; i++) {
                 const fromLevel = treeStructure.levels[i];
                 const toLevel = treeStructure.levels[i + 1];
-
-                // この階層から次の階層へ接続する親ノードの数をカウント
-                const parentNodes = new Set();
-                connections.forEach(conn => {
-                    const fromInLevel = fromLevel.find(n => n.id === conn.from);
-                    const toInLevel = toLevel.find(n => n.id === conn.to);
-                    if (fromInLevel && toInLevel) {
-                        parentNodes.add(conn.from);
-                    }
-                });
-
-                // 親の数に基づいて必要な距離を計算
-                // 基本距離 + レーンあたりの追加距離
-                const baseSpacing = 60;
-                const laneSpacing = 12;
-                const minSpacing = 80;
-                const maxSpacing = 250;
-
-                const requiredSpacing = Math.max(minSpacing,
-                    Math.min(maxSpacing, baseSpacing + parentNodes.size * laneSpacing));
-
-                levelSpacings[i] = requiredSpacing;
+                levelSpacings[i] = calculateLevelSpacing(fromLevel, toLevel, connections);
             }
 
             // 各階層のX座標を計算

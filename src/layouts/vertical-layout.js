@@ -16,27 +16,7 @@ function getVerticalLayout() {
             for (let i = 0; i < treeStructure.levels.length - 1; i++) {
                 const fromLevel = treeStructure.levels[i];
                 const toLevel = treeStructure.levels[i + 1];
-
-                // この階層から次の階層へ接続する親ノードの数をカウント
-                const parentNodes = new Set();
-                connections.forEach(conn => {
-                    const fromInLevel = fromLevel.find(n => n.id === conn.from);
-                    const toInLevel = toLevel.find(n => n.id === conn.to);
-                    if (fromInLevel && toInLevel) {
-                        parentNodes.add(conn.from);
-                    }
-                });
-
-                // 親の数に基づいて必要な距離を計算
-                const baseHeight = 60;
-                const laneSpacing = 12;
-                const minHeight = 80;
-                const maxHeight = 250;
-
-                const requiredHeight = Math.max(minHeight,
-                    Math.min(maxHeight, baseHeight + parentNodes.size * laneSpacing));
-
-                levelHeights[i] = requiredHeight;
+                levelHeights[i] = calculateLevelSpacing(fromLevel, toLevel, connections);
             }
 
             // 各階層のY座標を計算

@@ -25,102 +25,139 @@ function getViewportManager() {
                 maxY: -Infinity
             },
 
+            // ホイールイベント処理：ズーム
+            handleWheelZoom: function(e, container) {
+                const rect = container.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                const worldX = (mouseX - this.translateX) / this.scale;
+                const worldY = (mouseY - this.translateY) / this.scale;
+
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                const newScale = Math.max(this.minScale, Math.min(this.maxScale, this.scale * delta));
+
+                this.translateX = mouseX - worldX * newScale;
+                this.translateY = mouseY - worldY * newScale;
+                this.scale = newScale;
+
+                this.applyTransform();
+            },
+
+            // 2本指タッチ時のピンチズーム処理
+            handlePinchZoom: function(pointers, container) {
+                const rect = container.getBoundingClientRect();
+                const centerX = this.initialTouchCenter.x - rect.left;
+                const centerY = this.initialTouchCenter.y - rect.top;
+
+                const worldX = (centerX - this.translateX) / this.scale;
+                const worldY = (centerY - this.translateY) / this.scale;
+
+                const dx = pointers[1].x - pointers[0].x;
+                const dy = pointers[1].y - pointers[0].y;
+                const currentDistance = Math.sqrt(dx * dx + dy * dy);
+
+                const scaleChange = currentDistance / this.initialTouchDistance;
+                const newScale = Math.max(this.minScale, Math.min(this.maxScale, this.scale * scaleChange));
+
+                this.translateX = centerX - worldX * newScale;
+                this.translateY = centerY - worldY * newScale;
+                this.scale = newScale;
+
+                this.initialTouchDistance = currentDistance;
+            },
+
+            // 2本指タッチ時のパン処理
+            handleTwoFingerPan: function(currentCenter) {
+                const panX = currentCenter.x - this.lastTouchCenter.x;
+                const panY = currentCenter.y - this.lastTouchCenter.y;
+
+                this.translateX += panX;
+                this.translateY += panY;
+
+                this.lastTouchCenter = currentCenter;
+            },
+
+            // ホイールイベント処理：パン
+            handleWheelPan: function(e) {
+                const now = Date.now();
+
+                // 500ms以上間隔が空いたらリセット
+                if (now - this.lastWheelTime > 500) {
+                    this.diagonalUnlocked = false;
+                    this.wheelHistory = [];
+                    this.lastValidDeltaX = 0;
+                    this.lastValidDeltaY = 0;
+                }
+                this.lastWheelTime = now;
+
+                // 履歴に追加
+                this.wheelHistory.push({
+                    time: now,
+                    deltaX: e.deltaX,
+                    deltaY: e.deltaY
+                });
+
+                // 古い履歴を削除
+                this.wheelHistory = this.wheelHistory.filter(h => now - h.time < 300);
+
+                let deltaX = e.deltaX;
+                let deltaY = e.deltaY;
+
+                // 斜め移動の検出
+                const recentEvents = this.wheelHistory.slice(-3);
+                const hasRecentX = recentEvents.some(h => Math.abs(h.deltaX) > 0.5);
+                const hasRecentY = recentEvents.some(h => Math.abs(h.deltaY) > 0.5);
+
+                if (hasRecentX && hasRecentY && !this.diagonalUnlocked) {
+                    this.diagonalUnlocked = true;
+                    console.log('Diagonal mode unlocked!');
+                }
+
+                // 有効なデルタ値を記録
+                if (Math.abs(deltaX) > 0.5) {
+                    this.lastValidDeltaX = deltaX;
+                }
+                if (Math.abs(deltaY) > 0.5) {
+                    this.lastValidDeltaY = deltaY;
+                }
+
+                // 斜めモードが有効な場合、片方が0でも補完
+                if (this.diagonalUnlocked) {
+                    const threshold = 0.5;
+
+                    if (Math.abs(this.lastValidDeltaX) > 0 && Math.abs(this.lastValidDeltaY) > 0) {
+                        const ratio = Math.abs(this.lastValidDeltaX / this.lastValidDeltaY);
+
+                        if (Math.abs(deltaX) < threshold && Math.abs(deltaY) > threshold) {
+                            deltaX = deltaY * ratio * Math.sign(this.lastValidDeltaX);
+                            console.log(\`Compensating X: \${deltaX}\`);
+                        } else if (Math.abs(deltaY) < threshold && Math.abs(deltaX) > threshold) {
+                            deltaY = deltaX / ratio * Math.sign(this.lastValidDeltaY);
+                            console.log(\`Compensating Y: \${deltaY}\`);
+                        }
+                    }
+                }
+
+                this.translateX -= deltaX;
+                this.translateY -= deltaY;
+
+                this.applyTransform();
+            },
+
             init: function() {
                 const container = document.getElementById('treeContainer');
 
-                // ホイールイベント（斜め検出による軸ロック解除）
+                // ホイールイベント
                 container.addEventListener('wheel', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
 
-                    const now = Date.now();
-
-                    // 500ms以上間隔が空いたらリセット（新しいジェスチャーと判断）
-                    if (now - this.lastWheelTime > 500) {
-                        this.diagonalUnlocked = false;
-                        this.wheelHistory = [];
-                        this.lastValidDeltaX = 0;
-                        this.lastValidDeltaY = 0;
-                    }
-                    this.lastWheelTime = now;
-
                     if (e.ctrlKey) {
-                        // Ctrl+ホイール → ズーム
-                        const rect = container.getBoundingClientRect();
-                        const mouseX = e.clientX - rect.left;
-                        const mouseY = e.clientY - rect.top;
-
-                        const worldX = (mouseX - this.translateX) / this.scale;
-                        const worldY = (mouseY - this.translateY) / this.scale;
-
-                        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-                        const newScale = Math.max(this.minScale, Math.min(this.maxScale, this.scale * delta));
-
-                        this.translateX = mouseX - worldX * newScale;
-                        this.translateY = mouseY - worldY * newScale;
-                        this.scale = newScale;
-
-                        this.applyTransform();
-                        return;
+                        this.handleWheelZoom(e, container);
+                    } else {
+                        this.handleWheelPan(e);
                     }
-
-                    // 履歴に追加
-                    this.wheelHistory.push({
-                        time: now,
-                        deltaX: e.deltaX,
-                        deltaY: e.deltaY
-                    });
-
-                    // 古い履歴を削除
-                    this.wheelHistory = this.wheelHistory.filter(h => now - h.time < 300);
-
-                    let deltaX = e.deltaX;
-                    let deltaY = e.deltaY;
-
-                    // 斜め移動の検出（過去3イベント内に両軸の動きがあるか）
-                    const recentEvents = this.wheelHistory.slice(-3);
-                    const hasRecentX = recentEvents.some(h => Math.abs(h.deltaX) > 0.5);
-                    const hasRecentY = recentEvents.some(h => Math.abs(h.deltaY) > 0.5);
-
-                    // 両軸に動きがあったら斜めモードを有効化
-                    if (hasRecentX && hasRecentY && !this.diagonalUnlocked) {
-                        this.diagonalUnlocked = true;
-                        console.log('Diagonal mode unlocked!');
-                    }
-
-                    // 有効なデルタ値を記録
-                    if (Math.abs(deltaX) > 0.5) {
-                        this.lastValidDeltaX = deltaX;
-                    }
-                    if (Math.abs(deltaY) > 0.5) {
-                        this.lastValidDeltaY = deltaY;
-                    }
-
-                    // 斜めモードが有効な場合、片方が0でも補完
-                    if (this.diagonalUnlocked) {
-                        const threshold = 0.5;
-
-                        // 両方の最後の有効値が存在する場合のみ補完
-                        if (Math.abs(this.lastValidDeltaX) > 0 && Math.abs(this.lastValidDeltaY) > 0) {
-                            const ratio = Math.abs(this.lastValidDeltaX / this.lastValidDeltaY);
-
-                            // Xが0だがYが動いている → Xを補完
-                            if (Math.abs(deltaX) < threshold && Math.abs(deltaY) > threshold) {
-                                deltaX = deltaY * ratio * Math.sign(this.lastValidDeltaX);
-                                console.log(\`Compensating X: \${deltaX}\`);
-                            }
-                            // Yが0だがXが動いている → Yを補完
-                            else if (Math.abs(deltaY) < threshold && Math.abs(deltaX) > threshold) {
-                                deltaY = deltaX / ratio * Math.sign(this.lastValidDeltaY);
-                                console.log(\`Compensating Y: \${deltaY}\`);
-                            }
-                        }
-                    }
-
-                    this.translateX -= deltaX;
-                    this.translateY -= deltaY;
-
-                    this.applyTransform();
                 }, { passive: false });
 
                 // Pointer Eventsでマルチタッチ対応
@@ -164,10 +201,6 @@ function getViewportManager() {
                     if (this.activePointers.size === 2) {
                         // 2本指操作
                         const pointers = Array.from(this.activePointers.values());
-                        const dx = pointers[1].x - pointers[0].x;
-                        const dy = pointers[1].y - pointers[0].y;
-                        const currentDistance = Math.sqrt(dx * dx + dy * dy);
-
                         const currentCenter = {
                             x: (pointers[0].x + pointers[1].x) / 2,
                             y: (pointers[0].y + pointers[1].y) / 2
@@ -175,31 +208,11 @@ function getViewportManager() {
 
                         // ピンチズーム
                         if (this.initialTouchDistance > 0) {
-                            const rect = container.getBoundingClientRect();
-                            const centerX = this.initialTouchCenter.x - rect.left;
-                            const centerY = this.initialTouchCenter.y - rect.top;
-
-                            const worldX = (centerX - this.translateX) / this.scale;
-                            const worldY = (centerY - this.translateY) / this.scale;
-
-                            const scaleChange = currentDistance / this.initialTouchDistance;
-                            const newScale = Math.max(this.minScale, Math.min(this.maxScale, this.scale * scaleChange));
-
-                            this.translateX = centerX - worldX * newScale;
-                            this.translateY = centerY - worldY * newScale;
-                            this.scale = newScale;
-
-                            this.initialTouchDistance = currentDistance;
+                            this.handlePinchZoom(pointers, container);
                         }
 
                         // 2本指パン
-                        const panX = currentCenter.x - this.lastTouchCenter.x;
-                        const panY = currentCenter.y - this.lastTouchCenter.y;
-
-                        this.translateX += panX;
-                        this.translateY += panY;
-
-                        this.lastTouchCenter = currentCenter;
+                        this.handleTwoFingerPan(currentCenter);
 
                         this.applyTransform();
                     } else if (this.isDragging) {
@@ -263,6 +276,35 @@ function getViewportManager() {
                 this.applyTransform();
             },
 
+            // 個別ノードから境界を計算
+            calculateBoundsFromNodes: function(svgLayer) {
+                const bounds = {
+                    minX: Infinity,
+                    minY: Infinity,
+                    maxX: -Infinity,
+                    maxY: -Infinity
+                };
+
+                const nodes = svgLayer.querySelectorAll('.node');
+                nodes.forEach(node => {
+                    if (node.classList.contains('hidden')) return;
+                    const transform = node.getAttribute('transform');
+                    if (!transform) return;
+                    const match = transform.match(/translate\\(([^,]+),\\s*([^)]+)\\)/);
+                    if (!match) return;
+                    const x = parseFloat(match[1]);
+                    const y = parseFloat(match[2]);
+                    const width = parseFloat(node.getAttribute('data-width')) || 0;
+                    const height = parseFloat(node.getAttribute('data-height')) || 0;
+                    bounds.minX = Math.min(bounds.minX, x);
+                    bounds.minY = Math.min(bounds.minY, y);
+                    bounds.maxX = Math.max(bounds.maxX, x + width);
+                    bounds.maxY = Math.max(bounds.maxY, y + height);
+                });
+
+                return bounds;
+            },
+
             updateContentBounds: function() {
                 const svgLayer = document.getElementById('svgLayer');
                 if (!svgLayer) return;
@@ -281,30 +323,7 @@ function getViewportManager() {
                         maxY: bbox.y + bbox.height
                     };
                 } catch (e) {
-                    // フォールバック: 個別要素から計算
-                    this.contentBounds = {
-                        minX: Infinity,
-                        minY: Infinity,
-                        maxX: -Infinity,
-                        maxY: -Infinity
-                    };
-
-                    const nodes = svgLayer.querySelectorAll('.node');
-                    nodes.forEach(node => {
-                        if (node.classList.contains('hidden')) return;
-                        const transform = node.getAttribute('transform');
-                        if (!transform) return;
-                        const match = transform.match(/translate\\(([^,]+),\\s*([^)]+)\\)/);
-                        if (!match) return;
-                        const x = parseFloat(match[1]);
-                        const y = parseFloat(match[2]);
-                        const width = parseFloat(node.getAttribute('data-width')) || 0;
-                        const height = parseFloat(node.getAttribute('data-height')) || 0;
-                        this.contentBounds.minX = Math.min(this.contentBounds.minX, x);
-                        this.contentBounds.minY = Math.min(this.contentBounds.minY, y);
-                        this.contentBounds.maxX = Math.max(this.contentBounds.maxX, x + width);
-                        this.contentBounds.maxY = Math.max(this.contentBounds.maxY, y + height);
-                    });
+                    this.contentBounds = this.calculateBoundsFromNodes(svgLayer);
                 }
 
                 // transformを元に戻す
