@@ -274,20 +274,20 @@ function getViewportManager() {
                     if (node.classList.contains('hidden')) return;
 
                     const transform = node.getAttribute('transform');
-                    if (transform) {
-                        const match = transform.match(/translate\(([-\d.]+),\s*([-\d.]+)\)/);
-                        if (match) {
-                            const x = parseFloat(match[1]);
-                            const y = parseFloat(match[2]);
-                            const width = parseFloat(node.getAttribute('data-width')) || 0;
-                            const height = parseFloat(node.getAttribute('data-height')) || 0;
+                    if (!transform) return;
 
-                            this.contentBounds.minX = Math.min(this.contentBounds.minX, x);
-                            this.contentBounds.minY = Math.min(this.contentBounds.minY, y);
-                            this.contentBounds.maxX = Math.max(this.contentBounds.maxX, x + width);
-                            this.contentBounds.maxY = Math.max(this.contentBounds.maxY, y + height);
-                        }
-                    }
+                    const match = transform.match(/translate\\(([^,]+),\\s*([^)]+)\\)/);
+                    if (!match) return;
+
+                    const x = parseFloat(match[1]);
+                    const y = parseFloat(match[2]);
+                    const width = parseFloat(node.getAttribute('data-width')) || 0;
+                    const height = parseFloat(node.getAttribute('data-height')) || 0;
+
+                    this.contentBounds.minX = Math.min(this.contentBounds.minX, x);
+                    this.contentBounds.minY = Math.min(this.contentBounds.minY, y);
+                    this.contentBounds.maxX = Math.max(this.contentBounds.maxX, x + width);
+                    this.contentBounds.maxY = Math.max(this.contentBounds.maxY, y + height);
                 });
 
                 // エッジラベルの座標を取得
@@ -320,6 +320,43 @@ function getViewportManager() {
                 this.translateX = margin - this.contentBounds.minX;
                 this.translateY = margin - this.contentBounds.minY;
                 this.scale = 1.0;
+
+                this.applyTransform();
+            },
+
+            fitToView: function() {
+                // 座標を更新
+                this.updateContentBounds();
+
+                // 有効な境界が見つからない場合は何もしない
+                if (!isFinite(this.contentBounds.minX) || !isFinite(this.contentBounds.minY) ||
+                    !isFinite(this.contentBounds.maxX) || !isFinite(this.contentBounds.maxY)) {
+                    return;
+                }
+
+                const container = document.getElementById('treeContainer');
+                if (!container) return;
+
+                const containerRect = container.getBoundingClientRect();
+                const containerWidth = containerRect.width;
+                const containerHeight = containerRect.height;
+
+                // コンテンツのサイズ
+                const contentWidth = this.contentBounds.maxX - this.contentBounds.minX;
+                const contentHeight = this.contentBounds.maxY - this.contentBounds.minY;
+
+                // マージン
+                const margin = 50;
+
+                // 全体が収まるスケールを計算
+                const scaleX = (containerWidth - margin * 2) / contentWidth;
+                const scaleY = (containerHeight - margin * 2) / contentHeight;
+                const scale = Math.min(scaleX, scaleY, 1.0); // 最大1.0まで
+
+                // 左上にマージンを設けて配置
+                this.translateX = margin - this.contentBounds.minX * scale;
+                this.translateY = margin - this.contentBounds.minY * scale;
+                this.scale = scale;
 
                 this.applyTransform();
             }
