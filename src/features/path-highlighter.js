@@ -73,17 +73,42 @@ function getPathHighlighter() {
                     }
                 });
 
-                const allLines = document.querySelectorAll('.connection-line, .connection-arrow');
-                allLines.forEach(line => {
-                    const from = line.getAttribute('data-from');
-                    const to = line.getAttribute('data-to');
+                // エッジ要素を収集してハイライト適用
+                const allEdgeElements = document.querySelectorAll('.connection-line, .connection-arrow');
+                const edgeElementsByConnection = new Map();
+
+                allEdgeElements.forEach(element => {
+                    const from = element.getAttribute('data-from');
+                    const to = element.getAttribute('data-to');
                     if (from && to) {
                         const connKey = from + '->' + to;
-                        if (pathConnections.has(connKey)) {
-                            line.classList.add('path-highlighted-line');
+                        if (!edgeElementsByConnection.has(connKey)) {
+                            edgeElementsByConnection.set(connKey, []);
                         }
+                        edgeElementsByConnection.get(connKey).push(element);
                     }
                 });
+
+                // ラベル要素も収集（.connection-labelグループ内にdata属性がないため親要素から推測）
+                const pathHighlightedElements = [];
+
+                pathConnections.forEach(connKey => {
+                    const elements = edgeElementsByConnection.get(connKey);
+                    if (elements) {
+                        elements.forEach(element => {
+                            element.classList.add('path-highlighted-line');
+                            pathHighlightedElements.push(element);
+                        });
+                    }
+                });
+
+                // ルート表示のエッジを最上レイヤーに移動
+                const svgLayer = document.getElementById('svgLayer');
+                if (svgLayer) {
+                    pathHighlightedElements.forEach(element => {
+                        svgLayer.appendChild(element);
+                    });
+                }
             },
 
             clearPathHighlight: function() {
