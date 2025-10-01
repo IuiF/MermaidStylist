@@ -4,14 +4,18 @@ const fs = require('fs');
 function buildEmbeddedCode() {
     let code = '\n';
 
-    // 1. パーサー (parseMermaidNodes, parseMermaidConnections)
+    // 1. パーサー (parseMermaidNodes, parseMermaidConnections, parseMermaidStyles, parseMermaidClassDefs)
     const parserContent = fs.readFileSync('./src/parsers/mermaid.js', 'utf8');
-    const parseMermaidNodesMatch = parserContent.match(/function parseMermaidNodes[\s\S]*?(?=\nfunction|module\.exports)/);
-    const parseMermaidConnectionsMatch = parserContent.match(/function parseMermaidConnections[\s\S]*?(?=\nmodule\.exports)/);
+    const parseMermaidNodesMatch = parserContent.match(/function parseMermaidNodes[\s\S]*?(?=\n\/\/ Parse Mermaid connections|function parse)/);
+    const parseMermaidConnectionsMatch = parserContent.match(/function parseMermaidConnections[\s\S]*?(?=\n\/\/ Parse Mermaid style|function parse)/);
+    const parseMermaidStylesMatch = parserContent.match(/function parseMermaidStyles[\s\S]*?(?=\n\/\/ Parse Mermaid class|function parse)/);
+    const parseMermaidClassDefsMatch = parserContent.match(/function parseMermaidClassDefs[\s\S]*?(?=\nmodule\.exports)/);
 
     code += '// パーサー\n';
     if (parseMermaidNodesMatch) code += parseMermaidNodesMatch[0] + '\n\n';
     if (parseMermaidConnectionsMatch) code += parseMermaidConnectionsMatch[0] + '\n\n';
+    if (parseMermaidStylesMatch) code += parseMermaidStylesMatch[0] + '\n\n';
+    if (parseMermaidClassDefsMatch) code += parseMermaidClassDefsMatch[0] + '\n\n';
 
     // 2. バリデーター (validateTreeStructure)
     const validatorContent = fs.readFileSync('./src/validators/tree-validator.js', 'utf8');

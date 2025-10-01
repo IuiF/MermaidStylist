@@ -1,4 +1,4 @@
-const { parseMermaidNodes, parseMermaidConnections } = require('./src/parsers/mermaid');
+const { parseMermaidNodes, parseMermaidConnections, parseMermaidStyles, parseMermaidClassDefs } = require('./src/parsers/mermaid');
 const { generateHTML, generateErrorHTML } = require('./src/generators/html');
 const { readMermaidFile, writeHtmlFile } = require('./src/utils/file');
 const { validateTreeStructure } = require('./src/validators/tree-validator');
@@ -20,8 +20,24 @@ function main() {
         // Parse nodes and connections using the new parsers
         const nodes = parseMermaidNodes(mermaidContent);
         const connections = parseMermaidConnections(mermaidContent);
+        const styles = parseMermaidStyles(mermaidContent);
+        const { classDefs, classAssignments } = parseMermaidClassDefs(mermaidContent);
 
         console.log(`Parsed ${nodes.length} nodes and ${connections.length} connections`);
+
+        // クラス割り当てをノードにマージ
+        nodes.forEach(node => {
+            if (classAssignments[node.id]) {
+                if (!node.classes) {
+                    node.classes = [];
+                }
+                classAssignments[node.id].forEach(className => {
+                    if (!node.classes.includes(className)) {
+                        node.classes.push(className);
+                    }
+                });
+            }
+        });
 
         // Validate tree structure
         const validation = validateTreeStructure(nodes, connections);
@@ -34,7 +50,7 @@ function main() {
         } else {
             console.log('Validation passed: Valid tree structure');
             // Generate HTML using the new generator
-            html = generateHTML(nodes, connections);
+            html = generateHTML(nodes, connections, styles, classDefs);
         }
 
         // Write to output file using the new utility

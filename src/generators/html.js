@@ -13,7 +13,7 @@ const { getContextMenu } = require('../features/context-menu');
 const { getHighlightManager } = require('../features/highlight-manager');
 const { getPathHighlighter } = require('../features/path-highlighter');
 
-function generateHTML(nodes, connections) {
+function generateHTML(nodes, connections, styles = {}, classDefs = {}) {
     const template = getBaseTemplate();
 
     let html = template.htmlStructure.doctype + '\n';
@@ -28,17 +28,19 @@ function generateHTML(nodes, connections) {
     html += '    ' + template.htmlStructure.layoutControls + '\n';
     html += '    ' + template.htmlStructure.containerOpen + '\n';
     html += '    ' + template.htmlStructure.containerClose + '\n';
-    html += getJavaScriptContent(nodes, connections);
+    html += getJavaScriptContent(nodes, connections, styles, classDefs);
     html += template.htmlStructure.bodyClose + '\n';
     html += template.htmlStructure.htmlClose;
 
     return html;
 }
 
-function getJavaScriptContent(nodes, connections) {
+function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}) {
     return `    <script>
         const nodes = ${JSON.stringify(nodes)};
         const connections = ${JSON.stringify(connections)};
+        const styles = ${JSON.stringify(styles)};
+        const classDefs = ${JSON.stringify(classDefs)};
 
         // Import utilities
         ${getLayoutUtils()}
@@ -74,6 +76,32 @@ function getJavaScriptContent(nodes, connections) {
 
         // Import context menu
         ${getContextMenu()}
+
+        // スタイルを適用
+        function applyNodeStyle(element, nodeId, nodeClasses) {
+            const styleObj = {};
+
+            // クラスからスタイルを適用
+            if (nodeClasses && nodeClasses.length > 0) {
+                nodeClasses.forEach(className => {
+                    if (classDefs[className]) {
+                        Object.assign(styleObj, classDefs[className]);
+                    }
+                });
+            }
+
+            // 直接スタイルを適用（優先度が高い）
+            if (styles[nodeId]) {
+                Object.assign(styleObj, styles[nodeId]);
+            }
+
+            // SVG要素にスタイルを適用
+            if (Object.keys(styleObj).length > 0) {
+                for (const [key, value] of Object.entries(styleObj)) {
+                    element.style[key] = value;
+                }
+            }
+        }
 
         // Create SVG nodes
         function createSVGNodes() {
@@ -123,6 +151,9 @@ function getJavaScriptContent(nodes, connections) {
 
                 g.appendChild(rect);
                 g.appendChild(text);
+
+                // スタイルを適用
+                applyNodeStyle(rect, node.id, node.classes);
 
                 // 折りたたみボタン
                 if (hasChildren) {

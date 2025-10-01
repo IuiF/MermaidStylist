@@ -48,6 +48,29 @@ function parseMermaidNodes(content) {
             continue;
         }
 
+        // ショートハンド構文 (:::) をチェック
+        const shorthandMatch = trimmedLine.match(/:::([a-zA-Z0-9_-]+)/);
+        const shorthandClass = shorthandMatch ? shorthandMatch[1] : null;
+
+        // 単独のショートハンド構文をチェック (例: D:::className)
+        const standaloneShorthand = trimmedLine.match(/^([a-zA-Z0-9_-]+):::([a-zA-Z0-9_-]+)$/);
+        if (standaloneShorthand) {
+            const nodeId = standaloneShorthand[1];
+            const className = standaloneShorthand[2];
+            if (!nodeMap.has(nodeId)) {
+                nodeMap.set(nodeId, { id: nodeId, label: nodeId, classes: [className] });
+            } else {
+                const existingNode = nodeMap.get(nodeId);
+                if (!existingNode.classes) {
+                    existingNode.classes = [];
+                }
+                if (!existingNode.classes.includes(className)) {
+                    existingNode.classes.push(className);
+                }
+            }
+            continue;
+        }
+
         // パターンマッチング
         for (const pattern of nodePatterns) {
             const match = trimmedLine.match(pattern);
@@ -55,7 +78,20 @@ function parseMermaidNodes(content) {
                 const id = match[1];
                 const label = match[2].trim();
                 if (!nodeMap.has(id)) {
-                    nodeMap.set(id, { id, label });
+                    const node = { id, label };
+                    if (shorthandClass) {
+                        node.classes = [shorthandClass];
+                    }
+                    nodeMap.set(id, node);
+                } else if (shorthandClass) {
+                    // 既存のノードにクラスを追加
+                    const existingNode = nodeMap.get(id);
+                    if (!existingNode.classes) {
+                        existingNode.classes = [];
+                    }
+                    if (!existingNode.classes.includes(shorthandClass)) {
+                        existingNode.classes.push(shorthandClass);
+                    }
                 }
                 break;  // 最初にマッチしたパターンで終了
             }
@@ -181,7 +217,103 @@ function parseMermaidConnections(content) {
     return connections;
 }
 
+// Parse Mermaid style definitions from content
+function parseMermaidStyles(content) {
+    const styles = {};
+    const lines = content.split('\n');
+
+    // style nodeId fill:#f9f,stroke:#333,stroke-width:4px
+    const stylePattern = /^\s*style\s+([a-zA-Z0-9_-]+)\s+(.+)/;
+
+    for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (!trimmedLine || trimmedLine.startsWith('%%')) {
+            continue;
+        }
+
+        const match = trimmedLine.match(stylePattern);
+        if (match) {
+            const nodeId = match[1];
+            const styleString = match[2].trim();
+
+            // Parse style properties (fill:#f9f,stroke:#333,stroke-width:4px)
+            const styleObj = {};
+            const properties = styleString.split(',');
+
+            for (const prop of properties) {
+                const [key, value] = prop.split(':').map(s => s.trim());
+                if (key && value) {
+                    styleObj[key] = value;
+                }
+            }
+
+            styles[nodeId] = styleObj;
+        }
+    }
+
+    return styles;
+}
+
+// Parse Mermaid class definitions from content
+function parseMermaidClassDefs(content) {
+    const classDefs = {};
+    const classAssignments = {};
+    const lines = content.split('\n');
+
+    // classDef className fill:#f9f,stroke:#333,stroke-width:4px
+    const classDefPattern = /^\s*classDef\s+([a-zA-Z0-9_-]+)\s+(.+)/;
+
+    // class nodeId1,nodeId2 className
+    const classPattern = /^\s*class\s+([a-zA-Z0-9_,-]+)\s+([a-zA-Z0-9_-]+)/;
+
+    for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (!trimmedLine || trimmedLine.startsWith('%%')) {
+            continue;
+        }
+
+        // Parse classDef
+        const classDefMatch = trimmedLine.match(classDefPattern);
+        if (classDefMatch) {
+            const className = classDefMatch[1];
+            const styleString = classDefMatch[2].trim();
+
+            // Parse style properties
+            const styleObj = {};
+            const properties = styleString.split(',');
+
+            for (const prop of properties) {
+                const [key, value] = prop.split(':').map(s => s.trim());
+                if (key && value) {
+                    styleObj[key] = value;
+                }
+            }
+
+            classDefs[className] = styleObj;
+            continue;
+        }
+
+        // Parse class assignments
+        const classMatch = trimmedLine.match(classPattern);
+        if (classMatch) {
+            const nodeIds = classMatch[1].split(',').map(id => id.trim());
+            const className = classMatch[2];
+
+            for (const nodeId of nodeIds) {
+                if (!classAssignments[nodeId]) {
+                    classAssignments[nodeId] = [];
+                }
+                classAssignments[nodeId].push(className);
+            }
+        }
+    }
+
+    return { classDefs, classAssignments };
+}
+
 module.exports = {
     parseMermaidNodes,
-    parseMermaidConnections
+    parseMermaidConnections,
+    parseMermaidStyles,
+    parseMermaidClassDefs
 };
