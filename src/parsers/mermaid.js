@@ -48,6 +48,21 @@ function parseMermaidNodes(content) {
             continue;
         }
 
+        // 形状指定構文をチェック (n1@{ shape: cyl })
+        const shapePattern = /^([a-zA-Z0-9_-]+)@\{\s*shape:\s*([a-zA-Z0-9_-]+)\s*\}/;
+        const shapeMatch = trimmedLine.match(shapePattern);
+        if (shapeMatch) {
+            const nodeId = shapeMatch[1];
+            const shape = shapeMatch[2];
+            if (!nodeMap.has(nodeId)) {
+                nodeMap.set(nodeId, { id: nodeId, label: nodeId, shape });
+            } else {
+                const existingNode = nodeMap.get(nodeId);
+                existingNode.shape = shape;
+            }
+            continue;
+        }
+
         // ショートハンド構文 (:::) をチェック
         const shorthandMatch = trimmedLine.match(/:::([a-zA-Z0-9_-]+)/);
         const shorthandClass = shorthandMatch ? shorthandMatch[1] : null;
@@ -145,56 +160,89 @@ function parseMermaidConnections(content) {
     const connections = [];
     const lines = content.split('\n');
 
-    // 接続パターン（様々なタイプに対応）
-    // ラベル付きパターンを先に、シンプルなパターンを後に
-    const connectionPatterns = [
-        // パイプ記号でラベル（引用符付き）
-        { pattern: /([a-zA-Z0-9_-]+)\s*-->\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*---\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*\.->\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*\.-\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*==>\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*===\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-
-        // パイプ記号でラベル（引用符なし）
-        { pattern: /([a-zA-Z0-9_-]+)\s*-->\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*---\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*\.->\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*\.-\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*==>\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*===\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-
-        // ハイフン/ドット/イコールで囲むラベル（引用符付き）
-        { pattern: /([a-zA-Z0-9_-]+)\s*--\s*"([^"]+)"\s*-->\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*--\s*"([^"]+)"\s*---\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*-\.\s*"([^"]+)"\s*\.->\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*-\.\s*"([^"]+)"\s*\.-\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*==\s*"([^"]+)"\s*==>\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*==\s*"([^"]+)"\s*===\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-
-        // ハイフン/ドット/イコールで囲むラベル（引用符なし）
-        { pattern: /([a-zA-Z0-9_-]+)\s*--\s*([^-]+)\s*-->\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*--\s*([^-]+)\s*---\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*-\.\s*([^\.]+)\s*\.->\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*-\.\s*([^\.]+)\s*\.-\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*==\s*([^=]+)\s*==>\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-        { pattern: /([a-zA-Z0-9_-]+)\s*==\s*([^=]+)\s*===\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
-
-        // シンプルな接続（ラベルなし）
-        { pattern: /([a-zA-Z0-9_-]+)\s*-->\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
-        { pattern: /([a-zA-Z0-9_-]+)\s*---\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
-        { pattern: /([a-zA-Z0-9_-]+)\s*\.->\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
-        { pattern: /([a-zA-Z0-9_-]+)\s*\.-\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
-        { pattern: /([a-zA-Z0-9_-]+)\s*==>\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
-        { pattern: /([a-zA-Z0-9_-]+)\s*===\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
-        { pattern: /([a-zA-Z0-9_-]+)\s*~~~\s*([a-zA-Z0-9_-]+)/, hasLabel: false }
-    ];
-
     for (const line of lines) {
         const trimmedLine = line.trim();
         if (!trimmedLine || trimmedLine.startsWith('%%') || trimmedLine.startsWith('graph') || trimmedLine.startsWith('flowchart')) {
             continue;
         }
+
+        // 複数ターゲット構文をチェック (A --> B & C)
+        // &が含まれている場合のみ処理
+        if (trimmedLine.includes('&')) {
+            const multiTargetPattern = /([a-zA-Z0-9_-]+(?:\[[^\]]+\])?)\s*(-->|---|\.->|\.-|==>|===|~~~)\s*(.+)/;
+            const multiTargetMatch = trimmedLine.match(multiTargetPattern);
+
+            if (multiTargetMatch) {
+                const fromPart = multiTargetMatch[1].trim();
+                const arrow = multiTargetMatch[2];
+                const toPart = multiTargetMatch[3].trim();
+
+                // fromからノードIDを抽出
+                const fromIdMatch = fromPart.match(/^([a-zA-Z0-9_-]+)/);
+                if (!fromIdMatch) continue;
+                const from = fromIdMatch[1];
+
+                // &で分割してターゲットを抽出
+                const targets = toPart.split('&').map(t => t.trim());
+
+                // 複数ターゲットの場合のみ処理
+                if (targets.length > 1) {
+                    for (const target of targets) {
+                        // ターゲットからノードIDを抽出
+                        const targetIdMatch = target.match(/^([a-zA-Z0-9_-]+)/);
+                        if (targetIdMatch) {
+                            const to = targetIdMatch[1];
+                            connections.push({ from, to });
+                        }
+                    }
+                    continue;
+                }
+            }
+        }
+
+        // 従来の接続パターン（様々なタイプに対応）
+        const connectionPatterns = [
+            // パイプ記号でラベル（引用符付き）
+            { pattern: /([a-zA-Z0-9_-]+)\s*-->\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*---\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*\.->\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*\.-\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*==>\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*===\s*\|\s*"([^"]+)"\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+
+            // パイプ記号でラベル（引用符なし）
+            { pattern: /([a-zA-Z0-9_-]+)\s*-->\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*---\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*\.->\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*\.-\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*==>\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*===\s*\|\s*([^|]+)\s*\|\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+
+            // ハイフン/ドット/イコールで囲むラベル（引用符付き）
+            { pattern: /([a-zA-Z0-9_-]+)\s*--\s*"([^"]+)"\s*-->\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*--\s*"([^"]+)"\s*---\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*-\.\s*"([^"]+)"\s*\.->\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*-\.\s*"([^"]+)"\s*\.-\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*==\s*"([^"]+)"\s*==>\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*==\s*"([^"]+)"\s*===\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+
+            // ハイフン/ドット/イコールで囲むラベル（引用符なし）
+            { pattern: /([a-zA-Z0-9_-]+)\s*--\s*([^-]+)\s*-->\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*--\s*([^-]+)\s*---\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*-\.\s*([^\.]+)\s*\.->\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*-\.\s*([^\.]+)\s*\.-\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*==\s*([^=]+)\s*==>\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+            { pattern: /([a-zA-Z0-9_-]+)\s*==\s*([^=]+)\s*===\s*([a-zA-Z0-9_-]+)/, hasLabel: true },
+
+            // シンプルな接続（ラベルなし）
+            { pattern: /([a-zA-Z0-9_-]+)\s*-->\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
+            { pattern: /([a-zA-Z0-9_-]+)\s*---\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
+            { pattern: /([a-zA-Z0-9_-]+)\s*\.->\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
+            { pattern: /([a-zA-Z0-9_-]+)\s*\.-\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
+            { pattern: /([a-zA-Z0-9_-]+)\s*==>\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
+            { pattern: /([a-zA-Z0-9_-]+)\s*===\s*([a-zA-Z0-9_-]+)/, hasLabel: false },
+            { pattern: /([a-zA-Z0-9_-]+)\s*~~~\s*([a-zA-Z0-9_-]+)/, hasLabel: false }
+        ];
 
         for (const patternObj of connectionPatterns) {
             const match = trimmedLine.match(patternObj.pattern);
