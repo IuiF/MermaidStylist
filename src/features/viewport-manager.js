@@ -254,26 +254,58 @@ function getViewportManager() {
 
                 if (!container || !svgLayer) return;
 
-                // SVG全体の境界ボックスを取得
-                const bbox = svgLayer.getBBox();
+                // すべてのノードとエッジラベルの座標を計算して境界を求める
+                let minX = Infinity, minY = Infinity;
+                let maxX = -Infinity, maxY = -Infinity;
 
-                if (!bbox || bbox.width === 0 || bbox.height === 0) return;
+                // ノードの座標を取得
+                const nodes = svgLayer.querySelectorAll('.node');
+                nodes.forEach(node => {
+                    if (node.classList.contains('hidden')) return;
 
-                // コンテナのサイズ
-                const containerRect = container.getBoundingClientRect();
-                const containerWidth = containerRect.width;
-                const containerHeight = containerRect.height;
+                    const transform = node.getAttribute('transform');
+                    if (transform) {
+                        const match = transform.match(/translate\(([-\d.]+),\s*([-\d.]+)\)/);
+                        if (match) {
+                            const x = parseFloat(match[1]);
+                            const y = parseFloat(match[2]);
+                            const width = parseFloat(node.getAttribute('data-width')) || 0;
+                            const height = parseFloat(node.getAttribute('data-height')) || 0;
+
+                            minX = Math.min(minX, x);
+                            minY = Math.min(minY, y);
+                            maxX = Math.max(maxX, x + width);
+                            maxY = Math.max(maxY, y + height);
+                        }
+                    }
+                });
+
+                // エッジラベルの座標を取得
+                const labels = svgLayer.querySelectorAll('.connection-label');
+                labels.forEach(label => {
+                    const rect = label.querySelector('rect');
+                    if (rect) {
+                        const x = parseFloat(rect.getAttribute('x'));
+                        const y = parseFloat(rect.getAttribute('y'));
+                        const width = parseFloat(rect.getAttribute('width'));
+                        const height = parseFloat(rect.getAttribute('height'));
+
+                        minX = Math.min(minX, x);
+                        minY = Math.min(minY, y);
+                        maxX = Math.max(maxX, x + width);
+                        maxY = Math.max(maxY, y + height);
+                    }
+                });
+
+                // 有効な境界が見つからない場合は何もしない
+                if (!isFinite(minX) || !isFinite(minY)) return;
 
                 // マージン
                 const margin = 50;
 
-                // コンテンツがコンテナ内に収まるように調整
-                const contentLeft = bbox.x;
-                const contentTop = bbox.y;
-
                 // 左上にマージンを設けた位置に配置
-                this.translateX = margin - contentLeft;
-                this.translateY = margin - contentTop;
+                this.translateX = margin - minX;
+                this.translateY = margin - minY;
                 this.scale = 1.0;
 
                 this.applyTransform();
