@@ -355,14 +355,21 @@ function getViewportManager() {
                 // マージン
                 const margin = 50;
 
-                // 全体が収まるスケールを計算
+                // 全体が収まるスケールを計算（拡大はしない）
                 const scaleX = (containerWidth - margin * 2) / contentWidth;
                 const scaleY = (containerHeight - margin * 2) / contentHeight;
-                const scale = Math.min(scaleX, scaleY, 1.0); // 最大1.0まで
+                const scale = Math.min(scaleX, scaleY, 1.0);
 
-                // 左上にマージンを設けて配置
-                this.translateX = margin - this.contentBounds.minX * scale;
-                this.translateY = margin - this.contentBounds.minY * scale;
+                // スケール適用後のコンテンツサイズ
+                const scaledWidth = contentWidth * scale;
+                const scaledHeight = contentHeight * scale;
+
+                // 中央配置
+                const centerX = (containerWidth - scaledWidth) / 2;
+                const centerY = (containerHeight - scaledHeight) / 2;
+
+                this.translateX = centerX - this.contentBounds.minX * scale;
+                this.translateY = centerY - this.contentBounds.minY * scale;
                 this.scale = scale;
 
                 this.applyTransform();
