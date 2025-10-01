@@ -164,6 +164,11 @@ function getJavaScriptContent(nodes, connections) {
                 currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
                 debugActualWidths(nodes);
                 createCSSLines(connections, currentNodePositions);
+
+                // レイアウトとエッジ描画完了後、コンテンツ全体が見えるように初期位置を調整
+                requestAnimationFrame(() => {
+                    viewportManager.fitToContent();
+                });
             });
         };
     </script>`;

@@ -22,6 +22,11 @@ function getLayoutSwitcher() {
             requestAnimationFrame(() => {
                 createCSSLines(connections, currentNodePositions);
                 pathHighlighter.reapplyPathHighlight();
+
+                // レイアウト変更後、コンテンツ全体が見えるように位置を調整
+                requestAnimationFrame(() => {
+                    viewportManager.fitToContent();
+                });
             });
         }
 

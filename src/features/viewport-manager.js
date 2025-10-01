@@ -246,6 +246,37 @@ function getViewportManager() {
                 this.translateX = 0;
                 this.translateY = 0;
                 this.applyTransform();
+            },
+
+            fitToContent: function() {
+                const container = document.getElementById('treeContainer');
+                const svgLayer = document.getElementById('svgLayer');
+
+                if (!container || !svgLayer) return;
+
+                // SVG全体の境界ボックスを取得
+                const bbox = svgLayer.getBBox();
+
+                if (!bbox || bbox.width === 0 || bbox.height === 0) return;
+
+                // コンテナのサイズ
+                const containerRect = container.getBoundingClientRect();
+                const containerWidth = containerRect.width;
+                const containerHeight = containerRect.height;
+
+                // マージン
+                const margin = 50;
+
+                // コンテンツがコンテナ内に収まるように調整
+                const contentLeft = bbox.x;
+                const contentTop = bbox.y;
+
+                // 左上にマージンを設けた位置に配置
+                this.translateX = margin - contentLeft;
+                this.translateY = margin - contentTop;
+                this.scale = 1.0;
+
+                this.applyTransform();
             }
         };
     `;
