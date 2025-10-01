@@ -374,8 +374,12 @@ function getConnectionRenderer() {
 
                 // 1:1の親子関係は直線で描画
                 if (is1to1) {
-                    const line = svgHelpers.createLine(x1, y1, x2, y2, {
+                    const line = svgHelpers.createLine({
                         class: 'connection-line',
+                        x1: x1,
+                        y1: y1,
+                        x2: x2,
+                        y2: y2,
                         'data-from': conn.from,
                         'data-to': conn.to
                     });
