@@ -18,6 +18,12 @@ function getViewportManager() {
             lastValidDeltaX: 0,
             lastValidDeltaY: 0,
             lastWheelTime: 0,
+            contentBounds: {
+                minX: Infinity,
+                minY: Infinity,
+                maxX: -Infinity,
+                maxY: -Infinity
+            },
 
             init: function() {
                 const container = document.getElementById('treeContainer');
@@ -243,20 +249,24 @@ function getViewportManager() {
 
             resetView: function() {
                 this.scale = 1.0;
-                this.translateX = 0;
-                this.translateY = 0;
+                // 最も左と最も上の位置が枠内に収まるように配置
+                const margin = 50;
+                this.translateX = margin - this.contentBounds.minX;
+                this.translateY = margin - this.contentBounds.minY;
                 this.applyTransform();
             },
 
-            fitToContent: function() {
-                const container = document.getElementById('treeContainer');
+            updateContentBounds: function() {
                 const svgLayer = document.getElementById('svgLayer');
+                if (!svgLayer) return;
 
-                if (!container || !svgLayer) return;
-
-                // すべてのノードとエッジラベルの座標を計算して境界を求める
-                let minX = Infinity, minY = Infinity;
-                let maxX = -Infinity, maxY = -Infinity;
+                // 座標をリセット
+                this.contentBounds = {
+                    minX: Infinity,
+                    minY: Infinity,
+                    maxX: -Infinity,
+                    maxY: -Infinity
+                };
 
                 // ノードの座標を取得
                 const nodes = svgLayer.querySelectorAll('.node');
@@ -272,10 +282,10 @@ function getViewportManager() {
                             const width = parseFloat(node.getAttribute('data-width')) || 0;
                             const height = parseFloat(node.getAttribute('data-height')) || 0;
 
-                            minX = Math.min(minX, x);
-                            minY = Math.min(minY, y);
-                            maxX = Math.max(maxX, x + width);
-                            maxY = Math.max(maxY, y + height);
+                            this.contentBounds.minX = Math.min(this.contentBounds.minX, x);
+                            this.contentBounds.minY = Math.min(this.contentBounds.minY, y);
+                            this.contentBounds.maxX = Math.max(this.contentBounds.maxX, x + width);
+                            this.contentBounds.maxY = Math.max(this.contentBounds.maxY, y + height);
                         }
                     }
                 });
@@ -290,22 +300,25 @@ function getViewportManager() {
                         const width = parseFloat(rect.getAttribute('width'));
                         const height = parseFloat(rect.getAttribute('height'));
 
-                        minX = Math.min(minX, x);
-                        minY = Math.min(minY, y);
-                        maxX = Math.max(maxX, x + width);
-                        maxY = Math.max(maxY, y + height);
+                        this.contentBounds.minX = Math.min(this.contentBounds.minX, x);
+                        this.contentBounds.minY = Math.min(this.contentBounds.minY, y);
+                        this.contentBounds.maxX = Math.max(this.contentBounds.maxX, x + width);
+                        this.contentBounds.maxY = Math.max(this.contentBounds.maxY, y + height);
                     }
                 });
+            },
+
+            fitToContent: function() {
+                // 座標を更新
+                this.updateContentBounds();
 
                 // 有効な境界が見つからない場合は何もしない
-                if (!isFinite(minX) || !isFinite(minY)) return;
+                if (!isFinite(this.contentBounds.minX) || !isFinite(this.contentBounds.minY)) return;
 
-                // マージン
+                // 最も左と最も上の位置が枠内に収まるように配置
                 const margin = 50;
-
-                // 左上にマージンを設けた位置に配置
-                this.translateX = margin - minX;
-                this.translateY = margin - minY;
+                this.translateX = margin - this.contentBounds.minX;
+                this.translateY = margin - this.contentBounds.minY;
                 this.scale = 1.0;
 
                 this.applyTransform();

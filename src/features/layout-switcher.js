@@ -23,8 +23,9 @@ function getLayoutSwitcher() {
                 createCSSLines(connections, currentNodePositions);
                 pathHighlighter.reapplyPathHighlight();
 
-                // レイアウト変更後、コンテンツ全体が見えるように位置を調整
+                // レイアウト変更後、座標を更新してコンテンツ全体が見えるように位置を調整
                 requestAnimationFrame(() => {
+                    viewportManager.updateContentBounds();
                     viewportManager.fitToContent();
                 });
             });
