@@ -34,7 +34,7 @@ function getPathHighlighter() {
                 this.currentHighlightedNodeId = nodeId;
 
                 const parentMap = new Map();
-                connections.forEach(conn => {
+                allConnections.forEach(conn => {
                     if (!parentMap.has(conn.to)) {
                         parentMap.set(conn.to, []);
                     }
