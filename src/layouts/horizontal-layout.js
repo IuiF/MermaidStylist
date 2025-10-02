@@ -68,21 +68,32 @@ function getHorizontalLayout() {
 
                             if (selectedParent) {
                                 const parentPos = nodePositions.get(selectedParent);
-                                const siblings = connections.filter(conn => conn.from === selectedParent).map(conn => conn.to);
-                                const siblingIndex = siblings.indexOf(node.id);
+
+                                // 複数の親を持つ場合は、全ての親からの兄弟を取得
+                                let siblings;
+                                if (parents.length > 1) {
+                                    const allSiblings = new Set();
+                                    for (const parentId of parents) {
+                                        const parentChildren = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
+                                        parentChildren.forEach(child => allSiblings.add(child));
+                                    }
+                                    siblings = Array.from(allSiblings);
+                                } else {
+                                    siblings = connections.filter(conn => conn.from === selectedParent).map(conn => conn.to);
+                                }
 
                                 // 複数の親を持つ場合は親の下に、単一の親なら親と同じ高さから
                                 let startY = parents.length > 1
                                     ? parentPos.y + parentPos.height + fixedSpacing
                                     : parentPos.y;
 
-                                for (let i = 0; i < siblingIndex; i++) {
-                                    const siblingId = siblings[i];
-                                    if (nodePositions.has(siblingId)) {
+                                // 全ての兄弟（自分を除く）の中で最も下にあるノードの下に配置
+                                siblings.forEach(siblingId => {
+                                    if (siblingId !== node.id && nodePositions.has(siblingId)) {
                                         const siblingPos = nodePositions.get(siblingId);
                                         startY = Math.max(startY, siblingPos.y + siblingPos.height + fixedSpacing);
                                     }
-                                }
+                                });
 
                                 startY = Math.max(startY, currentY);
 
