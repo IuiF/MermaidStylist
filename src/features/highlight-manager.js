@@ -101,6 +101,57 @@ function getHighlightManager() {
                     this.currentHighlightedNodeId = null;
                     this.currentHighlightTimeout = null;
                 }, duration);
+            },
+
+            highlightRelations: function(nodeId) {
+                // 親ノードを特定
+                const parents = allConnections.filter(conn => conn.to === nodeId).map(conn => conn.from);
+                // 子ノードを特定
+                const children = allConnections.filter(conn => conn.from === nodeId).map(conn => conn.to);
+
+                // 対象ノード自身をハイライト
+                const targetNode = svgHelpers.getNodeElement(nodeId);
+                if (targetNode) {
+                    targetNode.classList.add('relation-highlighted', 'relation-target');
+                }
+
+                // 親ノードをハイライト
+                parents.forEach(parentId => {
+                    const parentNode = svgHelpers.getNodeElement(parentId);
+                    if (parentNode) {
+                        parentNode.classList.add('relation-highlighted', 'relation-parent');
+                    }
+                });
+
+                // 子ノードをハイライト
+                children.forEach(childId => {
+                    const childNode = svgHelpers.getNodeElement(childId);
+                    if (childNode) {
+                        childNode.classList.add('relation-highlighted', 'relation-child');
+                    }
+                });
+
+                // 関連するエッジをハイライト
+                allConnections.forEach(conn => {
+                    if (conn.from === nodeId || conn.to === nodeId) {
+                        const edgeElement = document.querySelector(\`[data-from="\${conn.from}"][data-to="\${conn.to}"]\`);
+                        if (edgeElement) {
+                            edgeElement.classList.add('relation-edge-highlighted');
+                        }
+                    }
+                });
+            },
+
+            clearRelationHighlight: function() {
+                // ノードのハイライトを解除
+                document.querySelectorAll('.relation-highlighted').forEach(node => {
+                    node.classList.remove('relation-highlighted', 'relation-target', 'relation-parent', 'relation-child');
+                });
+
+                // エッジのハイライトを解除
+                document.querySelectorAll('.relation-edge-highlighted').forEach(edge => {
+                    edge.classList.remove('relation-edge-highlighted');
+                });
             }
         };
     `;

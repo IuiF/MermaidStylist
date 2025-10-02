@@ -23,6 +23,7 @@ function getContextMenu() {
                 const hasChildren = collapseManager.canCollapse(nodeElement.id);
                 const isHighlighted = nodeElement.classList.contains('highlighted');
                 const isPathHighlighted = nodeElement.classList.contains('path-highlighted');
+                const isRelationHighlighted = nodeElement.classList.contains('relation-highlighted');
 
                 let menuHTML = '';
 
@@ -44,6 +45,12 @@ function getContextMenu() {
                     menuHTML += '<div class="context-menu-item" data-action="clearPath">ルート表示を解除</div>';
                 } else {
                     menuHTML += '<div class="context-menu-item" data-action="showPath">ルートを表示</div>';
+                }
+
+                if (isRelationHighlighted) {
+                    menuHTML += '<div class="context-menu-item" data-action="clearRelation">親子関係表示を解除</div>';
+                } else {
+                    menuHTML += '<div class="context-menu-item" data-action="showRelation">親子関係を表示</div>';
                 }
 
                 menuHTML += '<div class="context-menu-separator"></div>';
@@ -87,6 +94,10 @@ function getContextMenu() {
                             pathHighlighter.highlightPathToRoot(this.targetNode.id);
                         } else if (action === 'clearPath') {
                             pathHighlighter.clearPathHighlight();
+                        } else if (action === 'showRelation') {
+                            highlightManager.highlightRelations(this.targetNode.id);
+                        } else if (action === 'clearRelation') {
+                            highlightManager.clearRelationHighlight();
                         } else if (action === 'toggleLineStyle') {
                             toggleConnectionLineStyle();
                         }

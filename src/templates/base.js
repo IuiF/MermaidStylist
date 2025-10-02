@@ -125,6 +125,32 @@ function getBaseTemplate() {
             fill: #2196f3 !important;
             filter: drop-shadow(0 0 2px #ffc107);
         }
+        .relation-target .node-rect {
+            fill: #ffe0b2;
+            stroke: #ff9800;
+            stroke-width: 3;
+            filter: drop-shadow(0 0 8px rgba(255, 152, 0, 0.5));
+        }
+        .relation-parent .node-rect {
+            fill: #e3f2fd;
+            stroke: #2196f3;
+            stroke-width: 2;
+            filter: drop-shadow(0 0 6px rgba(33, 150, 243, 0.4));
+        }
+        .relation-child .node-rect {
+            fill: #e8f5e9;
+            stroke: #4caf50;
+            stroke-width: 2;
+            filter: drop-shadow(0 0 6px rgba(76, 175, 80, 0.4));
+        }
+        .relation-edge-highlighted {
+            stroke: #f44336 !important;
+            stroke-width: 3 !important;
+            filter: drop-shadow(0 0 4px rgba(244, 67, 54, 0.6));
+        }
+        .relation-edge-highlighted.connection-arrow {
+            fill: #f44336 !important;
+        }
         .layout-controls {
             position: fixed;
             top: 0;
