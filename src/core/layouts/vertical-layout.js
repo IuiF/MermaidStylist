@@ -10,7 +10,8 @@ function getVerticalLayout() {
 
             const leftMargin = 50;
             const baseSpacing = 60; // 基本スペース
-            const edgeClearance = 40; // エッジとノード間のクリアランス
+            const edgeClearance = 80; // エッジとノード間のクリアランス
+            const minLevelSpacing = 120; // 階層間の最小距離
 
             // ノード間のエッジラベル数を計算
             function calculateNodeSpacing(nodeId, connections) {
@@ -31,8 +32,8 @@ function getVerticalLayout() {
             // 各階層のY座標を計算
             const levelYPositions = [50];
             for (let i = 1; i < treeStructure.levels.length; i++) {
-                const height = levelHeights[i - 1] || 80;
-                levelYPositions[i] = levelYPositions[i - 1] + height;
+                const height = Math.max(levelHeights[i - 1] || minLevelSpacing, minLevelSpacing);
+                levelYPositions[i] = levelYPositions[i - 1] + height + edgeClearance;
             }
 
             treeStructure.levels.forEach((level, levelIndex) => {

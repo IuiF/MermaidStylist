@@ -11,7 +11,8 @@ function getHorizontalLayout() {
             const leftMargin = 50;
             const topMargin = 50;
             const baseSpacing = 60; // 基本スペース
-            const edgeClearance = 40; // エッジとノード間のクリアランス
+            const edgeClearance = 80; // エッジとノード間のクリアランス
+            const minLevelSpacing = 200; // 階層間の最小距離
 
             // ノード間のエッジラベル数を計算
             function calculateNodeSpacing(nodeId, connections) {
@@ -56,8 +57,8 @@ function getHorizontalLayout() {
             // 各階層のX座標を計算
             const levelXPositions = [leftMargin];
             for (let i = 1; i < treeStructure.levels.length; i++) {
-                const spacing = levelSpacings[i - 1] || baseSpacing * 2;
-                levelXPositions[i] = levelXPositions[i - 1] + levelMaxWidths[i - 1] + spacing;
+                const spacing = Math.max(levelSpacings[i - 1] || minLevelSpacing, minLevelSpacing);
+                levelXPositions[i] = levelXPositions[i - 1] + levelMaxWidths[i - 1] + spacing + edgeClearance;
             }
 
             treeStructure.levels.forEach((level, levelIndex) => {
