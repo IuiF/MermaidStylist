@@ -79,12 +79,20 @@ function getCollapseManager() {
                 const isRoot = !allConnections.some(conn => conn.to === nodeId);
                 if (isRoot) return true;
 
-                const parentConnection = allConnections.find(conn => conn.to === nodeId);
-                if (!parentConnection) return true;
+                // 複数の親を取得
+                const parentConnections = allConnections.filter(conn => conn.to === nodeId);
+                if (parentConnections.length === 0) return true;
 
-                if (this.isCollapsed(parentConnection.from)) return false;
+                // すべての親が折りたたまれているか、または非表示の場合のみ非表示
+                // どれか一つでも表示されている親があれば表示
+                const hasVisibleParent = parentConnections.some(conn => {
+                    if (!this.isCollapsed(conn.from)) {
+                        return this.isVisible(conn.from);
+                    }
+                    return false;
+                });
 
-                return this.isVisible(parentConnection.from);
+                return hasVisibleParent;
             },
 
             updateVisibility: function() {
