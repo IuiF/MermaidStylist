@@ -85,7 +85,11 @@ function getCollapseManager() {
                 allNodes.forEach(node => {
                     const element = svgHelpers.getNodeElement(node.id);
                     if (element) {
-                        if (this.isVisible(node.id)) {
+                        const visible = this.isVisible(node.id);
+                        if (window.DEBUG_CONNECTIONS && node.isDashed) {
+                            console.log('Visibility check for dashed node ' + node.id + ': ' + visible);
+                        }
+                        if (visible) {
                             element.classList.remove('hidden');
                         } else {
                             element.classList.add('hidden');

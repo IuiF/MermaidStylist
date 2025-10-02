@@ -210,9 +210,9 @@ function getConnectionRenderer() {
 
             // デバッグ
             if (window.DEBUG_CONNECTIONS) {
-                console.log('createStraightLines called with', connections.length, 'connections');
+                console.log('createStraightLines called with ' + connections.length + ' connections');
                 const dashedCount = connections.filter(c => c.isDashed).length;
-                console.log('  - Dashed connections:', dashedCount);
+                console.log('  - Dashed connections: ' + dashedCount);
             }
 
             // 既存の接続線とラベルを削除
@@ -226,6 +226,12 @@ function getConnectionRenderer() {
             connections.forEach(conn => {
                 const fromElement = svgHelpers.getNodeElement(conn.from);
                 const toElement = svgHelpers.getNodeElement(conn.to);
+
+                if (window.DEBUG_CONNECTIONS && conn.isDashed) {
+                    console.log('  Straight edge ' + conn.from + ' --> ' + conn.to + ':',
+                        'from:', !!fromElement, fromElement ? !fromElement.classList.contains('hidden') : 'N/A',
+                        'to:', !!toElement, toElement ? !toElement.classList.contains('hidden') : 'N/A');
+                }
 
                 // 両端のノードが存在し、かつ表示されている場合のみ接続線を描画
                 if (fromElement && toElement &&
@@ -294,9 +300,9 @@ function getConnectionRenderer() {
 
             // デバッグ
             if (window.DEBUG_CONNECTIONS) {
-                console.log('createCurvedLines called with', connections.length, 'connections');
+                console.log('createCurvedLines called with ' + connections.length + ' connections');
                 const dashedCount = connections.filter(c => c.isDashed).length;
-                console.log('  - Dashed connections:', dashedCount);
+                console.log('  - Dashed connections: ' + dashedCount);
             }
 
             // 既存の接続線とラベルを削除
@@ -328,8 +334,8 @@ function getConnectionRenderer() {
                     fromElement.classList.contains('hidden') ||
                     toElement.classList.contains('hidden')) {
                     if (window.DEBUG_CONNECTIONS && conn.isDashed) {
-                        console.log('  - Skipping dashed edge:', conn.from, '-->', conn.to,
-                            'fromElement:', !!fromElement, 'toElement:', !!toElement);
+                        console.log('  - Skipping dashed edge: ' + conn.from + ' --> ' + conn.to +
+                            ' fromElement: ' + !!fromElement + ' toElement: ' + !!toElement);
                     }
                     return;
                 }
