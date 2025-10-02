@@ -137,12 +137,15 @@ function getHighlightManager() {
                 // 関連するエッジをハイライト
                 allConnections.forEach(conn => {
                     if (conn.from === nodeId || conn.to === nodeId) {
-                        const edgeElement = document.querySelector(\`[data-from="\${conn.from}"][data-to="\${conn.to}"]\`);
-                        if (edgeElement) {
-                            edgeElement.classList.add('relation-edge-highlighted');
-                            // エッジを最前面に移動
-                            edgeElement.parentNode.appendChild(edgeElement);
-                        }
+                        // ラインと矢印の両方を取得
+                        const edgeElements = document.querySelectorAll(\`.connection-line[data-from="\${conn.from}"][data-to="\${conn.to}"], .connection-arrow[data-from="\${conn.from}"][data-to="\${conn.to}"]\`);
+                        edgeElements.forEach(edgeElement => {
+                            if (edgeElement) {
+                                edgeElement.classList.add('relation-edge-highlighted');
+                                // エッジを最前面に移動
+                                edgeElement.parentNode.appendChild(edgeElement);
+                            }
+                        });
                     }
                 });
             },
