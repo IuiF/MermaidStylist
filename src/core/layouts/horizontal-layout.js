@@ -17,8 +17,18 @@ function getHorizontalLayout() {
             function calculateNodeSpacing(nodeId, connections) {
                 const incomingEdges = connections.filter(conn => conn.to === nodeId);
                 const labelsCount = incomingEdges.filter(conn => conn.label).length;
-                // ラベル1つあたり約20pxのスペースを追加
-                return baseSpacing + (labelsCount > 1 ? (labelsCount - 1) * 20 : 0);
+                if (labelsCount === 0) return baseSpacing;
+
+                // 推定ラベル高さ（padding含む）
+                const estimatedLabelHeight = 20;
+                const labelSpacing = 2;
+                const topMargin = 5;
+
+                // 全ラベルの積み重ね高さを考慮
+                const totalLabelHeight = estimatedLabelHeight + topMargin +
+                                          (labelsCount - 1) * (estimatedLabelHeight + labelSpacing);
+
+                return baseSpacing + totalLabelHeight;
             }
 
             // 各階層の最大ノード幅を事前に計算
