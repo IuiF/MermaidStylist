@@ -13,14 +13,16 @@ function getLayoutSwitcher() {
 
             // Apply layout
             if (layoutType === 'vertical') {
-                currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                currentNodePositions = verticalLayout(allNodes, connections, calculateAllNodeWidths,
+                    (n, c) => analyzeTreeStructure(n, c, dashedNodes));
             } else {
-                currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                currentNodePositions = horizontalLayout(allNodes, connections, calculateAllNodeWidths,
+                    (n, c) => analyzeTreeStructure(n, c, dashedNodes));
             }
 
             // Redraw lines
             requestAnimationFrame(() => {
-                createCSSLines(connections, currentNodePositions);
+                createCSSLines(allConnections, currentNodePositions);
                 pathHighlighter.reapplyPathHighlight();
 
                 // レイアウト変更後、座標を更新してコンテンツ全体が見えるように位置を調整
@@ -40,7 +42,7 @@ function getLayoutSwitcher() {
 
             // Redraw lines
             requestAnimationFrame(() => {
-                createCSSLines(connections, currentNodePositions);
+                createCSSLines(allConnections, currentNodePositions);
                 pathHighlighter.reapplyPathHighlight();
             });
         }
