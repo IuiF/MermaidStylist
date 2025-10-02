@@ -137,6 +137,8 @@ function getHighlightManager() {
                         const edgeElement = document.querySelector(\`[data-from="\${conn.from}"][data-to="\${conn.to}"]\`);
                         if (edgeElement) {
                             edgeElement.classList.add('relation-edge-highlighted');
+                            // エッジを最前面に移動
+                            edgeElement.parentNode.appendChild(edgeElement);
                         }
                     }
                 });
