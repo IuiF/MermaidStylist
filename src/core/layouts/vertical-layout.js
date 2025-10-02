@@ -61,14 +61,28 @@ function getVerticalLayout() {
                             const parents = connections.filter(conn => conn.to === node.id).map(conn => conn.from);
 
                             if (parents.length > 0) {
-                                // 全ての親の中で最もX座標が大きい（右にある）親を選択
+                                // 複数の親を持つ場合、最も階層が浅い（ルートに近い）親を優先
                                 let selectedParent = null;
+                                let minParentLevel = Infinity;
                                 let maxParentX = -1;
 
                                 for (const parentId of parents) {
                                     if (nodePositions.has(parentId)) {
+                                        // 親の階層を取得
+                                        let parentLevel = -1;
+                                        for (let i = 0; i < treeStructure.levels.length; i++) {
+                                            if (treeStructure.levels[i].some(n => n.id === parentId)) {
+                                                parentLevel = i;
+                                                break;
+                                            }
+                                        }
+
                                         const parentPos = nodePositions.get(parentId);
-                                        if (parentPos.x > maxParentX) {
+
+                                        // 階層が浅い親を優先、同じ階層ならX座標が大きい親を選択
+                                        if (parentLevel < minParentLevel ||
+                                            (parentLevel === minParentLevel && parentPos.x > maxParentX)) {
+                                            minParentLevel = parentLevel;
                                             maxParentX = parentPos.x;
                                             selectedParent = parentId;
                                         }
@@ -78,18 +92,8 @@ function getVerticalLayout() {
                                 if (selectedParent) {
                                     const parentPos = nodePositions.get(selectedParent);
 
-                                    // 複数の親を持つ場合は、全ての親からの兄弟を取得
-                                    let siblings;
-                                    if (parents.length > 1) {
-                                        const allSiblings = new Set();
-                                        for (const parentId of parents) {
-                                            const parentChildren = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
-                                            parentChildren.forEach(child => allSiblings.add(child));
-                                        }
-                                        siblings = Array.from(allSiblings);
-                                    } else {
-                                        siblings = connections.filter(conn => conn.from === selectedParent).map(conn => conn.to);
-                                    }
+                                    // 選択された親の子ノードのみを兄弟として扱う
+                                    const siblings = connections.filter(conn => conn.from === selectedParent).map(conn => conn.to);
 
                                     // 複数の親を持つ場合は親の右に、単一の親なら親と同じ位置から
                                     const nodeSpacing = calculateNodeSpacing(node.id, connections);

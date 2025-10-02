@@ -72,14 +72,28 @@ function getHorizontalLayout() {
                         const parents = connections.filter(conn => conn.to === node.id).map(conn => conn.from);
 
                         if (parents.length > 0) {
-                            // 全ての親の中で最もY座標が大きい（下にある）親を選択
+                            // 複数の親を持つ場合、最も階層が浅い（ルートに近い）親を優先
                             let selectedParent = null;
+                            let minParentLevel = Infinity;
                             let maxParentY = -1;
 
                             for (const parentId of parents) {
                                 if (nodePositions.has(parentId)) {
+                                    // 親の階層を取得
+                                    let parentLevel = -1;
+                                    for (let i = 0; i < treeStructure.levels.length; i++) {
+                                        if (treeStructure.levels[i].some(n => n.id === parentId)) {
+                                            parentLevel = i;
+                                            break;
+                                        }
+                                    }
+
                                     const parentPos = nodePositions.get(parentId);
-                                    if (parentPos.y > maxParentY) {
+
+                                    // 階層が浅い親を優先、同じ階層ならY座標が大きい親を選択
+                                    if (parentLevel < minParentLevel ||
+                                        (parentLevel === minParentLevel && parentPos.y > maxParentY)) {
+                                        minParentLevel = parentLevel;
                                         maxParentY = parentPos.y;
                                         selectedParent = parentId;
                                     }
@@ -89,18 +103,8 @@ function getHorizontalLayout() {
                             if (selectedParent) {
                                 const parentPos = nodePositions.get(selectedParent);
 
-                                // 複数の親を持つ場合は、全ての親からの兄弟を取得
-                                let siblings;
-                                if (parents.length > 1) {
-                                    const allSiblings = new Set();
-                                    for (const parentId of parents) {
-                                        const parentChildren = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
-                                        parentChildren.forEach(child => allSiblings.add(child));
-                                    }
-                                    siblings = Array.from(allSiblings);
-                                } else {
-                                    siblings = connections.filter(conn => conn.from === selectedParent).map(conn => conn.to);
-                                }
+                                // 選択された親の子ノードのみを兄弟として扱う
+                                const siblings = connections.filter(conn => conn.from === selectedParent).map(conn => conn.to);
 
                                 // 複数の親を持つ場合は親の下に、単一の親なら親と同じ高さから
                                 const nodeSpacing = calculateNodeSpacing(node.id, connections);
