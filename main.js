@@ -96,17 +96,6 @@ function createDashedNodesAndEdges(nodes, regularConnections, backEdges) {
             originalTo: backEdge.to,
             isDashed: true
         });
-
-        // 元ノードの子ノードへのエッジを点線ノードからもコピー
-        const childEdges = regularConnections.filter(conn => conn.from === backEdge.to);
-        childEdges.forEach(childEdge => {
-            dashedEdges.push({
-                from: dashedNodeId,
-                to: childEdge.to,
-                label: childEdge.label,
-                isDashed: true
-            });
-        });
     });
 
     return { dashedNodes, dashedEdges };
