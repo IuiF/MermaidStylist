@@ -16,7 +16,7 @@ function getVerticalLayout() {
             for (let i = 0; i < treeStructure.levels.length - 1; i++) {
                 const fromLevel = treeStructure.levels[i];
                 const toLevel = treeStructure.levels[i + 1];
-                levelHeights[i] = calculateLevelSpacing(fromLevel, toLevel, connections);
+                levelHeights[i] = calculateLevelSpacing(fromLevel, toLevel, connections, i, i + 1, treeStructure.levels);
             }
 
             // 各階層のY座標を計算
