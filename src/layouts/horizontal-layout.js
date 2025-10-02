@@ -48,30 +48,55 @@ function getHorizontalLayout() {
                 level.forEach(node => {
                     const element = document.getElementById(node.id);
                     if (element && !element.classList.contains('hidden')) {
-                        const parentId = connections.find(conn => conn.to === node.id)?.from;
+                        // 全ての親を取得
+                        const parents = connections.filter(conn => conn.to === node.id).map(conn => conn.from);
 
-                        if (parentId && nodePositions.has(parentId)) {
-                            const parentPos = nodePositions.get(parentId);
-                            const siblings = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
-                            const siblingIndex = siblings.indexOf(node.id);
+                        if (parents.length > 0) {
+                            // 全ての親の中で最もY座標が大きい（下にある）親を選択
+                            let selectedParent = null;
+                            let maxParentY = -1;
 
-                            let startY = parentPos.y;
-
-                            for (let i = 0; i < siblingIndex; i++) {
-                                const siblingId = siblings[i];
-                                if (nodePositions.has(siblingId)) {
-                                    const siblingPos = nodePositions.get(siblingId);
-                                    startY = Math.max(startY, siblingPos.y + siblingPos.height + fixedSpacing);
+                            for (const parentId of parents) {
+                                if (nodePositions.has(parentId)) {
+                                    const parentPos = nodePositions.get(parentId);
+                                    if (parentPos.y > maxParentY) {
+                                        maxParentY = parentPos.y;
+                                        selectedParent = parentId;
+                                    }
                                 }
                             }
 
-                            startY = Math.max(startY, currentY);
+                            if (selectedParent) {
+                                const parentPos = nodePositions.get(selectedParent);
+                                const siblings = connections.filter(conn => conn.from === selectedParent).map(conn => conn.to);
+                                const siblingIndex = siblings.indexOf(node.id);
 
-                            setNodePosition(element, levelX, startY);
-                            const dimensions = getNodeDimensions(element);
-                            nodePositions.set(node.id, { x: levelX, y: startY, width: dimensions.width, height: dimensions.height });
+                                // 複数の親を持つ場合は親の下に、単一の親なら親と同じ高さから
+                                let startY = parents.length > 1
+                                    ? parentPos.y + parentPos.height + fixedSpacing
+                                    : parentPos.y;
 
-                            currentY = Math.max(currentY, startY + dimensions.height + fixedSpacing);
+                                for (let i = 0; i < siblingIndex; i++) {
+                                    const siblingId = siblings[i];
+                                    if (nodePositions.has(siblingId)) {
+                                        const siblingPos = nodePositions.get(siblingId);
+                                        startY = Math.max(startY, siblingPos.y + siblingPos.height + fixedSpacing);
+                                    }
+                                }
+
+                                startY = Math.max(startY, currentY);
+
+                                setNodePosition(element, levelX, startY);
+                                const dimensions = getNodeDimensions(element);
+                                nodePositions.set(node.id, { x: levelX, y: startY, width: dimensions.width, height: dimensions.height });
+
+                                currentY = Math.max(currentY, startY + dimensions.height + fixedSpacing);
+                            } else {
+                                setNodePosition(element, levelX, currentY);
+                                const dimensions = getNodeDimensions(element);
+                                nodePositions.set(node.id, { x: levelX, y: currentY, width: dimensions.width, height: dimensions.height });
+                                currentY += dimensions.height + fixedSpacing;
+                            }
                         } else {
                             setNodePosition(element, levelX, currentY);
                             const dimensions = getNodeDimensions(element);

@@ -46,29 +46,55 @@ function getVerticalLayout() {
                     level.forEach(node => {
                         const element = document.getElementById(node.id);
                         if (element && !element.classList.contains('hidden')) {
-                            const parentId = connections.find(conn => conn.to === node.id)?.from;
-                            if (parentId && nodePositions.has(parentId)) {
-                                const parentPos = nodePositions.get(parentId);
-                                const siblings = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
-                                const siblingIndex = siblings.indexOf(node.id);
+                            // 全ての親を取得
+                            const parents = connections.filter(conn => conn.to === node.id).map(conn => conn.from);
 
-                                let startX = parentPos.x + parentPos.width + fixedSpacing;
+                            if (parents.length > 0) {
+                                // 全ての親の中で最もX座標が大きい（右にある）親を選択
+                                let selectedParent = null;
+                                let maxParentX = -1;
 
-                                for (let i = 0; i < siblingIndex; i++) {
-                                    const siblingId = siblings[i];
-                                    if (nodePositions.has(siblingId)) {
-                                        const siblingPos = nodePositions.get(siblingId);
-                                        startX = Math.max(startX, siblingPos.x + siblingPos.width + fixedSpacing);
+                                for (const parentId of parents) {
+                                    if (nodePositions.has(parentId)) {
+                                        const parentPos = nodePositions.get(parentId);
+                                        if (parentPos.x > maxParentX) {
+                                            maxParentX = parentPos.x;
+                                            selectedParent = parentId;
+                                        }
                                     }
                                 }
 
-                                startX = Math.max(startX, levelMaxX);
+                                if (selectedParent) {
+                                    const parentPos = nodePositions.get(selectedParent);
+                                    const siblings = connections.filter(conn => conn.from === selectedParent).map(conn => conn.to);
+                                    const siblingIndex = siblings.indexOf(node.id);
 
-                                setNodePosition(element, startX, y);
-                                const dimensions = getNodeDimensions(element);
-                                nodePositions.set(node.id, { x: startX, y: y, width: dimensions.width });
+                                    // 複数の親を持つ場合は親の右に、単一の親なら親と同じ位置から
+                                    let startX = parents.length > 1
+                                        ? parentPos.x + parentPos.width + fixedSpacing
+                                        : parentPos.x;
 
-                                levelMaxX = Math.max(levelMaxX, startX + dimensions.width + fixedSpacing);
+                                    for (let i = 0; i < siblingIndex; i++) {
+                                        const siblingId = siblings[i];
+                                        if (nodePositions.has(siblingId)) {
+                                            const siblingPos = nodePositions.get(siblingId);
+                                            startX = Math.max(startX, siblingPos.x + siblingPos.width + fixedSpacing);
+                                        }
+                                    }
+
+                                    startX = Math.max(startX, levelMaxX);
+
+                                    setNodePosition(element, startX, y);
+                                    const dimensions = getNodeDimensions(element);
+                                    nodePositions.set(node.id, { x: startX, y: y, width: dimensions.width });
+
+                                    levelMaxX = Math.max(levelMaxX, startX + dimensions.width + fixedSpacing);
+                                } else {
+                                    setNodePosition(element, levelMaxX, y);
+                                    const dimensions = getNodeDimensions(element);
+                                    nodePositions.set(node.id, { x: levelMaxX, y: y, width: dimensions.width });
+                                    levelMaxX += dimensions.width + fixedSpacing;
+                                }
                             } else {
                                 setNodePosition(element, levelMaxX, y);
                                 const dimensions = getNodeDimensions(element);
