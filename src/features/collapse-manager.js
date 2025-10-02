@@ -41,6 +41,9 @@ function getCollapseManager() {
             },
 
             recalculateLayout: function() {
+                if (window.DEBUG_CONNECTIONS) {
+                    console.log('recalculateLayout called');
+                }
                 requestAnimationFrame(() => {
                     if (currentLayout === 'vertical') {
                         currentNodePositions = verticalLayout(allNodes, allConnections, calculateAllNodeWidths,
@@ -48,6 +51,9 @@ function getCollapseManager() {
                     } else {
                         currentNodePositions = horizontalLayout(allNodes, allConnections, calculateAllNodeWidths,
                             (n, c) => analyzeTreeStructure(n, c, dashedNodes));
+                    }
+                    if (window.DEBUG_CONNECTIONS) {
+                        console.log('Calling createCSSLines with ' + allConnections.length + ' connections');
                     }
                     createCSSLines(allConnections, currentNodePositions);
                     shadowManager.updatePositions(this.collapsedNodes);
