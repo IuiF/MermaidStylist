@@ -188,7 +188,7 @@ function getVerticalLayout() {
                 }
             }
 
-            resolveEdgeNodeCollisions();
+            // resolveEdgeNodeCollisions(); // 一旦無効化
 
             const maxX = Math.max(...Array.from(nodePositions.values()).map(pos => pos.x + pos.width));
             if (maxX + 100 > containerWidth) {

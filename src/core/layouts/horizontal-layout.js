@@ -198,7 +198,7 @@ function getHorizontalLayout() {
                 }
             }
 
-            resolveEdgeNodeCollisions();
+            // resolveEdgeNodeCollisions(); // 一旦無効化
 
             const maxY = Math.max(...Array.from(nodePositions.values()).map(pos => pos.y + pos.height));
             const maxX = Math.max(...Array.from(nodePositions.values()).map(pos => pos.x + pos.width));
