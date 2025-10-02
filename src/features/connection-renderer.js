@@ -1,5 +1,8 @@
 function getConnectionRenderer() {
-    return `
+    const connectionArrows = require('./connection-arrows').getConnectionArrows();
+    const connectionLabels = require('./connection-labels').getConnectionLabels();
+
+    return connectionArrows + connectionLabels + `
         // 依存: svgHelpers (svg-helpers.js), getNodePosition, getNodeDimensions (layout-utils.js)
         let useCurvedLines = false;
 
@@ -28,106 +31,6 @@ function getConnectionRenderer() {
                 return createCurvedLines(sortedConnections, nodePositions);
             }
             return createStraightLines(sortedConnections, nodePositions);
-        }
-
-        // ラベル描画の共通処理
-        let labelOffsets = {};
-        function createConnectionLabel(conn, toElement) {
-            if (!conn.label) return null;
-
-            const svgLayer = svgHelpers.getEdgeLayer();
-            const tempText = svgHelpers.createText(conn.label, {
-                'font-size': '11',
-                'font-family': 'Arial, sans-serif'
-            });
-            svgLayer.appendChild(tempText);
-            const textBBox = tempText.getBBox();
-            svgLayer.removeChild(tempText);
-
-            const labelPadding = 4;
-            const labelWidth = textBBox.width + labelPadding * 2;
-            const labelHeight = textBBox.height + labelPadding * 2;
-
-            const toPos = getNodePosition(toElement);
-            const toLeft = toPos.left;
-            const toTop = toPos.top;
-
-            // 同じターゲットノードへのラベル数を計算してオフセットを決定
-            const toNodeId = conn.to;
-            if (!labelOffsets[toNodeId]) {
-                labelOffsets[toNodeId] = 0;
-            }
-            const offset = labelOffsets[toNodeId];
-            labelOffsets[toNodeId]++;
-
-            const labelGroup = svgHelpers.createGroup({
-                class: 'connection-label'
-            });
-
-            const labelRect = svgHelpers.createRect({
-                x: toLeft,
-                y: toTop - labelHeight - 5 - (offset * (labelHeight + 2)),
-                width: labelWidth,
-                height: labelHeight,
-                fill: '#fff',
-                stroke: '#999',
-                'stroke-width': '1',
-                rx: '3',
-                ry: '3'
-            });
-
-            const labelText = svgHelpers.createText(conn.label, {
-                x: toLeft + labelPadding,
-                y: toTop - labelHeight / 2 - 5 - (offset * (labelHeight + 2)),
-                'dominant-baseline': 'central',
-                fill: '#333',
-                'font-size': '11',
-                'font-family': 'Arial, sans-serif'
-            });
-
-            labelGroup.appendChild(labelRect);
-            labelGroup.appendChild(labelText);
-            return labelGroup;
-        }
-
-        // 矢印描画の共通処理
-        function createArrow(x1, y1, x2, y2, conn) {
-            const angle = Math.atan2(y2 - y1, x2 - x1);
-            const arrowSize = 8;
-            const arrowX = x2;
-            const arrowY = y2;
-
-            const p1x = arrowX;
-            const p1y = arrowY;
-            const p2x = arrowX - arrowSize * Math.cos(angle - Math.PI / 6);
-            const p2y = arrowY - arrowSize * Math.sin(angle - Math.PI / 6);
-            const p3x = arrowX - arrowSize * Math.cos(angle + Math.PI / 6);
-            const p3y = arrowY - arrowSize * Math.sin(angle + Math.PI / 6);
-
-            return svgHelpers.createPolygon(\`\${p1x},\${p1y} \${p2x},\${p2y} \${p3x},\${p3y}\`, {
-                class: 'connection-arrow',
-                'data-from': conn.from,
-                'data-to': conn.to
-            });
-        }
-
-        // 水平矢印（曲線用）
-        function createHorizontalArrow(x2, y2, conn) {
-            const angle = 0;
-            const arrowSize = 8;
-
-            const p1x = x2;
-            const p1y = y2;
-            const p2x = x2 - arrowSize * Math.cos(angle - Math.PI / 6);
-            const p2y = y2 - arrowSize * Math.sin(angle - Math.PI / 6);
-            const p3x = x2 - arrowSize * Math.cos(angle + Math.PI / 6);
-            const p3y = y2 - arrowSize * Math.sin(angle + Math.PI / 6);
-
-            return svgHelpers.createPolygon(\`\${p1x},\${p1y} \${p2x},\${p2y} \${p3x},\${p3y}\`, {
-                class: 'connection-arrow',
-                'data-from': conn.from,
-                'data-to': conn.to
-            });
         }
 
         // ノードの階層（深さ）を計算
