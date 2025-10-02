@@ -132,6 +132,64 @@ function getVerticalLayout() {
                 }
             });
 
+            // エッジとノードの衝突を検知して回避
+            function resolveEdgeNodeCollisions() {
+                const maxIterations = 10;
+                const collisionMargin = 20;
+
+                for (let iteration = 0; iteration < maxIterations; iteration++) {
+                    let hasCollision = false;
+
+                    connections.forEach(conn => {
+                        const fromPos = nodePositions.get(conn.from);
+                        const toPos = nodePositions.get(conn.to);
+
+                        if (!fromPos || !toPos) return;
+
+                        // 始点と終点の階層を取得
+                        let fromLevel = -1, toLevel = -1;
+                        treeStructure.levels.forEach((level, idx) => {
+                            if (level.some(n => n.id === conn.from)) fromLevel = idx;
+                            if (level.some(n => n.id === conn.to)) toLevel = idx;
+                        });
+
+                        if (fromLevel === -1 || toLevel === -1 || toLevel <= fromLevel) return;
+
+                        // エッジの経路のX座標範囲を計算
+                        const edgeMinX = Math.min(fromPos.x, toPos.x);
+                        const edgeMaxX = Math.max(fromPos.x + fromPos.width, toPos.x + toPos.width);
+
+                        // 中間階層のノードをチェック
+                        for (let levelIdx = fromLevel + 1; levelIdx < toLevel; levelIdx++) {
+                            const level = treeStructure.levels[levelIdx];
+                            level.forEach(node => {
+                                const nodePos = nodePositions.get(node.id);
+                                if (!nodePos) return;
+
+                                const element = document.getElementById(node.id);
+                                if (!element || element.classList.contains('hidden')) return;
+
+                                // ノードがエッジの経路内にあるかチェック
+                                const nodeLeft = nodePos.x - collisionMargin;
+                                const nodeRight = nodePos.x + nodePos.width + collisionMargin;
+
+                                if (nodeLeft < edgeMaxX && nodeRight > edgeMinX) {
+                                    // 衝突検出：ノードを右にシフト
+                                    const shiftAmount = edgeMaxX - nodeLeft + baseSpacing;
+                                    nodePos.x += shiftAmount;
+                                    setNodePosition(element, nodePos.x, nodePos.y);
+                                    hasCollision = true;
+                                }
+                            });
+                        }
+                    });
+
+                    if (!hasCollision) break;
+                }
+            }
+
+            resolveEdgeNodeCollisions();
+
             const maxX = Math.max(...Array.from(nodePositions.values()).map(pos => pos.x + pos.width));
             if (maxX + 100 > containerWidth) {
                 containerWidth = maxX + 100;
