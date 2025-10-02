@@ -138,6 +138,28 @@ function getVerticalLayout() {
                 container.style.width = containerWidth + 'px';
             }
 
+            // 各階層の最大ノード高さを計算
+            const levelMaxHeights = [];
+            treeStructure.levels.forEach((level, levelIndex) => {
+                let maxHeight = 0;
+                level.forEach(node => {
+                    const element = document.getElementById(node.id);
+                    if (element && !element.classList.contains('hidden')) {
+                        const dimensions = getNodeDimensions(element);
+                        maxHeight = Math.max(maxHeight, dimensions.height);
+                    }
+                });
+                levelMaxHeights[levelIndex] = maxHeight;
+            });
+
+            // 階層情報をグローバルに保存（エッジレンダラーで使用）
+            window.layoutLevelInfo = {
+                levelYPositions: levelYPositions,
+                levelMaxHeights: levelMaxHeights,
+                levelCount: treeStructure.levels.length,
+                isVertical: true
+            };
+
             return nodePositions;
         }
     `;

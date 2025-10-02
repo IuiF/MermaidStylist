@@ -328,6 +328,11 @@ function getConnectionRenderer() {
                 parentRanks[id] = index;
             });
 
+            // 階層情報を取得（横方向レイアウトから提供される）
+            const levelInfo = window.layoutLevelInfo || {};
+            const levelXPositions = levelInfo.levelXPositions || [];
+            const levelMaxWidths = levelInfo.levelMaxWidths || [];
+
             // 階層ごとに親の右端の最大位置を計算（真横の1:1のみ除外）
             const depthMaxParentRight = {}; // depth -> max(parentRight)
             const depthMinChildLeft = {}; // depth -> min(childLeft)
@@ -338,14 +343,28 @@ function getConnectionRenderer() {
 
                 const depth = info.depth;
 
-                // 親の右端
-                if (!depthMaxParentRight[depth] || info.x1 > depthMaxParentRight[depth]) {
-                    depthMaxParentRight[depth] = info.x1;
+                // 階層情報がある場合は、その階層の最大ノード幅を使用
+                if (levelXPositions[depth] !== undefined && levelMaxWidths[depth] !== undefined) {
+                    const levelMaxRight = levelXPositions[depth] + levelMaxWidths[depth];
+                    depthMaxParentRight[depth] = levelMaxRight;
+                } else {
+                    // フォールバック: 実際のエッジの開始位置から計算
+                    if (!depthMaxParentRight[depth] || info.x1 > depthMaxParentRight[depth]) {
+                        depthMaxParentRight[depth] = info.x1;
+                    }
                 }
 
-                // 子の左端
-                if (!depthMinChildLeft[depth] || info.x2 < depthMinChildLeft[depth]) {
-                    depthMinChildLeft[depth] = info.x2;
+                // 次の階層の左端
+                const nextDepth = depth + 1;
+                if (levelXPositions[nextDepth] !== undefined) {
+                    if (!depthMinChildLeft[depth] || levelXPositions[nextDepth] < depthMinChildLeft[depth]) {
+                        depthMinChildLeft[depth] = levelXPositions[nextDepth];
+                    }
+                } else {
+                    // フォールバック: 実際のエッジの終了位置から計算
+                    if (!depthMinChildLeft[depth] || info.x2 < depthMinChildLeft[depth]) {
+                        depthMinChildLeft[depth] = info.x2;
+                    }
                 }
             });
 

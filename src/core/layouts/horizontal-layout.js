@@ -156,6 +156,13 @@ function getHorizontalLayout() {
                 container.style.width = containerWidth + 'px';
             }
 
+            // 階層情報をグローバルに保存（エッジレンダラーで使用）
+            window.layoutLevelInfo = {
+                levelXPositions: levelXPositions,
+                levelMaxWidths: levelMaxWidths,
+                levelCount: treeStructure.levels.length
+            };
+
             return nodePositions;
         }
     `;
