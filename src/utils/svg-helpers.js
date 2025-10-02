@@ -38,7 +38,16 @@ function getSVGHelpers() {
             },
 
             getSVGLayer: function() {
-                return document.getElementById('svgLayer');
+                // 後方互換性のためnodeLayerを返す
+                return document.getElementById('nodeLayer');
+            },
+
+            getNodeLayer: function() {
+                return document.getElementById('nodeLayer');
+            },
+
+            getEdgeLayer: function() {
+                return document.getElementById('edgeLayer');
             },
 
             getNodeElement: function(nodeId) {

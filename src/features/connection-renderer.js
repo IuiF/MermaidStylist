@@ -9,10 +9,25 @@ function getConnectionRenderer() {
         }
 
         window.createCSSLines = function(connections, nodePositions) {
+            // エッジをレベル差でソート（長いエッジを先に描画して背面に配置）
+            const sortedConnections = [...connections].sort((a, b) => {
+                const posA = nodePositions[a.from];
+                const posB = nodePositions[b.from];
+                const posATo = nodePositions[a.to];
+                const posBTo = nodePositions[b.to];
+
+                if (!posA || !posB || !posATo || !posBTo) return 0;
+
+                const levelDiffA = Math.abs(posATo.level - posA.level);
+                const levelDiffB = Math.abs(posBTo.level - posB.level);
+
+                return levelDiffB - levelDiffA; // 降順（長いエッジが先）
+            });
+
             if (useCurvedLines) {
-                return createCurvedLines(connections, nodePositions);
+                return createCurvedLines(sortedConnections, nodePositions);
             }
-            return createStraightLines(connections, nodePositions);
+            return createStraightLines(sortedConnections, nodePositions);
         }
 
         // ラベル描画の共通処理
@@ -20,7 +35,7 @@ function getConnectionRenderer() {
         function createConnectionLabel(conn, toElement) {
             if (!conn.label) return null;
 
-            const svgLayer = svgHelpers.getSVGLayer();
+            const svgLayer = svgHelpers.getEdgeLayer();
             const tempText = svgHelpers.createText(conn.label, {
                 'font-size': '11',
                 'font-family': 'Arial, sans-serif'
@@ -202,7 +217,7 @@ function getConnectionRenderer() {
         }
 
         function createStraightLines(connections, nodePositions) {
-            const svgLayer = svgHelpers.getSVGLayer();
+            const svgLayer = svgHelpers.getEdgeLayer();
             if (!svgLayer) {
                 console.error('SVG layer element not found');
                 return;
@@ -292,7 +307,7 @@ function getConnectionRenderer() {
         }
 
         function createCurvedLines(connections, nodePositions) {
-            const svgLayer = svgHelpers.getSVGLayer();
+            const svgLayer = svgHelpers.getEdgeLayer();
             if (!svgLayer) {
                 console.error('SVG layer element not found');
                 return;

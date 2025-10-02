@@ -3,7 +3,7 @@ function getShadowManager() {
         const shadowManager = {
             add: function(nodeElement) {
                 const nodeId = nodeElement.getAttribute('id');
-                const svgLayer = svgHelpers.getSVGLayer();
+                const edgeLayer = svgHelpers.getEdgeLayer();
 
                 this.remove(nodeElement);
 
@@ -32,13 +32,13 @@ function getShadowManager() {
                 });
 
                 shadowGroup.appendChild(shadowRect);
-                svgLayer.insertBefore(shadowGroup, nodeElement);
+                edgeLayer.appendChild(shadowGroup);
             },
 
             remove: function(nodeElement) {
                 const nodeId = nodeElement.getAttribute('id');
-                const svgLayer = svgHelpers.getSVGLayer();
-                const existingShadow = svgLayer.querySelector(\`[data-shadow-for="\${nodeId}"]\`);
+                const edgeLayer = svgHelpers.getEdgeLayer();
+                const existingShadow = edgeLayer.querySelector(\`[data-shadow-for="\${nodeId}"]\`);
                 if (existingShadow) {
                     existingShadow.remove();
                 }
@@ -48,8 +48,8 @@ function getShadowManager() {
                 collapsedNodeIds.forEach(nodeId => {
                     const nodeElement = svgHelpers.getNodeElement(nodeId);
                     if (nodeElement) {
-                        const svgLayer = svgHelpers.getSVGLayer();
-                        const shadowElement = svgLayer.querySelector(\`[data-shadow-for="\${nodeId}"]\`);
+                        const edgeLayer = svgHelpers.getEdgeLayer();
+                        const shadowElement = edgeLayer.querySelector(\`[data-shadow-for="\${nodeId}"]\`);
                         if (shadowElement) {
                             const pos = svgHelpers.parseTransform(nodeElement.getAttribute('transform'));
                             shadowElement.setAttribute('transform', \`translate(\${pos.x + 5}, \${pos.y + 5})\`);

@@ -96,7 +96,7 @@ function getCollapseManager() {
             },
 
             updateVisibility: function() {
-                const svgLayer = svgHelpers.getSVGLayer();
+                const edgeLayer = svgHelpers.getEdgeLayer();
                 allNodes.forEach(node => {
                     const element = svgHelpers.getNodeElement(node.id);
                     if (element) {
@@ -111,8 +111,8 @@ function getCollapseManager() {
                         }
                     }
 
-                    if (svgLayer) {
-                        const shadowElement = svgLayer.querySelector(\`[data-shadow-for="\${node.id}"]\`);
+                    if (edgeLayer) {
+                        const shadowElement = edgeLayer.querySelector(\`[data-shadow-for="\${node.id}"]\`);
                         if (shadowElement) {
                             if (this.isVisible(node.id)) {
                                 shadowElement.classList.remove('hidden');
