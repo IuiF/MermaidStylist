@@ -1,5 +1,6 @@
 function validateTreeStructure(nodes, connections) {
     const errors = [];
+    const backEdges = []; // サイクルを引き起こすエッジ
 
     // 各ノードの親をカウント
     const parentCount = new Map();
@@ -19,11 +20,13 @@ function validateTreeStructure(nodes, connections) {
         }
     });
 
-    if (rootNodes.length === 0) {
-        errors.push('ルートノードが存在しません。すべてのノードが親を持っているため、サイクルの可能性があります。');
+    // ルートノードが存在しない場合は、任意のノードから開始してサイクルを検出
+    let startNodes = rootNodes;
+    if (rootNodes.length === 0 && nodes.length > 0) {
+        startNodes = [nodes[0].id]; // 最初のノードを開始点とする
     }
 
-    // サイクル検出（DFSベースのトポロジカルソート）
+    // サイクル検出（DFSベースでバックエッジを識別）
     const visited = new Set();
     const recursionStack = new Set();
     const childrenMap = new Map();
@@ -35,12 +38,12 @@ function validateTreeStructure(nodes, connections) {
         childrenMap.get(conn.from).push(conn.to);
     });
 
-    function hasCycle(nodeId) {
+    function detectBackEdges(nodeId) {
         if (recursionStack.has(nodeId)) {
-            return true; // サイクル検出
+            return; // 既に現在のパスで訪問中
         }
         if (visited.has(nodeId)) {
-            return false; // 既に訪問済み
+            return; // 既に完全に訪問済み
         }
 
         visited.add(nodeId);
@@ -48,28 +51,28 @@ function validateTreeStructure(nodes, connections) {
 
         const children = childrenMap.get(nodeId) || [];
         for (const childId of children) {
-            if (hasCycle(childId)) {
-                return true;
+            if (recursionStack.has(childId)) {
+                // バックエッジを検出
+                backEdges.push({ from: nodeId, to: childId });
+            } else {
+                detectBackEdges(childId);
             }
         }
 
         recursionStack.delete(nodeId);
-        return false;
     }
 
-    // すべてのノードからサイクルをチェック
+    // すべてのノードからバックエッジをチェック
     for (const node of nodes) {
         if (!visited.has(node.id)) {
-            if (hasCycle(node.id)) {
-                errors.push('グラフにサイクル（循環参照）が検出されました。');
-                break;
-            }
+            detectBackEdges(node.id);
         }
     }
 
     return {
-        isValid: errors.length === 0,
-        errors: errors
+        isValid: true, // バックエッジがあっても描画可能
+        errors: errors,
+        backEdges: backEdges
     };
 }
 

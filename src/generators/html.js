@@ -13,7 +13,7 @@ const { getContextMenu } = require('../features/context-menu');
 const { getHighlightManager } = require('../features/highlight-manager');
 const { getPathHighlighter } = require('../features/path-highlighter');
 
-function generateHTML(nodes, connections, styles = {}, classDefs = {}) {
+function generateHTML(nodes, connections, styles = {}, classDefs = {}, dashedNodes = [], dashedEdges = []) {
     const template = getBaseTemplate();
 
     let html = template.htmlStructure.doctype + '\n';
@@ -28,19 +28,21 @@ function generateHTML(nodes, connections, styles = {}, classDefs = {}) {
     html += '    ' + template.htmlStructure.layoutControls + '\n';
     html += '    ' + template.htmlStructure.containerOpen + '\n';
     html += '    ' + template.htmlStructure.containerClose + '\n';
-    html += getJavaScriptContent(nodes, connections, styles, classDefs);
+    html += getJavaScriptContent(nodes, connections, styles, classDefs, dashedNodes, dashedEdges);
     html += template.htmlStructure.bodyClose + '\n';
     html += template.htmlStructure.htmlClose;
 
     return html;
 }
 
-function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}) {
+function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, dashedNodes = [], dashedEdges = []) {
     return `    <script>
         const nodes = ${JSON.stringify(nodes)};
         const connections = ${JSON.stringify(connections)};
         const styles = ${JSON.stringify(styles)};
         const classDefs = ${JSON.stringify(classDefs)};
+        const dashedNodes = ${JSON.stringify(dashedNodes)};
+        const dashedEdges = ${JSON.stringify(dashedEdges)};
 
         // Import utilities
         ${getLayoutUtils()}
@@ -107,15 +109,26 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}) {
         function createSVGNodes() {
             const svgLayer = svgHelpers.getSVGLayer();
 
+            // 通常のノードを作成
             nodes.forEach(node => {
+                createSingleNode(node, false);
+            });
+
+            // 点線ノードを作成
+            dashedNodes.forEach(node => {
+                createSingleNode(node, true);
+            });
+
+            function createSingleNode(node, isDashed) {
                 const hasChildren = connections.some(conn => conn.from === node.id);
 
                 // グループ要素を作成
                 const g = svgHelpers.createGroup({
                     id: node.id,
-                    class: 'node',
+                    class: isDashed ? 'node dashed-node' : 'node',
                     'data-label': node.label,
-                    'data-has-children': hasChildren
+                    'data-has-children': hasChildren,
+                    'data-is-dashed': isDashed
                 });
 
                 // 一時的なテキスト要素でテキスト幅を測定
@@ -134,12 +147,18 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}) {
 
                 // 背景矩形
                 const rect = svgHelpers.createRect({
-                    class: 'node-rect',
+                    class: isDashed ? 'node-rect dashed-rect' : 'node-rect',
                     width: boxWidth,
                     height: boxHeight,
                     rx: 5,
                     ry: 5
                 });
+
+                // 点線ノードの場合はスタイルを追加
+                if (isDashed) {
+                    rect.style.strokeDasharray = '5,5';
+                    rect.style.opacity = '0.6';
+                }
 
                 // テキスト
                 const text = svgHelpers.createText(node.label, {
@@ -149,14 +168,18 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}) {
                     'dominant-baseline': 'central'
                 });
 
+                if (isDashed) {
+                    text.style.opacity = '0.6';
+                }
+
                 g.appendChild(rect);
                 g.appendChild(text);
 
                 // スタイルを適用
-                applyNodeStyle(rect, node.id, node.classes);
+                applyNodeStyle(rect, isDashed ? node.originalId : node.id, node.classes);
 
-                // 折りたたみボタン
-                if (hasChildren) {
+                // 折りたたみボタン（点線ノードには折りたたみボタンを付けない）
+                if (hasChildren && !isDashed) {
                     const button = svgHelpers.createText('▼', {
                         class: 'collapse-button',
                         x: boxWidth - padding - 5,
@@ -174,14 +197,14 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}) {
                 g.setAttribute('transform', 'translate(0,0)');
 
                 // イベントリスナーを追加
-                if (hasChildren) {
+                if (hasChildren && !isDashed) {
                     g.addEventListener('click', function() {
                         toggleNodeCollapse(node.id);
                     });
                 }
 
                 svgLayer.appendChild(g);
-            });
+            }
         }
 
         window.onload = function() {
@@ -192,9 +215,14 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}) {
 
             // SVGノードが配置された後に即座にレイアウト
             requestAnimationFrame(() => {
-                currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                // 全ノードと全エッジ（点線含む）を渡す
+                const allNodes = [...nodes, ...dashedNodes];
+                const allConnections = [...connections, ...dashedEdges];
+
+                currentNodePositions = horizontalLayout(allNodes, connections, calculateAllNodeWidths,
+                    (n, c) => analyzeTreeStructure(n, c, dashedNodes));
                 debugActualWidths(nodes);
-                createCSSLines(connections, currentNodePositions);
+                createCSSLines(allConnections, currentNodePositions);
 
                 // レイアウトとエッジ描画完了後、コンテンツ全体が見えるように初期位置を調整
                 requestAnimationFrame(() => {

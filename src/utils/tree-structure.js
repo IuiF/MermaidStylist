@@ -1,8 +1,13 @@
 function getTreeStructureAnalyzer() {
     return `
-        function analyzeTreeStructure(nodes, connections) {
+        function analyzeTreeStructure(nodes, connections, dashedNodesParam = []) {
             const childNodes = new Set(connections.map(c => c.to));
-            const rootNodes = nodes.filter(node => !childNodes.has(node.id));
+            let rootNodes = nodes.filter(node => !childNodes.has(node.id));
+
+            // ルートノードがない場合は、最初のノードをルートとする
+            if (rootNodes.length === 0 && nodes.length > 0) {
+                rootNodes = [nodes[0]];
+            }
 
             const childrenMap = new Map();
             const parentsMap = new Map();
@@ -51,15 +56,21 @@ function getTreeStructureAnalyzer() {
                 }
             }
 
+            // 点線ノードの階層を設定
+            dashedNodesParam.forEach(dashedNode => {
+                nodeLevel.set(dashedNode.id, dashedNode.minDepth);
+            });
+
             // 階層レベルごとにノードを分類
             const levels = [];
+            const allNodes = [...nodes, ...dashedNodesParam];
             const maxLevel = Math.max(...Array.from(nodeLevel.values()), 0);
 
             for (let i = 0; i <= maxLevel; i++) {
                 const levelNodes = [];
                 nodeLevel.forEach((level, nodeId) => {
                     if (level === i) {
-                        const node = nodes.find(n => n.id === nodeId);
+                        const node = allNodes.find(n => n.id === nodeId);
                         if (node) {
                             levelNodes.push(node);
                         }

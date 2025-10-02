@@ -247,7 +247,7 @@ function getConnectionRenderer() {
 
                     // SVG line要素を作成
                     const line = svgHelpers.createLine({
-                        class: 'connection-line',
+                        class: conn.isDashed ? 'connection-line dashed-edge' : 'connection-line',
                         x1: x1,
                         y1: y1,
                         x2: x2,
@@ -255,6 +255,12 @@ function getConnectionRenderer() {
                         'data-from': conn.from,
                         'data-to': conn.to
                     });
+
+                    // 点線エッジの場合はスタイルを追加
+                    if (conn.isDashed) {
+                        line.style.strokeDasharray = '5,5';
+                        line.style.opacity = '0.6';
+                    }
 
                     svgLayer.appendChild(line);
 
@@ -479,7 +485,7 @@ function getConnectionRenderer() {
                 // 真横の1:1親子関係は直線で描画
                 if (is1to1Horizontal) {
                     const line = svgHelpers.createLine({
-                        class: 'connection-line',
+                        class: conn.isDashed ? 'connection-line dashed-edge' : 'connection-line',
                         x1: x1,
                         y1: y1,
                         x2: x2,
@@ -487,6 +493,13 @@ function getConnectionRenderer() {
                         'data-from': conn.from,
                         'data-to': conn.to
                     });
+
+                    // 点線エッジの場合はスタイルを追加
+                    if (conn.isDashed) {
+                        line.style.strokeDasharray = '5,5';
+                        line.style.opacity = '0.6';
+                    }
+
                     svgLayer.appendChild(line);
 
                     const arrow = createHorizontalArrow(x2, y2, conn);
@@ -542,11 +555,18 @@ function getConnectionRenderer() {
                 const pathData = createCurvedPath(x1, y1, x2, y2, verticalSegmentX);
 
                 const path = svgHelpers.createPath(pathData, {
-                    class: 'connection-line',
+                    class: conn.isDashed ? 'connection-line dashed-edge' : 'connection-line',
                     'data-from': conn.from,
                     'data-to': conn.to,
                     fill: 'none'
                 });
+
+                // 点線エッジの場合はスタイルを追加
+                if (conn.isDashed) {
+                    path.style.strokeDasharray = '5,5';
+                    path.style.opacity = '0.6';
+                }
+
                 svgLayer.appendChild(path);
 
                 // 矢印を作成
