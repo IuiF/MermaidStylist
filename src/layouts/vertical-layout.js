@@ -118,57 +118,6 @@ function getVerticalLayout() {
                 }
             });
 
-            // ノードIDからレベルを取得するマップ
-            const nodeToLevel = new Map();
-            treeStructure.levels.forEach((level, levelIndex) => {
-                level.forEach(node => {
-                    nodeToLevel.set(node.id, levelIndex);
-                });
-            });
-
-            // 長距離エッジとノードの衝突を調整
-            connections.forEach(conn => {
-                const fromLevel = nodeToLevel.get(conn.from);
-                const toLevel = nodeToLevel.get(conn.to);
-                const fromPos = nodePositions.get(conn.from);
-                const toPos = nodePositions.get(conn.to);
-
-                if (!fromPos || !toPos || fromLevel === undefined || toLevel === undefined) return;
-
-                const levelDiff = Math.abs(toLevel - fromLevel);
-                if (levelDiff >= 2) {
-                    const minLevel = Math.min(fromLevel, toLevel);
-                    const maxLevel = Math.max(fromLevel, toLevel);
-                    const edgeXMin = Math.min(fromPos.x, toPos.x);
-                    const edgeXMax = Math.max(fromPos.x + fromPos.width, toPos.x + toPos.width);
-
-                    // 途中のレベルのノードをチェック
-                    for (let level = minLevel + 1; level < maxLevel; level++) {
-                        treeStructure.levels[level].forEach(node => {
-                            const nodePos = nodePositions.get(node.id);
-                            if (!nodePos) return;
-
-                            const nodeLeft = nodePos.x;
-                            const nodeRight = nodePos.x + nodePos.width;
-
-                            // ノードとエッジが重なるかチェック
-                            if (nodeLeft < edgeXMax + edgeClearance && nodeRight > edgeXMin - edgeClearance) {
-                                // 重なっている場合、ノードをエッジの右にシフト
-                                const shiftAmount = (edgeXMax + edgeClearance) - nodeLeft;
-                                if (shiftAmount > 0) {
-                                    nodePos.x += shiftAmount;
-                                    // DOM要素も更新
-                                    const element = document.getElementById(node.id);
-                                    if (element) {
-                                        setNodePosition(element, nodePos.x, nodePos.y);
-                                    }
-                                }
-                            }
-                        });
-                    }
-                }
-            });
-
             const maxX = Math.max(...Array.from(nodePositions.values()).map(pos => pos.x + pos.width));
             if (maxX + 100 > containerWidth) {
                 containerWidth = maxX + 100;
