@@ -2,6 +2,8 @@ function getHighlightManager() {
     return `
         const highlightManager = {
             currentHighlightedLabel: null,
+            currentHighlightedNodeId: null,
+            currentHighlightTimeout: null,
 
             addDoubleStroke: function(nodeElement) {
                 const rect = nodeElement.querySelector('.node-rect');
@@ -71,6 +73,19 @@ function getHighlightManager() {
             },
 
             highlightOriginalNode: function(originalNodeId, duration = 2000) {
+                // 既存のハイライトをクリア
+                if (this.currentHighlightTimeout) {
+                    clearTimeout(this.currentHighlightTimeout);
+                }
+                if (this.currentHighlightedNodeId) {
+                    const prevNode = svgHelpers.getNodeElement(this.currentHighlightedNodeId);
+                    if (prevNode) {
+                        prevNode.classList.remove('highlighted');
+                        this.removeDoubleStroke(prevNode);
+                    }
+                }
+
+                // 新しいハイライトを設定
                 const nodeElement = svgHelpers.getNodeElement(originalNodeId);
                 if (!nodeElement) {
                     return;
@@ -78,10 +93,13 @@ function getHighlightManager() {
 
                 nodeElement.classList.add('highlighted');
                 this.addDoubleStroke(nodeElement);
+                this.currentHighlightedNodeId = originalNodeId;
 
-                setTimeout(() => {
+                this.currentHighlightTimeout = setTimeout(() => {
                     nodeElement.classList.remove('highlighted');
                     this.removeDoubleStroke(nodeElement);
+                    this.currentHighlightedNodeId = null;
+                    this.currentHighlightTimeout = null;
                 }, duration);
             }
         };
