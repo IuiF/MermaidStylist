@@ -116,26 +116,8 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
         function createSVGNodes() {
             const svgLayer = svgHelpers.getSVGLayer();
 
-            // ルートノードと非ルートノードを分ける
-            const rootNodes = [];
-            const nonRootNodes = [];
-
+            // 通常のノードを作成
             nodes.forEach(node => {
-                const isRoot = !connections.some(conn => conn.to === node.id);
-                if (isRoot) {
-                    rootNodes.push(node);
-                } else {
-                    nonRootNodes.push(node);
-                }
-            });
-
-            // 非ルートノードを先に作成（背面）
-            nonRootNodes.forEach(node => {
-                createSingleNode(node, false);
-            });
-
-            // ルートノードを後に作成（前面）
-            rootNodes.forEach(node => {
                 createSingleNode(node, false);
             });
 
@@ -237,6 +219,20 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
             }
         }
 
+        // ルートノードを最前面に移動
+        function bringRootNodesToFront() {
+            const svgLayer = svgHelpers.getNodeLayer();
+            nodes.forEach(node => {
+                const isRoot = !connections.some(conn => conn.to === node.id);
+                if (isRoot) {
+                    const element = document.getElementById(node.id);
+                    if (element && element.parentNode === svgLayer) {
+                        svgLayer.appendChild(element);
+                    }
+                }
+            });
+        }
+
         window.onload = function() {
             createSVGNodes();
             collapseManager.init();
@@ -249,6 +245,9 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
                     (n, c) => analyzeTreeStructure(n, c, dashedNodes));
                 debugActualWidths(nodes);
                 createCSSLines(allConnections, currentNodePositions);
+
+                // ルートノードを最前面に移動
+                bringRootNodesToFront();
 
                 // レイアウトとエッジ描画完了後、コンテンツ全体が見えるように初期位置を調整
                 requestAnimationFrame(() => {
