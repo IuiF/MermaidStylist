@@ -1,17 +1,17 @@
-const { getBaseTemplate } = require('../templates/base');
-const { getLayoutUtils } = require('../utils/layout-utils');
-const { getTreeStructureAnalyzer } = require('../utils/tree-structure');
-const { getSVGHelpers } = require('../utils/svg-helpers');
+const { getBaseTemplate } = require('../../templates/base');
+const { getLayoutUtils } = require('../../shared/layout-utils');
+const { getTreeStructureAnalyzer } = require('../../shared/tree-structure');
+const { getSVGHelpers } = require('../../shared/svg-helpers');
 const { getVerticalLayout } = require('../layouts/vertical-layout');
 const { getHorizontalLayout } = require('../layouts/horizontal-layout');
-const { getConnectionRenderer } = require('../features/connection-renderer');
-const { getShadowManager } = require('../features/shadow-manager');
-const { getCollapseManager } = require('../features/collapse-manager');
-const { getLayoutSwitcher } = require('../features/layout-switcher');
-const { getViewportManager } = require('../features/viewport-manager');
-const { getContextMenu } = require('../features/context-menu');
-const { getHighlightManager } = require('../features/highlight-manager');
-const { getPathHighlighter } = require('../features/path-highlighter');
+const { getConnectionRenderer } = require('../../runtime/rendering/connections/renderer');
+const { getShadowManager } = require('../../runtime/rendering/effects/shadow-manager');
+const { getCollapseManager } = require('../../runtime/state/collapse-manager');
+const { getLayoutSwitcher } = require('../../runtime/ui/layout-switcher');
+const { getViewportManager } = require('../../runtime/ui/viewport-manager');
+const { getContextMenu } = require('../../runtime/ui/context-menu');
+const { getHighlightManager } = require('../../runtime/state/highlight-manager');
+const { getPathHighlighter } = require('../../runtime/state/path-highlighter');
 
 function generateHTML(nodes, connections, styles = {}, classDefs = {}, dashedNodes = [], dashedEdges = []) {
     const template = getBaseTemplate();

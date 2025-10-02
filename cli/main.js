@@ -1,7 +1,7 @@
-const { parseMermaidNodes, parseMermaidConnections, parseMermaidStyles, parseMermaidClassDefs } = require('./src/parsers/mermaid');
-const { generateHTML, generateErrorHTML } = require('./src/generators/html');
-const { readMermaidFile, writeHtmlFile } = require('./src/utils/file');
-const { validateTreeStructure } = require('./src/validators/tree-validator');
+const { parseMermaidNodes, parseMermaidConnections, parseMermaidStyles, parseMermaidClassDefs } = require('../src/core/parsers/mermaid');
+const { generateHTML, generateErrorHTML } = require('../src/core/generators/html');
+const { readMermaidFile, writeHtmlFile } = require('./utils/file');
+const { validateTreeStructure } = require('../src/core/validators/tree-validator');
 const path = require('path');
 
 // バックエッジ用の点線ノードと点線エッジを作成

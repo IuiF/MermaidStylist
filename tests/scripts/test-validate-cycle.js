@@ -1,4 +1,4 @@
-const { validateTreeStructure } = require('./src/validators/tree-validator');
+const { validateTreeStructure } = require('../../src/core/validators/tree-validator');
 
 const nodes = [
     {id: "A", label: "A: Root1"},

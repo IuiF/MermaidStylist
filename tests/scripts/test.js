@@ -1,8 +1,8 @@
 // Test for Mermaid parser - updated for refactored code
 const assert = require('assert');
 const fs = require('fs');
-const { parseMermaidNodes, parseMermaidConnections } = require('./src/parsers/mermaid');
-const { generateHTML } = require('./src/generators/html');
+const { parseMermaidNodes, parseMermaidConnections } = require('../../src/core/parsers/mermaid');
+const { generateHTML } = require('../../src/core/generators/html');
 
 // Simple test to verify we can parse Mermaid node definitions
 function testParseMermaidNodes() {

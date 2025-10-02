@@ -5,7 +5,7 @@ function buildEmbeddedCode() {
     let code = '\n';
 
     // 1. パーサー (parseMermaidNodes, parseMermaidConnections, parseMermaidStyles, parseMermaidClassDefs)
-    const parserContent = fs.readFileSync('./src/parsers/mermaid.js', 'utf8');
+    const parserContent = fs.readFileSync('./src/core/parsers/mermaid.js', 'utf8');
     const parseMermaidNodesMatch = parserContent.match(/function parseMermaidNodes[\s\S]*?(?=\n\/\/ Parse Mermaid connections|function parse)/);
     const parseMermaidConnectionsMatch = parserContent.match(/function parseMermaidConnections[\s\S]*?(?=\n\/\/ Parse Mermaid style|function parse)/);
     const parseMermaidStylesMatch = parserContent.match(/function parseMermaidStyles[\s\S]*?(?=\n\/\/ Parse Mermaid class|function parse)/);
@@ -18,7 +18,7 @@ function buildEmbeddedCode() {
     if (parseMermaidClassDefsMatch) code += parseMermaidClassDefsMatch[0] + '\n\n';
 
     // 2. バリデーター (validateTreeStructure)
-    const validatorContent = fs.readFileSync('./src/validators/tree-validator.js', 'utf8');
+    const validatorContent = fs.readFileSync('./src/core/validators/tree-validator.js', 'utf8');
     const validateTreeStructureMatch = validatorContent.match(/function validateTreeStructure[\s\S]*?(?=\nmodule\.exports)/);
 
     code += '// バリデーター\n';
@@ -27,31 +27,31 @@ function buildEmbeddedCode() {
     // 3. 各getterファイルの内容を取得（module.exportsを削除）
     const getBaseTemplate = fs.readFileSync('./src/templates/base.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
-    const getLayoutUtils = fs.readFileSync('./src/utils/layout-utils.js', 'utf8')
+    const getLayoutUtils = fs.readFileSync('./src/shared/layout-utils.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
-    const getSVGHelpers = fs.readFileSync('./src/utils/svg-helpers.js', 'utf8')
+    const getSVGHelpers = fs.readFileSync('./src/shared/svg-helpers.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
-    const getTreeStructureAnalyzer = fs.readFileSync('./src/utils/tree-structure.js', 'utf8')
+    const getTreeStructureAnalyzer = fs.readFileSync('./src/shared/tree-structure.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
-    const getVerticalLayout = fs.readFileSync('./src/layouts/vertical-layout.js', 'utf8')
+    const getVerticalLayout = fs.readFileSync('./src/core/layouts/vertical-layout.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
-    const getHorizontalLayout = fs.readFileSync('./src/layouts/horizontal-layout.js', 'utf8')
+    const getHorizontalLayout = fs.readFileSync('./src/core/layouts/horizontal-layout.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
-    const getConnectionRenderer = fs.readFileSync('./src/features/connection-renderer.js', 'utf8')
+    const getConnectionRenderer = fs.readFileSync('./src/runtime/rendering/connections/renderer.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
-    const getShadowManager = fs.readFileSync('./src/features/shadow-manager.js', 'utf8')
+    const getShadowManager = fs.readFileSync('./src/runtime/rendering/effects/shadow-manager.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
-    const getCollapseManager = fs.readFileSync('./src/features/collapse-manager.js', 'utf8')
+    const getCollapseManager = fs.readFileSync('./src/runtime/state/collapse-manager.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
-    const getLayoutSwitcher = fs.readFileSync('./src/features/layout-switcher.js', 'utf8')
+    const getLayoutSwitcher = fs.readFileSync('./src/runtime/ui/layout-switcher.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
-    const getViewportManager = fs.readFileSync('./src/features/viewport-manager.js', 'utf8')
+    const getViewportManager = fs.readFileSync('./src/runtime/ui/viewport-manager.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
-    const getHighlightManager = fs.readFileSync('./src/features/highlight-manager.js', 'utf8')
+    const getHighlightManager = fs.readFileSync('./src/runtime/state/highlight-manager.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
-    const getPathHighlighter = fs.readFileSync('./src/features/path-highlighter.js', 'utf8')
+    const getPathHighlighter = fs.readFileSync('./src/runtime/state/path-highlighter.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
-    const getContextMenu = fs.readFileSync('./src/features/context-menu.js', 'utf8')
+    const getContextMenu = fs.readFileSync('./src/runtime/ui/context-menu.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
 
     code += '// テンプレートとユーティリティ\n';
@@ -75,7 +75,7 @@ function buildEmbeddedCode() {
     code += getContextMenu + '\n\n';
 
     // 4. html.jsのgenerateHTML, getJavaScriptContent, generateErrorHTML
-    const htmlContent = fs.readFileSync('./src/generators/html.js', 'utf8');
+    const htmlContent = fs.readFileSync('./src/core/generators/html.js', 'utf8');
 
     // 関数を抽出（次の関数定義またはmodule.exportsまで）
     function extractFunction(content, functionName) {
@@ -118,13 +118,13 @@ function buildEmbeddedCode() {
 }
 
 // webappテンプレートを読み込み
-const template = fs.readFileSync('./webapp-template.html', 'utf8');
+const template = fs.readFileSync('./tests/outputs/webapp-template.html', 'utf8');
 
 // ${EMBEDDED_CODE}を埋め込みコードで置換
 const embeddedCode = buildEmbeddedCode();
 const finalWebapp = template.replace('${EMBEDDED_CODE}', embeddedCode);
 
 // webapp.htmlを出力
-fs.writeFileSync('./webapp.html', finalWebapp, 'utf8');
+fs.writeFileSync('./tests/outputs/webapp.html', finalWebapp, 'utf8');
 
 console.log('webapp.html を生成しました');

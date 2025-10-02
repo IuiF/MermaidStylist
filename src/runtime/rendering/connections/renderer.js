@@ -1,6 +1,6 @@
 function getConnectionRenderer() {
-    const connectionArrows = require('./connection-arrows').getConnectionArrows();
-    const connectionLabels = require('./connection-labels').getConnectionLabels();
+    const connectionArrows = require('./arrows').getConnectionArrows();
+    const connectionLabels = require('./labels').getConnectionLabels();
 
     return connectionArrows + connectionLabels + `
         // 依存: svgHelpers (svg-helpers.js), getNodePosition, getNodeDimensions (layout-utils.js)
