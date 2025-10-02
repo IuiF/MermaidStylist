@@ -89,23 +89,35 @@ function getSVGHelpers() {
                         tspan.setAttribute('dy', lineHeight);
                     }
 
-                    // <b>タグをパース
-                    const parts = line.split(/(<b>|<\\/b>)/i);
+                    // <b>, <i>, <small>タグをパース
+                    const parts = line.split(/(<b>|<\\/b>|<i>|<\\/i>|<small>|<\\/small>)/i);
                     let isBold = false;
+                    let isItalic = false;
+                    let isSmall = false;
 
                     parts.forEach(part => {
                         if (part.match(/<b>/i)) {
                             isBold = true;
                         } else if (part.match(/<\\/b>/i)) {
                             isBold = false;
+                        } else if (part.match(/<i>/i)) {
+                            isItalic = true;
+                        } else if (part.match(/<\\/i>/i)) {
+                            isItalic = false;
+                        } else if (part.match(/<small>/i)) {
+                            isSmall = true;
+                        } else if (part.match(/<\\/small>/i)) {
+                            isSmall = false;
                         } else if (part) {
-                            const textNode = document.createTextNode(part);
-                            if (isBold) {
-                                const boldTspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-                                boldTspan.style.fontWeight = 'bold';
-                                boldTspan.textContent = part;
-                                tspan.appendChild(boldTspan);
+                            if (isBold || isItalic || isSmall) {
+                                const styledTspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                                if (isBold) styledTspan.style.fontWeight = 'bold';
+                                if (isItalic) styledTspan.style.fontStyle = 'italic';
+                                if (isSmall) styledTspan.style.fontSize = (fontSize * 0.8) + 'px';
+                                styledTspan.textContent = part;
+                                tspan.appendChild(styledTspan);
                             } else {
+                                const textNode = document.createTextNode(part);
                                 tspan.appendChild(textNode);
                             }
                         }
@@ -128,14 +140,17 @@ function getSVGHelpers() {
                 const svgLayer = this.getSVGLayer();
 
                 lines.forEach(line => {
-                    // <b>タグを考慮した幅計算
-                    const plainText = line.replace(/<\\/?b>/gi, '');
+                    // 全てのタグを除去してプレーンテキストを取得
+                    const plainText = line.replace(/<\\/?(?:b|i|small)>/gi, '');
                     const hasBold = /<b>/i.test(line);
+                    const hasItalic = /<i>/i.test(line);
+                    const hasSmall = /<small>/i.test(line);
 
                     const tempText = this.createText(plainText, {
-                        'font-size': fontSize,
+                        'font-size': hasSmall ? fontSize * 0.8 : fontSize,
                         'font-family': 'Arial, sans-serif',
-                        'font-weight': hasBold ? 'bold' : 'normal'
+                        'font-weight': hasBold ? 'bold' : 'normal',
+                        'font-style': hasItalic ? 'italic' : 'normal'
                     });
                     svgLayer.appendChild(tempText);
                     const width = tempText.getBBox().width;
