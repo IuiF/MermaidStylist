@@ -89,26 +89,16 @@ function getPathHighlighter() {
                     }
                 });
 
-                // ラベル要素も収集（.connection-labelグループ内にdata属性がないため親要素から推測）
-                const pathHighlightedElements = [];
-
                 pathConnections.forEach(connKey => {
                     const elements = edgeElementsByConnection.get(connKey);
                     if (elements) {
                         elements.forEach(element => {
                             element.classList.add('path-highlighted-line');
-                            pathHighlightedElements.push(element);
+                            // エッジを最前面に移動（親子関係表示と同じアプローチ）
+                            element.parentNode.appendChild(element);
                         });
                     }
                 });
-
-                // ルート表示のエッジを最上レイヤーに移動
-                const svgLayer = document.getElementById('svgLayer');
-                if (svgLayer) {
-                    pathHighlightedElements.forEach(element => {
-                        svgLayer.appendChild(element);
-                    });
-                }
             },
 
             clearPathHighlight: function() {
