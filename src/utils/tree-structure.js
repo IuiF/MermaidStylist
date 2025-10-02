@@ -56,9 +56,14 @@ function getTreeStructureAnalyzer() {
                 }
             }
 
-            // 点線ノードの階層を設定
+            // 点線ノードの階層を設定（BFSで計算された値とminDepthの大きい方を使用）
             dashedNodesParam.forEach(dashedNode => {
-                nodeLevel.set(dashedNode.id, dashedNode.minDepth);
+                const existingLevel = nodeLevel.get(dashedNode.id);
+                const finalLevel = existingLevel !== undefined ? Math.max(existingLevel, dashedNode.minDepth) : dashedNode.minDepth;
+                if (window.DEBUG_CONNECTIONS) {
+                    console.log('Setting level for dashed node ' + dashedNode.id + ': existing=' + existingLevel + ', minDepth=' + dashedNode.minDepth + ', final=' + finalLevel);
+                }
+                nodeLevel.set(dashedNode.id, finalLevel);
             });
 
             // 階層レベルごとにノードを分類

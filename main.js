@@ -33,6 +33,39 @@ function createDashedNodesAndEdges(nodes, regularConnections, backEdges) {
         return maxDepth;
     }
 
+    // ノードの深度（ルートからの距離）をBFSで計算
+    function calculateNodeDepth(nodeId, connections) {
+        const nodeDepths = new Map();
+        const childNodes = new Set(connections.map(c => c.to));
+        const rootNodes = nodes.filter(n => !childNodes.has(n.id));
+
+        // BFSでレベルを計算
+        const queue = [];
+        rootNodes.forEach(root => {
+            nodeDepths.set(root.id, 0);
+            queue.push(root.id);
+        });
+
+        while (queue.length > 0) {
+            const currentId = queue.shift();
+            const currentDepth = nodeDepths.get(currentId);
+
+            const children = connections.filter(c => c.from === currentId).map(c => c.to);
+            children.forEach(childId => {
+                const newDepth = currentDepth + 1;
+                const existingDepth = nodeDepths.get(childId);
+
+                // より深い階層を採用
+                if (existingDepth === undefined || newDepth > existingDepth) {
+                    nodeDepths.set(childId, newDepth);
+                    queue.push(childId);
+                }
+            });
+        }
+
+        return nodeDepths.get(nodeId) || 0;
+    }
+
     // 各バックエッジについて点線ノードと点線エッジを作成
     backEdges.forEach(backEdge => {
         const targetNode = nodes.find(n => n.id === backEdge.to);
@@ -47,9 +80,12 @@ function createDashedNodesAndEdges(nodes, regularConnections, backEdges) {
             isDashed: true
         };
 
-        // 元ノードの子孫の最大深度を計算
-        const maxDepth = calculateMaxDescendantDepth(backEdge.to, regularConnections);
-        dashedNode.minDepth = maxDepth + 1;
+        // 点線ノードは以下の条件を満たす位置に配置：
+        // 1. 元ノード（backEdge.to）の全子孫より後
+        // 2. 親ノード（backEdge.from）より後
+        const targetDescendantDepth = calculateMaxDescendantDepth(backEdge.to, regularConnections);
+        const parentDepth = calculateNodeDepth(backEdge.from, regularConnections);
+        dashedNode.minDepth = Math.max(targetDescendantDepth + 1, parentDepth + 1);
 
         dashedNodes.push(dashedNode);
 
