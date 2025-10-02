@@ -4,6 +4,7 @@ function getHighlightManager() {
             currentHighlightedLabel: null,
             currentHighlightedNodeId: null,
             currentHighlightTimeout: null,
+            currentRelationNodeId: null,
 
             addDoubleStroke: function(nodeElement) {
                 const rect = nodeElement.querySelector('.node-rect');
@@ -104,6 +105,8 @@ function getHighlightManager() {
             },
 
             highlightRelations: function(nodeId) {
+                this.currentRelationNodeId = nodeId;
+
                 // 親ノードを特定
                 const parents = allConnections.filter(conn => conn.to === nodeId).map(conn => conn.from);
                 // 子ノードを特定
@@ -154,6 +157,24 @@ function getHighlightManager() {
                 document.querySelectorAll('.relation-edge-highlighted').forEach(edge => {
                     edge.classList.remove('relation-edge-highlighted');
                 });
+
+                this.currentRelationNodeId = null;
+            },
+
+            reapplyRelationHighlight: function() {
+                if (this.currentRelationNodeId) {
+                    const nodeId = this.currentRelationNodeId;
+                    // 一旦クリア（currentRelationNodeIdは保持）
+                    document.querySelectorAll('.relation-highlighted').forEach(node => {
+                        node.classList.remove('relation-highlighted', 'relation-target', 'relation-parent', 'relation-child');
+                    });
+                    document.querySelectorAll('.relation-edge-highlighted').forEach(edge => {
+                        edge.classList.remove('relation-edge-highlighted');
+                    });
+
+                    // 再適用
+                    this.highlightRelations(nodeId);
+                }
             }
         };
     `;

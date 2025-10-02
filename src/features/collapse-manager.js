@@ -58,6 +58,7 @@ function getCollapseManager() {
                     createCSSLines(allConnections, currentNodePositions);
                     shadowManager.updatePositions(this.collapsedNodes);
                     pathHighlighter.reapplyPathHighlight();
+                    highlightManager.reapplyRelationHighlight();
 
                     // 座標を更新
                     requestAnimationFrame(() => {
