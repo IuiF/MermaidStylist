@@ -53,12 +53,23 @@ function createDashedNodesAndEdges(nodes, regularConnections, backEdges) {
 
         dashedNodes.push(dashedNode);
 
-        // 点線エッジを作成
+        // 点線エッジを作成（バックエッジの開始ノード→点線ノード）
         dashedEdges.push({
             from: backEdge.from,
             to: dashedNodeId,
             originalTo: backEdge.to,
             isDashed: true
+        });
+
+        // 元ノードの子ノードへのエッジを点線ノードからもコピー
+        const childEdges = regularConnections.filter(conn => conn.from === backEdge.to);
+        childEdges.forEach(childEdge => {
+            dashedEdges.push({
+                from: dashedNodeId,
+                to: childEdge.to,
+                label: childEdge.label,
+                isDashed: true
+            });
         });
     });
 
@@ -129,6 +140,10 @@ function main() {
                 regularConnections,
                 validation.backEdges
             );
+
+            if (dashedNodes.length > 0) {
+                console.log(`Created ${dashedNodes.length} dashed node(s) and ${dashedEdges.length} dashed edge(s)`);
+            }
 
             // Generate HTML using the new generator
             html = generateHTML(
