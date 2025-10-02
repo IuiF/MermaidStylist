@@ -5,7 +5,7 @@ function getCollapseManager() {
             childrenMap: new Map(),
 
             init: function() {
-                connections.forEach(conn => {
+                allConnections.forEach(conn => {
                     if (!this.childrenMap.has(conn.from)) {
                         this.childrenMap.set(conn.from, []);
                     }
@@ -43,11 +43,13 @@ function getCollapseManager() {
             recalculateLayout: function() {
                 requestAnimationFrame(() => {
                     if (currentLayout === 'vertical') {
-                        currentNodePositions = verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                        currentNodePositions = verticalLayout(allNodes, allConnections, calculateAllNodeWidths,
+                            (n, c) => analyzeTreeStructure(n, c, dashedNodes));
                     } else {
-                        currentNodePositions = horizontalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure);
+                        currentNodePositions = horizontalLayout(allNodes, allConnections, calculateAllNodeWidths,
+                            (n, c) => analyzeTreeStructure(n, c, dashedNodes));
                     }
-                    createCSSLines(connections, currentNodePositions);
+                    createCSSLines(allConnections, currentNodePositions);
                     shadowManager.updatePositions(this.collapsedNodes);
                     pathHighlighter.reapplyPathHighlight();
 
@@ -67,10 +69,10 @@ function getCollapseManager() {
             },
 
             isVisible: function(nodeId) {
-                const isRoot = !connections.some(conn => conn.to === nodeId);
+                const isRoot = !allConnections.some(conn => conn.to === nodeId);
                 if (isRoot) return true;
 
-                const parentConnection = connections.find(conn => conn.to === nodeId);
+                const parentConnection = allConnections.find(conn => conn.to === nodeId);
                 if (!parentConnection) return true;
 
                 if (this.isCollapsed(parentConnection.from)) return false;
@@ -80,7 +82,7 @@ function getCollapseManager() {
 
             updateVisibility: function() {
                 const svgLayer = svgHelpers.getSVGLayer();
-                nodes.forEach(node => {
+                allNodes.forEach(node => {
                     const element = svgHelpers.getNodeElement(node.id);
                     if (element) {
                         if (this.isVisible(node.id)) {
@@ -105,7 +107,7 @@ function getCollapseManager() {
 
             applyToNodes: function(filterFn, collapsed) {
                 let changed = false;
-                nodes.forEach(node => {
+                allNodes.forEach(node => {
                     if (filterFn(node) && this.canCollapse(node.id) &&
                         this.isCollapsed(node.id) !== collapsed) {
                         this.setNodeState(node.id, collapsed);
