@@ -204,7 +204,15 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
                 g.setAttribute('transform', 'translate(0,0)');
 
                 // イベントリスナーを追加
-                if (hasChildren && !isDashed) {
+                if (isDashed) {
+                    // 点線ノードの場合：元ノードを強調表示
+                    g.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        highlightManager.highlightOriginalNode(node.originalId);
+                    });
+                    g.style.cursor = 'pointer';
+                } else if (hasChildren) {
+                    // 通常ノードで子を持つ場合：折りたたみ
                     g.addEventListener('click', function() {
                         toggleNodeCollapse(node.id);
                     });

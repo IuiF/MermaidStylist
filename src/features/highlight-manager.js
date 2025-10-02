@@ -14,15 +14,15 @@ function getHighlightManager() {
 
                 const overlayRect = svgHelpers.createRect({
                     class: 'double-stroke-overlay',
-                    x: rect.getAttribute('x'),
-                    y: rect.getAttribute('y'),
+                    x: rect.getAttribute('x') || 0,
+                    y: rect.getAttribute('y') || 0,
                     width: rect.getAttribute('width'),
                     height: rect.getAttribute('height'),
                     rx: rect.getAttribute('rx'),
                     ry: rect.getAttribute('ry'),
                     fill: 'none',
                     stroke: '#ffc107',
-                    'stroke-width': '2',
+                    'stroke-width': '3',
                     'pointer-events': 'none'
                 });
 
@@ -68,6 +68,21 @@ function getHighlightManager() {
                     });
                     this.currentHighlightedLabel = null;
                 }
+            },
+
+            highlightOriginalNode: function(originalNodeId, duration = 2000) {
+                const nodeElement = svgHelpers.getNodeElement(originalNodeId);
+                if (!nodeElement) {
+                    return;
+                }
+
+                nodeElement.classList.add('highlighted');
+                this.addDoubleStroke(nodeElement);
+
+                setTimeout(() => {
+                    nodeElement.classList.remove('highlighted');
+                    this.removeDoubleStroke(nodeElement);
+                }, duration);
             }
         };
     `;
