@@ -118,19 +118,38 @@ function getConnectionRenderer() {
         // ノードの階層（深さ）を計算
         function calculateNodeDepths(connections) {
             const nodeDepths = {};
-
-            function calculateDepth(nodeId, depth = 0) {
-                if (nodeDepths[nodeId] !== undefined) return;
-                nodeDepths[nodeId] = depth;
-                const children = connections.filter(c => c.from === nodeId);
-                children.forEach(c => calculateDepth(c.to, depth + 1));
-            }
-
-            // ルートノードを見つけて深さ計算を開始
             const allNodeIds = new Set([...connections.map(c => c.from), ...connections.map(c => c.to)]);
             const childNodeIds = new Set(connections.map(c => c.to));
             const rootNodeIds = [...allNodeIds].filter(id => !childNodeIds.has(id));
-            rootNodeIds.forEach(rootId => calculateDepth(rootId, 0));
+
+            // ルートノードをレベル0として開始
+            const queue = [];
+            rootNodeIds.forEach(rootId => {
+                nodeDepths[rootId] = 0;
+                queue.push(rootId);
+            });
+
+            // BFSで階層を計算（複数回訪問を許可し、より深い階層を採用）
+            let processed = 0;
+            const maxIterations = allNodeIds.size * allNodeIds.size;
+
+            while (queue.length > 0 && processed < maxIterations) {
+                const currentId = queue.shift();
+                processed++;
+                const currentDepth = nodeDepths[currentId];
+                const children = connections.filter(c => c.from === currentId).map(c => c.to);
+
+                for (const childId of children) {
+                    const newDepth = currentDepth + 1;
+                    const existingDepth = nodeDepths[childId];
+
+                    // より深い階層が見つかった場合、または未設定の場合は更新
+                    if (existingDepth === undefined || newDepth > existingDepth) {
+                        nodeDepths[childId] = newDepth;
+                        queue.push(childId);
+                    }
+                }
+            }
 
             return nodeDepths;
         }
