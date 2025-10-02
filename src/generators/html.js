@@ -138,19 +138,14 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
                     'data-is-dashed': isDashed
                 });
 
-                // 一時的なテキスト要素でテキスト幅を測定
-                const tempText = svgHelpers.createText(node.label, {
-                    'font-size': '12',
-                    'font-family': 'Arial, sans-serif'
-                });
-                svgLayer.appendChild(tempText);
-                const textWidth = tempText.getBBox().width;
-                svgLayer.removeChild(tempText);
+                // テキストサイズを測定（HTMLタグ対応）
+                const textSize = svgHelpers.measureRichText(node.label, 12);
 
                 const padding = 12;
                 const buttonWidth = hasChildren ? 15 : 0;
-                const boxWidth = textWidth + padding * 2 + buttonWidth;
-                const boxHeight = 28;
+                const boxWidth = textSize.width + padding * 2 + buttonWidth;
+                const baseHeight = 28;
+                const boxHeight = Math.max(baseHeight, textSize.height + padding);
 
                 // 背景矩形
                 const rect = svgHelpers.createRect({
@@ -167,12 +162,14 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
                     rect.style.opacity = '0.6';
                 }
 
-                // テキスト
-                const text = svgHelpers.createText(node.label, {
+                // テキスト（HTMLタグ対応）
+                const text = svgHelpers.createRichText(node.label, {
                     class: 'node-text',
                     x: padding,
                     y: boxHeight / 2,
-                    'dominant-baseline': 'central'
+                    'dominant-baseline': 'central',
+                    'font-size': '12',
+                    'font-family': 'Arial, sans-serif'
                 });
 
                 if (isDashed) {
