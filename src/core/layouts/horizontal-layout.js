@@ -10,8 +10,16 @@ function getHorizontalLayout() {
 
             const leftMargin = 50;
             const topMargin = 50;
-            const fixedSpacing = 60;
+            const baseSpacing = 60; // 基本スペース
             const edgeClearance = 40; // エッジとノード間のクリアランス
+
+            // ノード間のエッジラベル数を計算
+            function calculateNodeSpacing(nodeId, connections) {
+                const incomingEdges = connections.filter(conn => conn.to === nodeId);
+                const labelsCount = incomingEdges.filter(conn => conn.label).length;
+                // ラベル1つあたり約20pxのスペースを追加
+                return baseSpacing + (labelsCount > 1 ? (labelsCount - 1) * 20 : 0);
+            }
 
             // 各階層の最大ノード幅を事前に計算
             const levelMaxWidths = [];
@@ -38,7 +46,7 @@ function getHorizontalLayout() {
             // 各階層のX座標を計算
             const levelXPositions = [leftMargin];
             for (let i = 1; i < treeStructure.levels.length; i++) {
-                const spacing = levelSpacings[i - 1] || fixedSpacing * 2;
+                const spacing = levelSpacings[i - 1] || baseSpacing * 2;
                 levelXPositions[i] = levelXPositions[i - 1] + levelMaxWidths[i - 1] + spacing;
             }
 
@@ -84,15 +92,17 @@ function getHorizontalLayout() {
                                 }
 
                                 // 複数の親を持つ場合は親の下に、単一の親なら親と同じ高さから
+                                const nodeSpacing = calculateNodeSpacing(node.id, connections);
                                 let startY = parents.length > 1
-                                    ? parentPos.y + parentPos.height + fixedSpacing
+                                    ? parentPos.y + parentPos.height + nodeSpacing
                                     : parentPos.y;
 
                                 // 全ての兄弟（自分を除く）の中で最も下にあるノードの下に配置
                                 siblings.forEach(siblingId => {
                                     if (siblingId !== node.id && nodePositions.has(siblingId)) {
                                         const siblingPos = nodePositions.get(siblingId);
-                                        startY = Math.max(startY, siblingPos.y + siblingPos.height + fixedSpacing);
+                                        const siblingSpacing = calculateNodeSpacing(siblingId, connections);
+                                        startY = Math.max(startY, siblingPos.y + siblingPos.height + siblingSpacing);
                                     }
                                 });
 
@@ -102,18 +112,20 @@ function getHorizontalLayout() {
                                 const dimensions = getNodeDimensions(element);
                                 nodePositions.set(node.id, { x: levelX, y: startY, width: dimensions.width, height: dimensions.height });
 
-                                currentY = Math.max(currentY, startY + dimensions.height + fixedSpacing);
+                                currentY = Math.max(currentY, startY + dimensions.height + nodeSpacing);
                             } else {
+                                const nodeSpacing = calculateNodeSpacing(node.id, connections);
                                 setNodePosition(element, levelX, currentY);
                                 const dimensions = getNodeDimensions(element);
                                 nodePositions.set(node.id, { x: levelX, y: currentY, width: dimensions.width, height: dimensions.height });
-                                currentY += dimensions.height + fixedSpacing;
+                                currentY += dimensions.height + nodeSpacing;
                             }
                         } else {
+                            const nodeSpacing = calculateNodeSpacing(node.id, connections);
                             setNodePosition(element, levelX, currentY);
                             const dimensions = getNodeDimensions(element);
                             nodePositions.set(node.id, { x: levelX, y: currentY, width: dimensions.width, height: dimensions.height });
-                            currentY += dimensions.height + fixedSpacing;
+                            currentY += dimensions.height + nodeSpacing;
                         }
                     }
                 });
