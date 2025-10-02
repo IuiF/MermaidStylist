@@ -48,6 +48,9 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
         const allNodes = [...nodes, ...dashedNodes];
         const allConnections = [...connections, ...dashedEdges];
 
+        // デバッグフラグ（ブラウザコンソールで window.DEBUG_CONNECTIONS = true で有効化）
+        window.DEBUG_CONNECTIONS = false;
+
         // Import utilities
         ${getLayoutUtils()}
         ${getSVGHelpers()}
@@ -219,7 +222,7 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
 
             // SVGノードが配置された後に即座にレイアウト
             requestAnimationFrame(() => {
-                currentNodePositions = horizontalLayout(allNodes, connections, calculateAllNodeWidths,
+                currentNodePositions = horizontalLayout(allNodes, allConnections, calculateAllNodeWidths,
                     (n, c) => analyzeTreeStructure(n, c, dashedNodes));
                 debugActualWidths(nodes);
                 createCSSLines(allConnections, currentNodePositions);

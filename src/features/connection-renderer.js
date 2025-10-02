@@ -208,6 +208,13 @@ function getConnectionRenderer() {
                 return;
             }
 
+            // デバッグ
+            if (window.DEBUG_CONNECTIONS) {
+                console.log('createStraightLines called with', connections.length, 'connections');
+                const dashedCount = connections.filter(c => c.isDashed).length;
+                console.log('  - Dashed connections:', dashedCount);
+            }
+
             // 既存の接続線とラベルを削除
             const existingLines = svgLayer.querySelectorAll('.connection-line, .connection-arrow, .connection-label');
             existingLines.forEach(line => line.remove());
@@ -285,6 +292,13 @@ function getConnectionRenderer() {
                 return;
             }
 
+            // デバッグ
+            if (window.DEBUG_CONNECTIONS) {
+                console.log('createCurvedLines called with', connections.length, 'connections');
+                const dashedCount = connections.filter(c => c.isDashed).length;
+                console.log('  - Dashed connections:', dashedCount);
+            }
+
             // 既存の接続線とラベルを削除
             const existingLines = svgLayer.querySelectorAll('.connection-line, .connection-arrow, .connection-label');
             existingLines.forEach(line => line.remove());
@@ -313,6 +327,10 @@ function getConnectionRenderer() {
                 if (!fromElement || !toElement ||
                     fromElement.classList.contains('hidden') ||
                     toElement.classList.contains('hidden')) {
+                    if (window.DEBUG_CONNECTIONS && conn.isDashed) {
+                        console.log('  - Skipping dashed edge:', conn.from, '-->', conn.to,
+                            'fromElement:', !!fromElement, 'toElement:', !!toElement);
+                    }
                     return;
                 }
 

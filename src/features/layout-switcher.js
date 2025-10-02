@@ -13,10 +13,10 @@ function getLayoutSwitcher() {
 
             // Apply layout
             if (layoutType === 'vertical') {
-                currentNodePositions = verticalLayout(allNodes, connections, calculateAllNodeWidths,
+                currentNodePositions = verticalLayout(allNodes, allConnections, calculateAllNodeWidths,
                     (n, c) => analyzeTreeStructure(n, c, dashedNodes));
             } else {
-                currentNodePositions = horizontalLayout(allNodes, connections, calculateAllNodeWidths,
+                currentNodePositions = horizontalLayout(allNodes, allConnections, calculateAllNodeWidths,
                     (n, c) => analyzeTreeStructure(n, c, dashedNodes));
             }
 
