@@ -11,6 +11,7 @@ function getHorizontalLayout() {
             const leftMargin = 50;
             const topMargin = 50;
             const fixedSpacing = 60;
+            const edgeClearance = 40; // エッジとノード間のクリアランス
 
             // 各階層の最大ノード幅を事前に計算
             const levelMaxWidths = [];
@@ -116,6 +117,57 @@ function getHorizontalLayout() {
                         }
                     }
                 });
+            });
+
+            // ノードIDからレベルを取得するマップ
+            const nodeToLevel = new Map();
+            treeStructure.levels.forEach((level, levelIndex) => {
+                level.forEach(node => {
+                    nodeToLevel.set(node.id, levelIndex);
+                });
+            });
+
+            // 長距離エッジとノードの衝突を調整
+            connections.forEach(conn => {
+                const fromLevel = nodeToLevel.get(conn.from);
+                const toLevel = nodeToLevel.get(conn.to);
+                const fromPos = nodePositions.get(conn.from);
+                const toPos = nodePositions.get(conn.to);
+
+                if (!fromPos || !toPos || fromLevel === undefined || toLevel === undefined) return;
+
+                const levelDiff = Math.abs(toLevel - fromLevel);
+                if (levelDiff >= 2) {
+                    const minLevel = Math.min(fromLevel, toLevel);
+                    const maxLevel = Math.max(fromLevel, toLevel);
+                    const edgeYMin = Math.min(fromPos.y, toPos.y);
+                    const edgeYMax = Math.max(fromPos.y, toPos.y);
+
+                    // 途中のレベルのノードをチェック
+                    for (let level = minLevel + 1; level < maxLevel; level++) {
+                        treeStructure.levels[level].forEach(node => {
+                            const nodePos = nodePositions.get(node.id);
+                            if (!nodePos) return;
+
+                            const nodeTop = nodePos.y;
+                            const nodeBottom = nodePos.y + nodePos.height;
+
+                            // ノードとエッジが重なるかチェック
+                            if (nodeTop < edgeYMax + edgeClearance && nodeBottom > edgeYMin - edgeClearance) {
+                                // 重なっている場合、ノードをエッジの下にシフト
+                                const shiftAmount = (edgeYMax + edgeClearance) - nodeTop;
+                                if (shiftAmount > 0) {
+                                    nodePos.y += shiftAmount;
+                                    // DOM要素も更新
+                                    const element = document.getElementById(node.id);
+                                    if (element) {
+                                        setNodePosition(element, nodePos.x, nodePos.y);
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
             });
 
             const maxY = Math.max(...Array.from(nodePositions.values()).map(pos => pos.y + pos.height));
