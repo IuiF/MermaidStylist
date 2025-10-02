@@ -20,28 +20,50 @@ Mermaid木構造図をインタラクティブなHTMLに変換するツール
 ## CLIの使い方
 
 ```bash
-node main.js <input.mmd>
+node cli/main.js <input.mmd> [output.html]
 ```
 
-`output.html`が生成されます。
+指定した出力ファイル（省略時は`output.html`）が生成されます。
+
+### 例
+
+```bash
+# tests/fixtures/sample.mmdをtests/outputs/result.htmlに変換
+node cli/main.js tests/fixtures/sample.mmd tests/outputs/result.html
+```
 
 ## Webアプリのビルド
 
 ```bash
-node build-webapp.js
+node scripts/build-webapp.js
 ```
 
-`webapp-template.html`からすべてのソースコードを埋め込んだ`webapp.html`を生成します。
+`tests/outputs/webapp-template.html`からすべてのソースコードを埋め込んだ`tests/outputs/webapp.html`を生成します。
 
 ## プロジェクト構造
 
 ```
+cli/                 # CLIツール
+├── main.js
+└── utils/
+scripts/             # ビルド・デバッグスクリプト
+├── build-webapp.js
+├── debug-layout.js
+└── debug/
 src/
-├── parsers/         # Mermaidパーサー
-├── generators/      # HTML生成
-├── validators/      # 木構造バリデーション
-├── templates/       # HTMLテンプレート
-├── layouts/         # レイアウトアルゴリズム
-├── features/        # 機能（折りたたみ、ビューポート等）
-└── utils/           # ユーティリティ
+├── core/            # ビルド時実行 (Node.js)
+│   ├── parsers/     # Mermaidパーサー
+│   ├── generators/  # HTML生成
+│   ├── layouts/     # レイアウトアルゴリズム
+│   └── validators/  # 木構造バリデーション
+├── runtime/         # ブラウザ実行
+│   ├── rendering/   # 描画エンジン
+│   ├── state/       # 状態管理
+│   └── ui/          # UIコントロール
+├── shared/          # 共通ユーティリティ
+└── templates/       # HTMLテンプレート
+tests/
+├── fixtures/        # .mmdファイル
+├── outputs/         # 生成HTMLファイル
+└── scripts/         # テストスクリプト
 ```
