@@ -254,9 +254,14 @@ function getViewportManager() {
                     contentWrapper.style.transform = \`translate(\${this.translateX}px, \${this.translateY}px) scale(\${this.scale})\`;
                 }
 
-                const svgLayer = document.getElementById('svgLayer');
-                if (svgLayer) {
-                    svgLayer.setAttribute('transform', \`translate(\${this.translateX}, \${this.translateY}) scale(\${this.scale})\`);
+                const nodeLayer = document.getElementById('nodeLayer');
+                const edgeLayer = document.getElementById('edgeLayer');
+                const transform = \`translate(\${this.translateX}, \${this.translateY}) scale(\${this.scale})\`;
+                if (nodeLayer) {
+                    nodeLayer.setAttribute('transform', transform);
+                }
+                if (edgeLayer) {
+                    edgeLayer.setAttribute('transform', transform);
                 }
             },
 
@@ -277,7 +282,7 @@ function getViewportManager() {
             },
 
             // 個別ノードから境界を計算
-            calculateBoundsFromNodes: function(svgLayer) {
+            calculateBoundsFromNodes: function(nodeLayer) {
                 const bounds = {
                     minX: Infinity,
                     minY: Infinity,
@@ -285,7 +290,7 @@ function getViewportManager() {
                     maxY: -Infinity
                 };
 
-                const nodes = svgLayer.querySelectorAll('.node');
+                const nodes = nodeLayer.querySelectorAll('.node');
                 nodes.forEach(node => {
                     if (node.classList.contains('hidden')) return;
                     const transform = node.getAttribute('transform');
@@ -306,16 +311,19 @@ function getViewportManager() {
             },
 
             updateContentBounds: function() {
-                const svgLayer = document.getElementById('svgLayer');
-                if (!svgLayer) return;
+                const nodeLayer = document.getElementById('nodeLayer');
+                const edgeLayer = document.getElementById('edgeLayer');
+                if (!nodeLayer) return;
 
                 // 現在のtransformを一時的に保存してリセット
-                const currentTransform = svgLayer.getAttribute('transform');
-                svgLayer.setAttribute('transform', '');
+                const nodeTransform = nodeLayer.getAttribute('transform');
+                const edgeTransform = edgeLayer ? edgeLayer.getAttribute('transform') : null;
+                nodeLayer.setAttribute('transform', '');
+                if (edgeLayer) edgeLayer.setAttribute('transform', '');
 
-                // svgLayer全体のbboxを取得
+                // nodeLayer全体のbboxを取得
                 try {
-                    const bbox = svgLayer.getBBox();
+                    const bbox = nodeLayer.getBBox();
                     this.contentBounds = {
                         minX: bbox.x,
                         minY: bbox.y,
@@ -323,12 +331,15 @@ function getViewportManager() {
                         maxY: bbox.y + bbox.height
                     };
                 } catch (e) {
-                    this.contentBounds = this.calculateBoundsFromNodes(svgLayer);
+                    this.contentBounds = this.calculateBoundsFromNodes(nodeLayer);
                 }
 
                 // transformを元に戻す
-                if (currentTransform) {
-                    svgLayer.setAttribute('transform', currentTransform);
+                if (nodeTransform) {
+                    nodeLayer.setAttribute('transform', nodeTransform);
+                }
+                if (edgeLayer && edgeTransform) {
+                    edgeLayer.setAttribute('transform', edgeTransform);
                 }
             },
 
