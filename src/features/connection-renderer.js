@@ -16,6 +16,7 @@ function getConnectionRenderer() {
         }
 
         // ラベル描画の共通処理
+        let labelOffsets = {};
         function createConnectionLabel(conn, toElement) {
             if (!conn.label) return null;
 
@@ -36,13 +37,21 @@ function getConnectionRenderer() {
             const toLeft = toPos.left;
             const toTop = toPos.top;
 
+            // 同じターゲットノードへのラベル数を計算してオフセットを決定
+            const toNodeId = conn.to;
+            if (!labelOffsets[toNodeId]) {
+                labelOffsets[toNodeId] = 0;
+            }
+            const offset = labelOffsets[toNodeId];
+            labelOffsets[toNodeId]++;
+
             const labelGroup = svgHelpers.createGroup({
                 class: 'connection-label'
             });
 
             const labelRect = svgHelpers.createRect({
                 x: toLeft,
-                y: toTop - labelHeight - 5,
+                y: toTop - labelHeight - 5 - (offset * (labelHeight + 2)),
                 width: labelWidth,
                 height: labelHeight,
                 fill: '#fff',
@@ -54,7 +63,7 @@ function getConnectionRenderer() {
 
             const labelText = svgHelpers.createText(conn.label, {
                 x: toLeft + labelPadding,
-                y: toTop - labelHeight / 2 - 5,
+                y: toTop - labelHeight / 2 - 5 - (offset * (labelHeight + 2)),
                 'dominant-baseline': 'central',
                 fill: '#333',
                 'font-size': '11',
@@ -184,6 +193,9 @@ function getConnectionRenderer() {
             const existingLines = svgLayer.querySelectorAll('.connection-line, .connection-arrow, .connection-label');
             existingLines.forEach(line => line.remove());
 
+            // ラベルオフセットをリセット
+            labelOffsets = {};
+
             let connectionCount = 0;
             connections.forEach(conn => {
                 const fromElement = svgHelpers.getNodeElement(conn.from);
@@ -251,6 +263,9 @@ function getConnectionRenderer() {
             // 既存の接続線とラベルを削除
             const existingLines = svgLayer.querySelectorAll('.connection-line, .connection-arrow, .connection-label');
             existingLines.forEach(line => line.remove());
+
+            // ラベルオフセットをリセット
+            labelOffsets = {};
 
             // 2パスアルゴリズムによる動的レーン割り当て
             const laneWidth = 25;
