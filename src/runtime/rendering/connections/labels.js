@@ -36,7 +36,7 @@ function getConnectionLabels() {
             });
 
             const labelRect = svgHelpers.createRect({
-                x: toLeft - labelWidth - 5,
+                x: toLeft,
                 y: toTop - labelHeight - 5 - (offset * (labelHeight + 2)),
                 width: labelWidth,
                 height: labelHeight,
@@ -48,7 +48,7 @@ function getConnectionLabels() {
             });
 
             const labelText = svgHelpers.createText(conn.label, {
-                x: toLeft - labelWidth - 5 + labelPadding,
+                x: toLeft + labelPadding,
                 y: toTop - labelHeight / 2 - 5 - (offset * (labelHeight + 2)),
                 'dominant-baseline': 'central',
                 fill: '#333',
