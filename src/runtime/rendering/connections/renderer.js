@@ -207,6 +207,12 @@ function getConnectionRenderer() {
                     }
                 }
             });
+
+            // すべてのラベルを最前面に移動
+            const labels = svgLayer.querySelectorAll('.connection-label');
+            labels.forEach(label => {
+                svgLayer.appendChild(label);
+            });
         }
 
         function createCurvedLines(connections, nodePositions) {
@@ -540,6 +546,12 @@ function getConnectionRenderer() {
                 if (labelGroup) {
                     svgLayer.appendChild(labelGroup);
                 }
+            });
+
+            // すべてのラベルを最前面に移動
+            const labels = svgLayer.querySelectorAll('.connection-label');
+            labels.forEach(label => {
+                svgLayer.appendChild(label);
             });
         }
     `;
