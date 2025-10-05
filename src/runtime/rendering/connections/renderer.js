@@ -100,8 +100,8 @@ function getConnectionRenderer() {
         // 曲線パスを生成
         function createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, connFrom, connTo, fromNodeLeft) {
             const cornerRadius = 8;
-            let p1x = x1;
-            let p1y = y1;
+            const p1x = x1;
+            const p1y = y1;  // エッジの起点は常にノードの中心
             let p2x = verticalSegmentX;
             let p2y = y1;
             let p3x = p2x;
@@ -115,6 +115,10 @@ function getConnectionRenderer() {
                 p2x = p4x - minMargin;
                 p3x = p2x;
             }
+
+            // 衝突回避のためのY座標調整値
+            let adjustedY = p1y;
+            const transitionX = p1x + 30;  // ノードの右端から30px離れた位置で垂直移動
 
             // エッジ全体の経路でノードとの衝突をチェック
             // 始点ノードの左端から終点ノードの左端までの範囲で衝突を検出
@@ -131,24 +135,28 @@ function getConnectionRenderer() {
                     // 水平線のY座標を調整（ノードを避ける）
                     if (p1y < topMost) {
                         // 開始Y座標がすべてのノードより上の場合、さらに上に移動
-                        p1y = topMost - nodePadding;
-                        p2y = p1y;
+                        adjustedY = topMost - nodePadding;
                     } else if (p1y >= topMost && p1y <= bottomMost) {
                         // 開始Y座標がノードの範囲内の場合、最も下のノードの下を通過
-                        p1y = bottomMost + nodePadding;
-                        p2y = p1y;
+                        adjustedY = bottomMost + nodePadding;
                     }
 
                     if (window.DEBUG_CONNECTIONS) {
                         console.log('Edge path collision: edge=' + connFrom + '->' + connTo +
-                            ', nodes=' + pathIntersectingNodes.map(n => n.id).join(',') + ', adjusted Y=' + p1y);
+                            ', nodes=' + pathIntersectingNodes.map(n => n.id).join(',') + ', adjusted Y=' + adjustedY);
                     }
                 }
             }
 
-            // 最初の水平線セグメント(p1x,p1y)→(p2x,p2y)がラベルと衝突するかチェック
+            // 調整が必要な場合、p2yとp3yの開始点を更新
+            if (adjustedY !== p1y) {
+                p2y = adjustedY;
+                // p3yは元のy2のまま
+            }
+
+            // 最初の水平線セグメント(p1x,adjustedY)→(p2x,p2y)がラベルと衝突するかチェック
             if (labelBounds && labelBounds.length > 0) {
-                const avoidanceX = calculateHorizontalLineAvoidance(p1x, p2x, p1y, labelBounds);
+                const avoidanceX = calculateHorizontalLineAvoidance(p1x, p2x, adjustedY, labelBounds);
                 // ラベルの左側で垂直線を立ち上げる（子ノードより右側にならない範囲で）
                 if (avoidanceX !== null && avoidanceX > p1x && avoidanceX < p2x) {
                     // 通常のケース: ラベル回避のX座標が子ノードより左側なら適用
@@ -164,6 +172,22 @@ function getConnectionRenderer() {
                 }
             }
 
+            // Y座標の調整が必要な場合は、ノードの右端付近で垂直に移動するパスを生成
+            if (adjustedY !== p1y) {
+                // 起点から短い水平線、垂直移動、調整されたYで水平移動、垂直移動、終点へ
+                const shortHorizontal = transitionX;
+                if (Math.abs(p3y - p2y) > cornerRadius * 2) {
+                    if (p3y > p2y) {
+                        return \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
+                    } else {
+                        return \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
+                    }
+                } else {
+                    return \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
+                }
+            }
+
+            // Y座標の調整が不要な場合は通常のパス
             if (Math.abs(p3y - p2y) > cornerRadius * 2) {
                 if (p3y > p2y) {
                     return \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
