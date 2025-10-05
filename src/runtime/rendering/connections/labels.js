@@ -62,6 +62,39 @@ function getConnectionLabels() {
 
             labelGroup.appendChild(labelRect);
             labelGroup.appendChild(labelText);
+
+            // ラベルにクリックイベントを追加
+            labelGroup.style.cursor = 'pointer';
+            labelGroup.addEventListener('click', function(e) {
+                e.stopPropagation();
+
+                const fromNode = document.getElementById(conn.from);
+                const toNode = document.getElementById(conn.to);
+
+                // HTMLタグを除去してテキストのみ取得（<br/>を空白に、他のタグも除去）
+                const fromLabel = fromNode ? fromNode.getAttribute('data-label').replace(/<br\\s*\\/?>/gi, ' ').replace(/<[^>]*>/g, '') : conn.from;
+                const toLabel = toNode ? toNode.getAttribute('data-label').replace(/<br\\s*\\/?>/gi, ' ').replace(/<[^>]*>/g, '') : conn.to;
+
+                // エッジパスを探してハイライト
+                const edgePath = document.querySelector('path[data-from="' + conn.from + '"][data-to="' + conn.to + '"]');
+                if (edgePath) {
+                    // 既存のハイライトを解除
+                    document.querySelectorAll('.edge-highlighted').forEach(el => {
+                        el.classList.remove('edge-highlighted');
+                        el.style.stroke = '';
+                        el.style.strokeWidth = '';
+                    });
+
+                    // 新しいハイライトを適用
+                    edgePath.classList.add('edge-highlighted');
+                    edgePath.style.stroke = '#ff6b6b';
+                    edgePath.style.strokeWidth = '3';
+                }
+
+                // エッジ情報を表示
+                alert('エッジ: ' + fromLabel + ' → ' + toLabel + '\\nラベル: ' + conn.label);
+            });
+
             return labelGroup;
         }
     `;
