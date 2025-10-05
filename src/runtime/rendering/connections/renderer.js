@@ -5,7 +5,7 @@ function getConnectionRenderer() {
 
     return connectionArrows + connectionLabels + collisionDetector + `
         // 依存: svgHelpers (svg-helpers.js), getNodePosition, getNodeDimensions (layout-utils.js)
-        let useCurvedLines = false;
+        let useCurvedLines = true;
 
         window.toggleLineStyle = function() {
             useCurvedLines = !useCurvedLines;
