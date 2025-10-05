@@ -105,44 +105,44 @@ function getVerticalSegmentCalculator() {
             ) {
                 const parentVerticalSegmentX = {};
 
+                // 階層ごとに親をグループ化
+                const parentsByDepth = {};
                 Object.keys(parentChildrenYRanges).forEach(parentId => {
                     const firstEdge = edgeInfos.find(e => e.conn.from === parentId && !e.is1to1Horizontal);
                     if (!firstEdge) return;
 
                     const depth = firstEdge.depth;
-                    const x1 = firstEdge.x1;
-                    const x2 = firstEdge.x2;
+                    if (!parentsByDepth[depth]) {
+                        parentsByDepth[depth] = [];
+                    }
+                    parentsByDepth[depth].push({
+                        parentId: parentId,
+                        yPosition: parentYPositions[parentId] || 0,
+                        x1: firstEdge.x1,
+                        x2: firstEdge.x2
+                    });
+                });
 
-                    // この階層内での親のランクを計算
-                    const parentsAtThisDepth = edgeInfos
-                        .filter(e => e.depth === depth && !e.is1to1Horizontal)
-                        .map(e => e.conn.from)
-                        .filter((v, i, a) => a.indexOf(v) === i)
-                        .sort((a, b) => (parentYPositions[a] || 0) - (parentYPositions[b] || 0));
+                // 階層ごとに等間隔配置を計算
+                Object.keys(parentsByDepth).forEach(depth => {
+                    const parents = parentsByDepth[depth];
 
-                    const parentRankInDepth = parentsAtThisDepth.indexOf(parentId);
-                    const totalParentsInDepth = parentsAtThisDepth.length;
-                    const basePreference = totalParentsInDepth - 1 - parentRankInDepth;
-                    const preferredLane = basePreference * 3;
+                    // Y座標でソート（上から下）
+                    parents.sort((a, b) => a.yPosition - b.yPosition);
 
-                    const childrenRange = parentChildrenYRanges[parentId];
-                    const assignedLane = this._findBestLaneForParent(
-                        parentId,
-                        depth,
-                        childrenRange.yMin,
-                        childrenRange.yMax,
-                        preferredLane,
-                        lanesByDepth,
-                        parentAssignedLanes
-                    );
-
-                    const maxParentRight = depthMaxParentRight[depth] || x1;
-                    const minChildLeft = depthMinChildLeft[depth] || x2;
+                    const totalParentsInDepth = parents.length;
+                    const maxParentRight = depthMaxParentRight[depth] || parents[0].x1;
+                    const minChildLeft = depthMinChildLeft[depth] || parents[0].x2;
                     const availableWidth = Math.max(minChildLeft - maxParentRight - minOffset * 2, 50);
-                    const maxLanes = Math.max(totalParentsInDepth * 3, 10);
-                    const laneSpacing = Math.max(5, Math.min(laneWidth, availableWidth / maxLanes));
 
-                    parentVerticalSegmentX[parentId] = maxParentRight + minOffset + (assignedLane * laneSpacing);
+                    // 親の数で等分してレーン間隔を計算（+1で割って端のマージンを確保）
+                    const laneSpacing = availableWidth / (totalParentsInDepth + 1);
+
+                    // 各親に等間隔でX座標を割り当て（上から下へ順に、右から左へ配置）
+                    parents.forEach((parent, index) => {
+                        const positionIndex = index;
+                        parentVerticalSegmentX[parent.parentId] = maxParentRight + minOffset + ((totalParentsInDepth - positionIndex) * laneSpacing);
+                    });
                 });
 
                 return parentVerticalSegmentX;
