@@ -65,6 +65,7 @@ function getConnectionLabels() {
 
             // ラベルにクリックイベントを追加
             labelGroup.style.cursor = 'pointer';
+            labelGroup.style.pointerEvents = 'auto';
             labelGroup.addEventListener('click', function(e) {
                 e.stopPropagation();
 
