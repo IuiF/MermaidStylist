@@ -89,13 +89,19 @@ function getPathHighlighter() {
                     }
                 });
 
+                // エッジを最前面に移動（edge-highlighter機能を使用）
+                const connectionsArray = Array.from(pathConnections).map(connKey => {
+                    const [from, to] = connKey.split('->');
+                    return { from, to };
+                });
+                window.edgeHighlighter.bringMultipleToFront(connectionsArray);
+
+                // CSSクラスを追加
                 pathConnections.forEach(connKey => {
                     const elements = edgeElementsByConnection.get(connKey);
                     if (elements) {
                         elements.forEach(element => {
                             element.classList.add('path-highlighted-line');
-                            // エッジを最前面に移動（親子関係表示と同じアプローチ）
-                            element.parentNode.appendChild(element);
                         });
                     }
                 });
