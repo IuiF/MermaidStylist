@@ -98,7 +98,7 @@ function getConnectionRenderer() {
         }
 
         // 曲線パスを生成
-        function createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, connFrom, connTo, fromNodeLeft) {
+        function createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, connFrom, connTo, fromNodeLeft, finalVerticalX) {
             const cornerRadius = 8;
             const p1x = x1;
             const p1y = y1;  // エッジの起点は常にノードの中心
@@ -106,7 +106,7 @@ function getConnectionRenderer() {
             let p2y = y1;
             let p3x = p2x;
             let p3y = y2;
-            const p4x = x2;
+            const p4x = finalVerticalX !== undefined ? finalVerticalX : x2;
             let p4y = y2;
 
             // 垂直線のX座標が子ノードより右側になる場合は制限
@@ -219,31 +219,31 @@ function getConnectionRenderer() {
                         const basePath = \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y}\`;
                         if (canCurveFinalVertical) {
                             if (p3y > p4y) {
-                                return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y - cornerRadius} L \${p4x} \${p4y}\`;
+                                return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y - cornerRadius} L \${p4x} \${p4y} L \${x2} \${p4y}\`;
                             } else {
-                                return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y + cornerRadius} L \${p4x} \${p4y}\`;
+                                return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y + cornerRadius} L \${p4x} \${p4y} L \${x2} \${p4y}\`;
                             }
                         } else if (needsFinalVertical) {
-                            return \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\`;
+                            return \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y} L \${x2} \${p4y}\`;
                         } else {
-                            return \`\${basePath} L \${p4x} \${p4y}\`;
+                            return \`\${basePath} L \${x2} \${p4y}\`;
                         }
                     } else {
                         const basePath = \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y}\`;
                         if (canCurveFinalVertical) {
                             if (p3y > p4y) {
-                                return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y - cornerRadius} L \${p4x} \${p4y}\`;
+                                return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y - cornerRadius} L \${p4x} \${p4y} L \${x2} \${p4y}\`;
                             } else {
-                                return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y + cornerRadius} L \${p4x} \${p4y}\`;
+                                return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y + cornerRadius} L \${p4x} \${p4y} L \${x2} \${p4y}\`;
                             }
                         } else if (needsFinalVertical) {
-                            return \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\`;
+                            return \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y} L \${x2} \${p4y}\`;
                         } else {
-                            return \`\${basePath} L \${p4x} \${p4y}\`;
+                            return \`\${basePath} L \${x2} \${p4y}\`;
                         }
                     }
                 } else {
-                    return needsFinalVertical ? \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p3y} L \${p4x} \${p4y}\` : \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
+                    return needsFinalVertical ? \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p3y} L \${p4x} \${p4y} L \${x2} \${p4y}\` : \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${x2} \${p4y}\`;
                 }
             }
 
@@ -258,32 +258,32 @@ function getConnectionRenderer() {
                     if (canCurveFinalVertical) {
                         // p3y と p4y の関係に応じてカーブの向きを決定
                         if (p3y > p4y) {
-                            return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y - cornerRadius} L \${p4x} \${p4y}\`;
+                            return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y - cornerRadius} L \${p4x} \${p4y} L \${x2} \${p4y}\`;
                         } else {
-                            return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y + cornerRadius} L \${p4x} \${p4y}\`;
+                            return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y + cornerRadius} L \${p4x} \${p4y} L \${x2} \${p4y}\`;
                         }
                     } else if (needsFinalVertical) {
-                        return \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\`;
+                        return \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y} L \${x2} \${p4y}\`;
                     } else {
-                        return \`\${basePath} L \${p4x} \${p4y}\`;
+                        return \`\${basePath} L \${x2} \${p4y}\`;
                     }
                 } else {
                     const basePath = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y}\`;
                     if (canCurveFinalVertical) {
                         // p3y と p4y の関係に応じてカーブの向きを決定
                         if (p3y > p4y) {
-                            return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y - cornerRadius} L \${p4x} \${p4y}\`;
+                            return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y - cornerRadius} L \${p4x} \${p4y} L \${x2} \${p4y}\`;
                         } else {
-                            return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y + cornerRadius} L \${p4x} \${p4y}\`;
+                            return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y + cornerRadius} L \${p4x} \${p4y} L \${x2} \${p4y}\`;
                         }
                     } else if (needsFinalVertical) {
-                        return \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\`;
+                        return \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y} L \${x2} \${p4y}\`;
                     } else {
-                        return \`\${basePath} L \${p4x} \${p4y}\`;
+                        return \`\${basePath} L \${x2} \${p4y}\`;
                     }
                 }
             } else {
-                return needsFinalVertical ? \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p3y} L \${p4x} \${p4y}\` : \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
+                return needsFinalVertical ? \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p3y} L \${p4x} \${p4y} L \${x2} \${p4y}\` : \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${x2} \${p4y}\`;
             }
         }
 
@@ -626,6 +626,36 @@ function getConnectionRenderer() {
                 range.yMax = Math.max(range.yMax, info.y2);
             });
 
+            // 同じノードに入るエッジをグループ化
+            const edgesByTarget = {};
+            edgeInfos.forEach(edgeInfo => {
+                const target = edgeInfo.conn.to;
+                if (!edgesByTarget[target]) {
+                    edgesByTarget[target] = [];
+                }
+                edgesByTarget[target].push(edgeInfo);
+            });
+
+            // 各ターゲットノードに対して、エッジの順序を決定
+            const edgeToFinalVerticalX = {};
+            Object.keys(edgesByTarget).forEach(target => {
+                const edges = edgesByTarget[target];
+                if (edges.length > 1) {
+                    // 複数のエッジがある場合、X座標で分散
+                    const toElement = svgHelpers.getNodeElement(target);
+                    if (toElement) {
+                        const toPos = getNodePosition(toElement);
+                        const nodeWidth = toPos.width || 100;
+                        const spacing = Math.min(20, nodeWidth / (edges.length + 1));
+
+                        edges.forEach((edge, index) => {
+                            const offset = spacing * (index + 1);
+                            edgeToFinalVerticalX[edge.conn.from + '->' + edge.conn.to] = toPos.left + offset;
+                        });
+                    }
+                }
+            });
+
             let connectionCount = 0;
 
             edgeInfos.forEach(edgeInfo => {
@@ -711,7 +741,9 @@ function getConnectionRenderer() {
 
                 // パスデータを生成
                 const fromPos = getNodePosition(fromElement);
-                const pathData = createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, conn.from, conn.to, fromPos.left);
+                const edgeKey = conn.from + '->' + conn.to;
+                const finalVerticalX = edgeToFinalVerticalX[edgeKey];
+                const pathData = createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, conn.from, conn.to, fromPos.left, finalVerticalX);
 
                 const path = svgHelpers.createPath(pathData, {
                     class: conn.isDashed ? 'connection-line dashed-edge' : 'connection-line',
