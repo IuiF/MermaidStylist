@@ -120,11 +120,12 @@ function getConnectionRenderer() {
             let adjustedY = p1y;
             const transitionX = p1x + 30;  // ノードの右端から30px離れた位置で垂直移動
 
-            // エッジ全体の経路でノードとの衝突をチェック
-            // 始点ノードの左端から終点ノードの左端までの範囲で衝突を検出
+            // 最初の水平線セグメント（親ノードの範囲）でノードとの衝突をチェック
+            // 親ノードの左端からverticalSegmentXまでの水平線がノードと重なるかを確認
             if (nodeBounds && nodeBounds.length > 0) {
                 const checkFromX = fromNodeLeft !== undefined ? fromNodeLeft : p1x;
-                const pathIntersectingNodes = checkEdgePathIntersectsNodes(checkFromX, p1y, p4x, p4y, nodeBounds);
+                const checkToX = p2x;
+                const pathIntersectingNodes = checkEdgePathIntersectsNodes(checkFromX, p1y, checkToX, p1y, nodeBounds);
                 if (pathIntersectingNodes.length > 0) {
                     const nodePadding = 40;
 
@@ -148,10 +149,9 @@ function getConnectionRenderer() {
                 }
             }
 
-            // 調整が必要な場合、p2yとp3yの開始点を更新
+            // 調整が必要な場合、p2yを更新
             if (adjustedY !== p1y) {
                 p2y = adjustedY;
-                // p3yは元のy2のまま
             }
 
             // 最初の水平線セグメント(p1x,adjustedY)→(p2x,p2y)がラベルと衝突するかチェック
