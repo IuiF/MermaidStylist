@@ -98,7 +98,7 @@ function getConnectionRenderer() {
         }
 
         // 曲線パスを生成
-        function createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, connFrom, connTo) {
+        function createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, connFrom, connTo, fromNodeLeft) {
             const cornerRadius = 8;
             let p1x = x1;
             let p1y = y1;
@@ -116,30 +116,32 @@ function getConnectionRenderer() {
                 p3x = p2x;
             }
 
-            // 最初の水平線セグメント(p1x,p1y)→(p2x,p2y)がノードと衝突するかチェック
+            // エッジ全体の経路でノードとの衝突をチェック
+            // 始点ノードの左端から終点ノードの左端までの範囲で衝突を検出
             if (nodeBounds && nodeBounds.length > 0) {
-                const intersectingNodes = checkHorizontalLineIntersectsNode(p1x, p2x, p1y, nodeBounds);
-                if (intersectingNodes.length > 0) {
-                    // すべての衝突ノードを考慮してY座標を調整
+                const checkFromX = fromNodeLeft !== undefined ? fromNodeLeft : p1x;
+                const pathIntersectingNodes = checkEdgePathIntersectsNodes(checkFromX, p1y, p4x, p4y, nodeBounds);
+                if (pathIntersectingNodes.length > 0) {
                     const nodePadding = 40;
 
                     // すべての衝突ノードの中で最も上と最も下を見つける
-                    const topMost = Math.min(...intersectingNodes.map(n => n.top));
-                    const bottomMost = Math.max(...intersectingNodes.map(n => n.bottom));
+                    const topMost = Math.min(...pathIntersectingNodes.map(n => n.top));
+                    const bottomMost = Math.max(...pathIntersectingNodes.map(n => n.bottom));
 
+                    // 水平線のY座標を調整（ノードを避ける）
                     if (p1y < topMost) {
-                        // 水平線がすべてのノードより上にある場合、さらに上に移動
+                        // 開始Y座標がすべてのノードより上の場合、さらに上に移動
                         p1y = topMost - nodePadding;
                         p2y = p1y;
-                    } else {
-                        // 水平線がノードと重なっている場合、最も下のノードの下を通過
+                    } else if (p1y >= topMost && p1y <= bottomMost) {
+                        // 開始Y座標がノードの範囲内の場合、最も下のノードの下を通過
                         p1y = bottomMost + nodePadding;
                         p2y = p1y;
                     }
 
                     if (window.DEBUG_CONNECTIONS) {
-                        console.log('Horizontal line collision: edge=' + connFrom + '->' + connTo +
-                            ', nodes=' + intersectingNodes.map(n => n.id).join(',') + ', adjusted Y=' + p1y);
+                        console.log('Edge path collision: edge=' + connFrom + '->' + connTo +
+                            ', nodes=' + pathIntersectingNodes.map(n => n.id).join(',') + ', adjusted Y=' + p1y);
                     }
                 }
             }
@@ -596,7 +598,8 @@ function getConnectionRenderer() {
                 }
 
                 // パスデータを生成
-                const pathData = createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, conn.from, conn.to);
+                const fromPos = getNodePosition(fromElement);
+                const pathData = createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, conn.from, conn.to, fromPos.left);
 
                 const path = svgHelpers.createPath(pathData, {
                     class: conn.isDashed ? 'connection-line dashed-edge' : 'connection-line',

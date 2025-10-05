@@ -93,6 +93,27 @@ function getCollisionDetector() {
             return null;
         }
 
+        // エッジの経路全体でノードとの衝突をチェック（X範囲とY範囲の両方を考慮）
+        function checkEdgePathIntersectsNodes(x1, y1, x2, y2, nodeBounds) {
+            const xMin = Math.min(x1, x2);
+            const xMax = Math.max(x1, x2);
+            const yMin = Math.min(y1, y2);
+            const yMax = Math.max(y1, y2);
+            const collisionPadding = 40; // ノードとの最小距離
+            const intersectingNodes = [];
+
+            for (const node of nodeBounds) {
+                // エッジのバウンディングボックスとノードのバウンディングボックスが重なるかチェック
+                const xOverlap = !(xMax < node.left - collisionPadding || xMin > node.right + collisionPadding);
+                const yOverlap = !(yMax < node.top - collisionPadding || yMin > node.bottom + collisionPadding);
+
+                if (xOverlap && yOverlap) {
+                    intersectingNodes.push(node);
+                }
+            }
+            return intersectingNodes;
+        }
+
         // 水平線がノードと交差するかチェック（すべての衝突ノードを返す）
         function checkHorizontalLineIntersectsNode(x1, x2, y, nodeBounds) {
             const xMin = Math.min(x1, x2);
