@@ -431,14 +431,12 @@ function getConnectionRenderer() {
             // 親ごとの接続をソート
             const connectionsByParent = sortConnectionsByParent(connections);
 
-            // パス1: すべての接続の情報を収集
+            // パス1: すべての接続の情報を収集（可視性に関係なく）
             connections.forEach(conn => {
                 const fromElement = svgHelpers.getNodeElement(conn.from);
                 const toElement = svgHelpers.getNodeElement(conn.to);
 
-                if (!fromElement || !toElement ||
-                    fromElement.classList.contains('hidden') ||
-                    toElement.classList.contains('hidden')) {
+                if (!fromElement || !toElement) {
                     if (window.DEBUG_CONNECTIONS && conn.isDashed) {
                         console.log('  - Skipping dashed edge: ' + conn.from + ' --> ' + conn.to +
                             ' fromElement: ' + !!fromElement + ' toElement: ' + !!toElement);
@@ -667,6 +665,24 @@ function getConnectionRenderer() {
                 parentVerticalSegmentX[parentId] = maxParentRight + minOffset + (assignedLane * laneSpacing);
             });
 
+            // 親ごとに各エッジの衝突回避オフセットを計算し、最大値を採用
+            const parentMaxOffset = {};
+            Object.keys(parentVerticalSegmentX).forEach(parentId => {
+                const baseVerticalX = parentVerticalSegmentX[parentId];
+                let maxOffset = 0;
+
+                // この親のすべてのエッジに対してオフセットを計算
+                edgeInfos.filter(e => e.conn.from === parentId && !e.is1to1Horizontal).forEach(edgeInfo => {
+                    const nodeBounds = getAllNodeBounds(edgeInfo.conn.from, edgeInfo.conn.to);
+                    const nodeOffset = calculateNodeAvoidanceOffset(baseVerticalX, edgeInfo.y1, edgeInfo.y2, nodeBounds, edgeInfo.conn.from, edgeInfo.conn.to);
+                    const labelOffset = calculateLabelAvoidanceOffset(baseVerticalX + nodeOffset, edgeInfo.y1, edgeInfo.y2, labelBounds, edgeInfo.conn.from, edgeInfo.conn.to);
+                    const totalOffset = nodeOffset + labelOffset;
+                    maxOffset = Math.max(maxOffset, totalOffset);
+                });
+
+                parentMaxOffset[parentId] = maxOffset;
+            });
+
             // 同じノードに入るエッジをグループ化
             const edgesByTarget = {};
             edgeInfos.forEach(edgeInfo => {
@@ -701,6 +717,13 @@ function getConnectionRenderer() {
             edgeInfos.forEach(edgeInfo => {
                 const { conn, x1, y1, x2, y2, yMin, yMax, siblingIndex, siblingCount, depth, is1to1, is1to1Horizontal } = edgeInfo;
 
+                // 可視性チェック：非表示エッジはスキップ
+                const fromElement = svgHelpers.getNodeElement(conn.from);
+                const toElement = svgHelpers.getNodeElement(conn.to);
+                if (fromElement.classList.contains('hidden') || toElement.classList.contains('hidden')) {
+                    return;
+                }
+
                 // 真横の1:1親子関係は直線で描画
                 if (is1to1Horizontal) {
                     const line = svgHelpers.createLine({
@@ -729,27 +752,13 @@ function getConnectionRenderer() {
                     connectionCount++;
                     return;
                 }
-                const fromElement = svgHelpers.getNodeElement(conn.from);
-                const toElement = svgHelpers.getNodeElement(conn.to);
 
-                // 事前に計算した親のverticalSegmentXを使用
-                let verticalSegmentX = parentVerticalSegmentX[conn.from] || x1 + 50;
-
-                // ノードとの衝突を考慮してオフセットを追加
-                const nodeBounds = getAllNodeBounds(conn.from, conn.to);
-                const nodeOffset = calculateNodeAvoidanceOffset(verticalSegmentX, y1, y2, nodeBounds, conn.from, conn.to);
-                if (nodeOffset > 0) {
-                    verticalSegmentX += nodeOffset;
-                }
-
-                // ラベルとの衝突を考慮してオフセットを追加
-                const labelOffset = calculateLabelAvoidanceOffset(verticalSegmentX, y1, y2, labelBounds, conn.from, conn.to);
-                if (labelOffset > 0) {
-                    verticalSegmentX += labelOffset;
-                }
+                // 事前に計算した親のverticalSegmentX（衝突回避オフセット込み）を使用
+                let verticalSegmentX = (parentVerticalSegmentX[conn.from] || x1 + 50) + (parentMaxOffset[conn.from] || 0);
 
                 // パスデータを生成
                 const fromPos = getNodePosition(fromElement);
+                const nodeBounds = getAllNodeBounds(conn.from, conn.to);
                 const edgeKey = conn.from + '->' + conn.to;
                 const finalVerticalX = edgeToFinalVerticalX[edgeKey];
                 const pathData = createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, conn.from, conn.to, fromPos.left, finalVerticalX);
