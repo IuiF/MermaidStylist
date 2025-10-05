@@ -19,11 +19,33 @@ function getEdgeHighlighter() {
                     edgePath.style.strokeWidth = '3';
 
                     // エッジを最上レイヤーに移動
-                    const parent = edgePath.parentNode;
-                    if (parent) {
-                        parent.appendChild(edgePath);
-                    }
+                    this.bringToFront(fromId, toId);
                 }
+            },
+
+            /**
+             * エッジを最上レイヤーに移動（色変更なし）
+             * @param {string} fromId - 開始ノードID
+             * @param {string} toId - 終了ノードID
+             */
+            bringToFront: function(fromId, toId) {
+                // ラインと矢印の両方を取得して最前面に移動
+                const edgeElements = document.querySelectorAll('.connection-line[data-from="' + fromId + '"][data-to="' + toId + '"], .connection-arrow[data-from="' + fromId + '"][data-to="' + toId + '"]');
+                edgeElements.forEach(edgeElement => {
+                    if (edgeElement && edgeElement.parentNode) {
+                        edgeElement.parentNode.appendChild(edgeElement);
+                    }
+                });
+            },
+
+            /**
+             * 複数のエッジを最上レイヤーに移動
+             * @param {Array} connections - 接続情報の配列 [{from, to}, ...]
+             */
+            bringMultipleToFront: function(connections) {
+                connections.forEach(conn => {
+                    this.bringToFront(conn.from, conn.to);
+                });
             },
 
             /**
