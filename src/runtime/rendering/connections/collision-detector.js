@@ -59,11 +59,6 @@ function getCollisionDetector() {
             // この経路と交差するラベルを見つける
             const intersectingLabels = [];
             for (const label of labelBounds) {
-                // 自分自身のラベルはスキップ
-                if (label.from === edgeFrom && label.to === edgeTo) {
-                    continue;
-                }
-
                 // 垂直線のX座標がラベルの範囲内にあるかチェック
                 if (x >= label.left - collisionPadding && x <= label.right + collisionPadding) {
                     // 垂直線のY範囲がラベルと重なるかチェック
