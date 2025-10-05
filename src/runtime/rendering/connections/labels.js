@@ -37,11 +37,11 @@ function getConnectionLabels() {
                 'data-from': conn.from
             });
 
-            const labelVerticalSpacing = 10; // ラベル間の縦方向スペース
+            const labelVerticalSpacing = 3; // ラベル間の縦方向スペース
 
             const labelRect = svgHelpers.createRect({
                 x: toLeft,
-                y: toTop - labelHeight - 5 - (offset * (labelHeight + labelVerticalSpacing)),
+                y: toTop - labelHeight - 2 - (offset * (labelHeight + labelVerticalSpacing)),
                 width: labelWidth,
                 height: labelHeight,
                 fill: '#fff',
@@ -53,7 +53,7 @@ function getConnectionLabels() {
 
             const labelText = svgHelpers.createText(conn.label, {
                 x: toLeft + labelPadding,
-                y: toTop - labelHeight / 2 - 5 - (offset * (labelHeight + labelVerticalSpacing)),
+                y: toTop - labelHeight / 2 - 2 - (offset * (labelHeight + labelVerticalSpacing)),
                 'dominant-baseline': 'central',
                 fill: '#333',
                 'font-size': '11',
