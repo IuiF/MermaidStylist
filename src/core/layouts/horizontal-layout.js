@@ -72,62 +72,47 @@ function getHorizontalLayout() {
                         const parents = connections.filter(conn => conn.to === node.id).map(conn => conn.from);
 
                         if (parents.length > 0) {
-                            // 複数の親を持つ場合、最も階層が浅い（ルートに近い）親を優先
+                            // 複数の親を持つ場合、配置後のY座標が最小になる親を選択
                             let selectedParent = null;
-                            let minParentLevel = Infinity;
-                            let maxParentY = -1;
+                            let minResultY = Infinity;
 
                             for (const parentId of parents) {
                                 if (nodePositions.has(parentId)) {
-                                    // 親の階層を取得
-                                    let parentLevel = -1;
-                                    for (let i = 0; i < treeStructure.levels.length; i++) {
-                                        if (treeStructure.levels[i].some(n => n.id === parentId)) {
-                                            parentLevel = i;
-                                            break;
-                                        }
-                                    }
-
                                     const parentPos = nodePositions.get(parentId);
+                                    const siblings = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
+                                    const nodeSpacing = calculateNodeSpacing(node.id, connections);
 
-                                    // 階層が浅い親を優先、同じ階層ならY座標が大きい親を選択
-                                    if (parentLevel < minParentLevel ||
-                                        (parentLevel === minParentLevel && parentPos.y > maxParentY)) {
-                                        minParentLevel = parentLevel;
-                                        maxParentY = parentPos.y;
+                                    // この親を選択した場合の配置Y座標を計算
+                                    let candidateY = parentPos.y;
+
+                                    // 全ての兄弟の下に配置
+                                    siblings.forEach(siblingId => {
+                                        if (siblingId !== node.id && nodePositions.has(siblingId)) {
+                                            const siblingPos = nodePositions.get(siblingId);
+                                            const siblingSpacing = calculateNodeSpacing(siblingId, connections);
+                                            candidateY = Math.max(candidateY, siblingPos.y + siblingPos.height + siblingSpacing);
+                                        }
+                                    });
+
+                                    candidateY = Math.max(candidateY, currentY);
+
+                                    // 最もY座標が小さくなる親を選択
+                                    if (candidateY < minResultY) {
+                                        minResultY = candidateY;
                                         selectedParent = parentId;
                                     }
                                 }
                             }
 
                             if (selectedParent) {
-                                const parentPos = nodePositions.get(selectedParent);
-
-                                // 選択された親の子ノードのみを兄弟として扱う
-                                const siblings = connections.filter(conn => conn.from === selectedParent).map(conn => conn.to);
-
-                                // 複数の親を持つ場合は親の下に、単一の親なら親と同じ高さから
+                                // 既に計算済みの最適Y座標を使用
                                 const nodeSpacing = calculateNodeSpacing(node.id, connections);
-                                let startY = parents.length > 1
-                                    ? parentPos.y + parentPos.height + nodeSpacing
-                                    : parentPos.y;
 
-                                // 全ての兄弟（自分を除く）の中で最も下にあるノードの下に配置
-                                siblings.forEach(siblingId => {
-                                    if (siblingId !== node.id && nodePositions.has(siblingId)) {
-                                        const siblingPos = nodePositions.get(siblingId);
-                                        const siblingSpacing = calculateNodeSpacing(siblingId, connections);
-                                        startY = Math.max(startY, siblingPos.y + siblingPos.height + siblingSpacing);
-                                    }
-                                });
-
-                                startY = Math.max(startY, currentY);
-
-                                setNodePosition(element, levelX, startY);
+                                setNodePosition(element, levelX, minResultY);
                                 const dimensions = getNodeDimensions(element);
-                                nodePositions.set(node.id, { x: levelX, y: startY, width: dimensions.width, height: dimensions.height });
+                                nodePositions.set(node.id, { x: levelX, y: minResultY, width: dimensions.width, height: dimensions.height });
 
-                                currentY = Math.max(currentY, startY + dimensions.height + nodeSpacing);
+                                currentY = Math.max(currentY, minResultY + dimensions.height + nodeSpacing);
                             } else {
                                 const nodeSpacing = calculateNodeSpacing(node.id, connections);
                                 setNodePosition(element, levelX, currentY);
@@ -256,6 +241,10 @@ function getHorizontalLayout() {
 
                                 // このノードがfromとtoの間の階層にあるかチェック
                                 if (fromLevel === -1 || toLevel === -1 || fromLevel >= levelIndex || toLevel <= levelIndex) return;
+
+                                // 長距離エッジ（階層差が3以上）は除外：大きなシフトを防ぐ
+                                const levelSpan = toLevel - fromLevel;
+                                if (levelSpan >= 3) return;
 
                                 // エッジの経路のY座標範囲を計算
                                 const edgeMinY = Math.min(fromPos.y, toPos.y);
