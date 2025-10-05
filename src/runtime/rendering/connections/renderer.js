@@ -110,12 +110,7 @@ function getConnectionRenderer() {
             const p4x = finalVerticalX !== undefined ? finalVerticalX : x2;
             let p4y = y2;
 
-            // 垂直線のX座標が子ノードより右側になる場合は制限
-            const minMargin = 20;
-            if (p2x > p4x - minMargin) {
-                p2x = p4x - minMargin;
-                p3x = p2x;
-            }
+            // 垂直線のX座標制限は親ごとに事前計算済み（parentFinalVerticalSegmentX）
 
             // 衝突回避のためのY座標調整値
             let adjustedY = p1y;
@@ -544,7 +539,7 @@ function getConnectionRenderer() {
             });
 
             // 垂直セグメントX座標を計算（統一モジュールを使用）
-            const parentFinalVerticalSegmentX = verticalSegmentCalculator.calculate(edgeInfos, {
+            let parentFinalVerticalSegmentX = verticalSegmentCalculator.calculate(edgeInfos, {
                 parentYPositions: parentYPositions,
                 depthMaxParentRight: depthMaxParentRight,
                 depthMinChildLeft: depthMinChildLeft,
@@ -582,6 +577,32 @@ function getConnectionRenderer() {
                             edgeToFinalVerticalX[edge.conn.from + '->' + edge.conn.to] = toPos.left - offset;
                         });
                     }
+                }
+            });
+
+            // 親ごとの最小finalVerticalXを計算し、verticalSegmentXを制限
+            const minMargin = 20;
+            Object.keys(parentFinalVerticalSegmentX).forEach(parentId => {
+                // この親のすべてのエッジのfinalVerticalXを取得
+                const parentEdges = edgeInfos.filter(e => e.conn.from === parentId && !e.is1to1Horizontal);
+                if (parentEdges.length === 0) return;
+
+                // 最も左側のfinalVerticalXを見つける
+                let minFinalVerticalX = Infinity;
+                parentEdges.forEach(edgeInfo => {
+                    const edgeKey = edgeInfo.conn.from + '->' + edgeInfo.conn.to;
+                    const finalX = edgeToFinalVerticalX[edgeKey];
+                    if (finalX !== undefined) {
+                        minFinalVerticalX = Math.min(minFinalVerticalX, finalX);
+                    } else {
+                        // finalVerticalXが設定されていない場合は、ターゲットノードの左端を使用
+                        minFinalVerticalX = Math.min(minFinalVerticalX, edgeInfo.x2);
+                    }
+                });
+
+                // verticalSegmentXが最も左側のfinalVerticalXより右にならないように制限
+                if (parentFinalVerticalSegmentX[parentId] > minFinalVerticalX - minMargin) {
+                    parentFinalVerticalSegmentX[parentId] = minFinalVerticalX - minMargin;
                 }
             });
 
