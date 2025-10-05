@@ -404,10 +404,13 @@ function getConnectionRenderer() {
             // ラベルオフセットをリセット
             labelOffsets = {};
 
-            // パス0: 最初にすべてのラベルを描画
+            // パス0: 最初にすべてのラベルを描画（可視エッジのみ）
             connections.forEach(conn => {
+                const fromElement = svgHelpers.getNodeElement(conn.from);
                 const toElement = svgHelpers.getNodeElement(conn.to);
-                if (toElement && !toElement.classList.contains('hidden')) {
+                if (fromElement && toElement &&
+                    !fromElement.classList.contains('hidden') &&
+                    !toElement.classList.contains('hidden')) {
                     const labelGroup = createConnectionLabel(conn, toElement);
                     if (labelGroup) {
                         svgLayer.appendChild(labelGroup);
