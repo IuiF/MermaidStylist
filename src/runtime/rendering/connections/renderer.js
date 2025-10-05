@@ -118,27 +118,28 @@ function getConnectionRenderer() {
 
             // 最初の水平線セグメント(p1x,p1y)→(p2x,p2y)がノードと衝突するかチェック
             if (nodeBounds && nodeBounds.length > 0) {
-                const intersectingNode = checkHorizontalLineIntersectsNode(p1x, p2x, p1y, nodeBounds);
-                if (intersectingNode) {
-                    // ノードの下または上を通過するようにY座標を調整
+                const intersectingNodes = checkHorizontalLineIntersectsNode(p1x, p2x, p1y, nodeBounds);
+                if (intersectingNodes.length > 0) {
+                    // すべての衝突ノードを考慮してY座標を調整
                     const nodePadding = 40;
-                    if (p1y < intersectingNode.top) {
-                        // 水平線がノードより上にある場合、さらに上に移動
-                        p1y = intersectingNode.top - nodePadding;
-                        p2y = p1y;
-                    } else if (p1y > intersectingNode.bottom) {
-                        // 水平線がノードより下にある場合、さらに下に移動
-                        p1y = intersectingNode.bottom + nodePadding;
+
+                    // すべての衝突ノードの中で最も上と最も下を見つける
+                    const topMost = Math.min(...intersectingNodes.map(n => n.top));
+                    const bottomMost = Math.max(...intersectingNodes.map(n => n.bottom));
+
+                    if (p1y < topMost) {
+                        // 水平線がすべてのノードより上にある場合、さらに上に移動
+                        p1y = topMost - nodePadding;
                         p2y = p1y;
                     } else {
-                        // 水平線がノードと重なっている場合、ノードの下を通過
-                        p1y = intersectingNode.bottom + nodePadding;
+                        // 水平線がノードと重なっている場合、最も下のノードの下を通過
+                        p1y = bottomMost + nodePadding;
                         p2y = p1y;
                     }
 
                     if (window.DEBUG_CONNECTIONS) {
                         console.log('Horizontal line collision: edge=' + connFrom + '->' + connTo +
-                            ', node=' + intersectingNode.id + ', adjusted Y=' + p1y);
+                            ', nodes=' + intersectingNodes.map(n => n.id).join(',') + ', adjusted Y=' + p1y);
                     }
                 }
             }

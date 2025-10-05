@@ -93,22 +93,23 @@ function getCollisionDetector() {
             return null;
         }
 
-        // 水平線がノードと交差するかチェック
+        // 水平線がノードと交差するかチェック（すべての衝突ノードを返す）
         function checkHorizontalLineIntersectsNode(x1, x2, y, nodeBounds) {
             const xMin = Math.min(x1, x2);
             const xMax = Math.max(x1, x2);
             const collisionPadding = 40; // ノードとの最小距離
+            const intersectingNodes = [];
 
             for (const node of nodeBounds) {
                 // 水平線のY座標がノードの範囲内にあるかチェック
                 if (y >= node.top - collisionPadding && y <= node.bottom + collisionPadding) {
                     // 水平線のX範囲がノードと重なるかチェック
                     if (!(xMax < node.left - collisionPadding || xMin > node.right + collisionPadding)) {
-                        return node;
+                        intersectingNodes.push(node);
                     }
                 }
             }
-            return null;
+            return intersectingNodes;
         }
 
         // 水平線がラベルと交差するかチェック
