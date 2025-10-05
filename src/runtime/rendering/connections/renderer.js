@@ -109,13 +109,28 @@ function getConnectionRenderer() {
             const p4x = x2;
             const p4y = y2;
 
+            // 垂直線のX座標が子ノードより右側になる場合は制限
+            const minMargin = 20;
+            if (p2x > p4x - minMargin) {
+                p2x = p4x - minMargin;
+                p3x = p2x;
+            }
+
             // 最初の水平線セグメント(p1x,p1y)→(p2x,p2y)がラベルと衝突するかチェック
             if (labelBounds && labelBounds.length > 0) {
                 const avoidanceX = calculateHorizontalLineAvoidance(p1x, p2x, p1y, labelBounds);
+                // ラベルの左側で垂直線を立ち上げる（子ノードより右側にならない範囲で）
                 if (avoidanceX !== null && avoidanceX > p1x && avoidanceX < p2x) {
-                    // ラベルの左側で垂直線を立ち上げる
-                    p2x = avoidanceX;
-                    p3x = avoidanceX; // 垂直線のX座標も同じにする
+                    // 通常のケース: ラベル回避のX座標が子ノードより左側なら適用
+                    if (p1x < p2x && avoidanceX < p4x - minMargin) {
+                        p2x = avoidanceX;
+                        p3x = avoidanceX;
+                    }
+                    // 逆向きのケース: すでに制限されている範囲内なら適用
+                    else if (p1x > p2x && avoidanceX < p4x - minMargin) {
+                        p2x = avoidanceX;
+                        p3x = avoidanceX;
+                    }
                 }
             }
 
