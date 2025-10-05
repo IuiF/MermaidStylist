@@ -107,7 +107,7 @@ function getConnectionRenderer() {
             let p3x = p2x;
             let p3y = y2;
             const p4x = x2;
-            const p4y = y2;
+            let p4y = y2;
 
             // 垂直線のX座標が子ノードより右側になる場合は制限
             const minMargin = 20;
@@ -154,6 +154,41 @@ function getConnectionRenderer() {
                 p2y = adjustedY;
             }
 
+            // 最後の水平線セグメント（p3xからp4xまで、y=p3y/p4y）でノードとの衝突をチェック
+            // p3yとp4yは通常同じ値だが、念のため両方チェック
+            let finalAdjustedY = null;
+            if (nodeBounds && nodeBounds.length > 0) {
+                if (window.DEBUG_CONNECTIONS) {
+                    console.log('Checking final horizontal segment: p3x=' + p3x + ', p3y=' + p3y + ', p4x=' + p4x + ', p4y=' + p4y + ', nodeBounds.length=' + nodeBounds.length);
+                }
+                const pathIntersectingNodes = checkEdgePathIntersectsNodes(p3x, p3y, p4x, p3y, nodeBounds);
+                if (window.DEBUG_CONNECTIONS) {
+                    console.log('  Intersecting nodes: ' + pathIntersectingNodes.length);
+                }
+                if (pathIntersectingNodes.length > 0) {
+                    const nodePadding = 40;
+                    const topMost = Math.min(...pathIntersectingNodes.map(n => n.top));
+                    const bottomMost = Math.max(...pathIntersectingNodes.map(n => n.bottom));
+
+                    // 水平線のY座標を調整（ノードを避ける）
+                    if (p3y < topMost) {
+                        finalAdjustedY = topMost - nodePadding;
+                    } else if (p3y >= topMost && p3y <= bottomMost) {
+                        finalAdjustedY = bottomMost + nodePadding;
+                    }
+
+                    if (finalAdjustedY !== null) {
+                        p3y = finalAdjustedY;
+                        // p4yは目的ノードのcenterYのまま保持（p3yからp4yへの垂直セグメントが生成される）
+
+                        if (window.DEBUG_CONNECTIONS) {
+                            console.log('Final horizontal segment collision: edge=' + connFrom + '->' + connTo +
+                                ', nodes=' + pathIntersectingNodes.map(n => n.id).join(',') + ', adjusted p3y=' + finalAdjustedY + ', p4y=' + p4y);
+                        }
+                    }
+                }
+            }
+
             // 最初の水平線セグメント(p1x,adjustedY)→(p2x,p2y)がラベルと衝突するかチェック
             if (labelBounds && labelBounds.length > 0) {
                 const avoidanceX = calculateHorizontalLineAvoidance(p1x, p2x, adjustedY, labelBounds);
@@ -176,26 +211,33 @@ function getConnectionRenderer() {
             if (adjustedY !== p1y) {
                 // 起点から短い水平線、垂直移動、調整されたYで水平移動、垂直移動、終点へ
                 const shortHorizontal = transitionX;
+                const needsFinalVertical = Math.abs(p3y - p4y) > 1;
                 if (Math.abs(p3y - p2y) > cornerRadius * 2) {
                     if (p3y > p2y) {
-                        return \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
+                        const basePath = \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y}\`;
+                        return needsFinalVertical ? \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\` : \`\${basePath} L \${p4x} \${p4y}\`;
                     } else {
-                        return \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
+                        const basePath = \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y}\`;
+                        return needsFinalVertical ? \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\` : \`\${basePath} L \${p4x} \${p4y}\`;
                     }
                 } else {
-                    return \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
+                    return needsFinalVertical ? \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p3y} L \${p4x} \${p4y}\` : \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
                 }
             }
 
             // Y座標の調整が不要な場合は通常のパス
+            // p3y と p4y が異なる場合は、水平→垂直のセグメントを追加
+            const needsFinalVertical = Math.abs(p3y - p4y) > 1;
             if (Math.abs(p3y - p2y) > cornerRadius * 2) {
                 if (p3y > p2y) {
-                    return \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
+                    const basePath = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y}\`;
+                    return needsFinalVertical ? \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\` : \`\${basePath} L \${p4x} \${p4y}\`;
                 } else {
-                    return \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y} L \${p4x} \${p4y}\`;
+                    const basePath = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y}\`;
+                    return needsFinalVertical ? \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\` : \`\${basePath} L \${p4x} \${p4y}\`;
                 }
             } else {
-                return \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
+                return needsFinalVertical ? \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p3y} L \${p4x} \${p4y}\` : \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
             }
         }
 
