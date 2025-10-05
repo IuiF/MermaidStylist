@@ -76,21 +76,8 @@ function getConnectionLabels() {
                 const fromLabel = fromNode ? fromNode.getAttribute('data-label').replace(/<br\\s*\\/?>/gi, ' ').replace(/<[^>]*>/g, '') : conn.from;
                 const toLabel = toNode ? toNode.getAttribute('data-label').replace(/<br\\s*\\/?>/gi, ' ').replace(/<[^>]*>/g, '') : conn.to;
 
-                // エッジパスを探してハイライト
-                const edgePath = document.querySelector('path[data-from="' + conn.from + '"][data-to="' + conn.to + '"]');
-                if (edgePath) {
-                    // 既存のハイライトを解除
-                    document.querySelectorAll('.edge-highlighted').forEach(el => {
-                        el.classList.remove('edge-highlighted');
-                        el.style.stroke = '';
-                        el.style.strokeWidth = '';
-                    });
-
-                    // 新しいハイライトを適用
-                    edgePath.classList.add('edge-highlighted');
-                    edgePath.style.stroke = '#ff6b6b';
-                    edgePath.style.strokeWidth = '3';
-                }
+                // エッジをハイライト（独立した機能を使用）
+                window.edgeHighlighter.highlightEdge(conn.from, conn.to);
 
                 // エッジ情報を画面上に表示
                 showEdgeInfo(fromLabel, toLabel, conn.label);

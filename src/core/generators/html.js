@@ -12,6 +12,7 @@ const { getViewportManager } = require('../../runtime/ui/viewport-manager');
 const { getContextMenu } = require('../../runtime/ui/context-menu');
 const { getHighlightManager } = require('../../runtime/state/highlight-manager');
 const { getPathHighlighter } = require('../../runtime/state/path-highlighter');
+const { getEdgeHighlighter } = require('../../runtime/state/edge-highlighter');
 const { getRenderOrchestrator } = require('../../runtime/core/render-orchestrator');
 
 function generateHTML(nodes, connections, styles = {}, classDefs = {}, dashedNodes = [], dashedEdges = []) {
@@ -83,6 +84,9 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
 
         // Import path highlighter
         ${getPathHighlighter()}
+
+        // Import edge highlighter
+        ${getEdgeHighlighter()}
 
         // Import context menu
         ${getContextMenu()}
