@@ -147,6 +147,7 @@ function getHorizontalLayout() {
             });
 
             // エッジとノードの衝突を検知して回避
+            // エッジの垂直線とノードが実際に重なる場合のみシフト
             function resolveEdgeNodeCollisions() {
                 const maxIterations = 10;
                 const collisionMargin = 20;
@@ -173,6 +174,11 @@ function getHorizontalLayout() {
                         const edgeMinY = Math.min(fromPos.y, toPos.y);
                         const edgeMaxY = Math.max(fromPos.y + fromPos.height, toPos.y + toPos.height);
 
+                        // エッジの垂直線のX座標範囲を概算
+                        // 垂直線は親ノードの右端から子ノードの左端の間にある
+                        const verticalLineMinX = fromPos.x + fromPos.width;
+                        const verticalLineMaxX = toPos.x;
+
                         // 中間階層のノードをチェック
                         for (let levelIdx = fromLevel + 1; levelIdx < toLevel; levelIdx++) {
                             const level = treeStructure.levels[levelIdx];
@@ -183,13 +189,22 @@ function getHorizontalLayout() {
                                 const element = document.getElementById(node.id);
                                 if (!element || element.classList.contains('hidden')) return;
 
-                                // ノードがエッジの経路内にあるかチェック
+                                // Y座標の重なりをチェック
                                 const nodeTop = nodePos.y - collisionMargin;
                                 const nodeBottom = nodePos.y + nodePos.height + collisionMargin;
+                                const yOverlap = nodeTop < edgeMaxY && nodeBottom > edgeMinY;
 
-                                if (nodeTop < edgeMaxY && nodeBottom > edgeMinY) {
+                                // X座標の重なりをチェック（垂直線とノードが実際に重なるか）
+                                const nodeLeft = nodePos.x - collisionMargin;
+                                const nodeRight = nodePos.x + nodePos.width + collisionMargin;
+                                const xOverlap = !(verticalLineMaxX < nodeLeft || verticalLineMinX > nodeRight);
+
+                                if (yOverlap && xOverlap) {
                                     // 衝突検出：ノードを下にシフト
                                     const shiftAmount = edgeMaxY - nodeTop + baseSpacing;
+                                    if (window.DEBUG_CONNECTIONS) {
+                                        console.log('[EdgeNodeCollision] Shifting ' + node.id + ' by ' + shiftAmount + 'px due to edge ' + conn.from + '->' + conn.to);
+                                    }
                                     nodePos.y += shiftAmount;
                                     setNodePosition(element, nodePos.x, nodePos.y);
                                     hasCollision = true;
@@ -202,7 +217,7 @@ function getHorizontalLayout() {
                 }
             }
 
-            resolveEdgeNodeCollisions();
+            // resolveEdgeNodeCollisions(); // 無効化：長距離エッジが中間階層全体を下にシフトしてギャップを作るため
 
             // 同じ階層内のノード同士の重なりを解消
             function resolveSameLevelCollisions() {
@@ -330,6 +345,9 @@ function getHorizontalLayout() {
                                 if (xOverlap && yOverlap) {
                                     // 衝突検出：ノードを下にシフト
                                     const shiftAmount = label.bottom + collisionMargin - nodeTop + baseSpacing;
+                                    if (window.DEBUG_CONNECTIONS) {
+                                        console.log('[NodeLabelCollision] Shifting ' + node.id + ' by ' + shiftAmount + 'px due to label from ' + label.from + ' to ' + label.to);
+                                    }
                                     nodePos.y += shiftAmount;
                                     setNodePosition(element, nodePos.x, nodePos.y);
                                     hasCollision = true;
