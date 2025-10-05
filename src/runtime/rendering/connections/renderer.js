@@ -1,8 +1,9 @@
 function getConnectionRenderer() {
     const connectionArrows = require('./arrows').getConnectionArrows();
     const connectionLabels = require('./labels').getConnectionLabels();
+    const collisionDetector = require('./collision-detector').getCollisionDetector();
 
-    return connectionArrows + connectionLabels + `
+    return connectionArrows + connectionLabels + collisionDetector + `
         // 依存: svgHelpers (svg-helpers.js), getNodePosition, getNodeDimensions (layout-utils.js)
         let useCurvedLines = false;
 
@@ -235,6 +236,20 @@ function getConnectionRenderer() {
 
             // ラベルオフセットをリセット
             labelOffsets = {};
+
+            // パス0: 最初にすべてのラベルを描画
+            connections.forEach(conn => {
+                const toElement = svgHelpers.getNodeElement(conn.to);
+                if (toElement && !toElement.classList.contains('hidden')) {
+                    const labelGroup = createConnectionLabel(conn, toElement);
+                    if (labelGroup) {
+                        svgLayer.appendChild(labelGroup);
+                    }
+                }
+            });
+
+            // パス0.5: ラベルの座標を取得
+            const labelBounds = getAllLabelBounds();
 
             // 2パスアルゴリズムによる動的レーン割り当て
             const laneWidth = 25;
@@ -472,11 +487,7 @@ function getConnectionRenderer() {
                     const arrow = createHorizontalArrow(x2, y2, conn);
                     svgLayer.appendChild(arrow);
 
-                    const toElement = svgHelpers.getNodeElement(conn.to);
-                    const labelGroup = createConnectionLabel(conn, toElement);
-                    if (labelGroup) {
-                        svgLayer.appendChild(labelGroup);
-                    }
+                    // ラベルは既にパス0で描画済み
 
                     connectionCount++;
                     return;
@@ -516,7 +527,13 @@ function getConnectionRenderer() {
                 const laneSpacing = Math.max(5, Math.min(laneWidth, availableWidth / maxLanes));
 
                 // 垂直セグメントのX座標
-                const verticalSegmentX = maxParentRight + minOffset + (assignedLane * laneSpacing);
+                let verticalSegmentX = maxParentRight + minOffset + (assignedLane * laneSpacing);
+
+                // ラベルとの衝突を考慮してオフセットを追加
+                const labelOffset = calculateLabelAvoidanceOffset(verticalSegmentX, y1, y2, labelBounds, conn.from, conn.to);
+                if (labelOffset > 0) {
+                    verticalSegmentX += labelOffset;
+                }
 
                 // パスデータを生成
                 const pathData = createCurvedPath(x1, y1, x2, y2, verticalSegmentX);
@@ -541,14 +558,10 @@ function getConnectionRenderer() {
                 svgLayer.appendChild(arrow);
                 connectionCount++;
 
-                // ラベルがある場合は表示
-                const labelGroup = createConnectionLabel(conn, toElement);
-                if (labelGroup) {
-                    svgLayer.appendChild(labelGroup);
-                }
+                // ラベルは既にパス0で描画済み
             });
 
-            // すべてのラベルを最前面に移動
+            // すべてのラベルを最前面に移動（パス0で描画済み）
             const labels = svgLayer.querySelectorAll('.connection-label');
             labels.forEach(label => {
                 svgLayer.appendChild(label);
