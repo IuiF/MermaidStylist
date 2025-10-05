@@ -114,7 +114,6 @@ function getConnectionRenderer() {
 
             // 衝突回避のためのY座標調整値
             let adjustedY = p1y;
-            const transitionX = p1x + 30;  // ノードの右端から30px離れた位置で垂直移動
 
             // 最初の水平線セグメント（親ノードの範囲）でノードとの衝突をチェック
             // 親ノードの左端からverticalSegmentXまでの水平線がノードと重なるかを確認
@@ -190,8 +189,8 @@ function getConnectionRenderer() {
 
             // Y座標の調整が必要な場合は、ノードの右端付近で垂直に移動するパスを生成
             if (adjustedY !== p1y) {
-                // 起点から短い水平線、垂直移動、調整されたYで水平移動、垂直移動、終点へ
-                const shortHorizontal = transitionX;
+                // 起点から垂直セグメントX(p2x)まで水平線、垂直移動
+                const shortHorizontal = p2x;
                 const needsFinalVertical = Math.abs(p3y - p4y) > 1;
                 const canCurveFinalVertical = needsFinalVertical && Math.abs(p3y - p4y) > cornerRadius * 2;
 
@@ -580,31 +579,8 @@ function getConnectionRenderer() {
                 }
             });
 
-            // 親ごとの最小finalVerticalXを計算し、verticalSegmentXを制限
-            const minMargin = 20;
-            Object.keys(parentFinalVerticalSegmentX).forEach(parentId => {
-                // この親のすべてのエッジのfinalVerticalXを取得
-                const parentEdges = edgeInfos.filter(e => e.conn.from === parentId && !e.is1to1Horizontal);
-                if (parentEdges.length === 0) return;
-
-                // 最も左側のfinalVerticalXを見つける
-                let minFinalVerticalX = Infinity;
-                parentEdges.forEach(edgeInfo => {
-                    const edgeKey = edgeInfo.conn.from + '->' + edgeInfo.conn.to;
-                    const finalX = edgeToFinalVerticalX[edgeKey];
-                    if (finalX !== undefined) {
-                        minFinalVerticalX = Math.min(minFinalVerticalX, finalX);
-                    } else {
-                        // finalVerticalXが設定されていない場合は、ターゲットノードの左端を使用
-                        minFinalVerticalX = Math.min(minFinalVerticalX, edgeInfo.x2);
-                    }
-                });
-
-                // verticalSegmentXが最も左側のfinalVerticalXより右にならないように制限
-                if (parentFinalVerticalSegmentX[parentId] > minFinalVerticalX - minMargin) {
-                    parentFinalVerticalSegmentX[parentId] = minFinalVerticalX - minMargin;
-                }
-            });
+            // 垂直線のX座標制限は親ごとに事前計算済み（parentFinalVerticalSegmentX）
+            // vertical-segment-calculatorで衝突回避を含めて計算済みのため、追加の制限は不要
 
             let connectionCount = 0;
 

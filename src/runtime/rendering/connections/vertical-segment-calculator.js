@@ -54,14 +54,53 @@ function getVerticalSegmentCalculator() {
                     calculateLabelAvoidanceOffset
                 );
 
-                // 最終的な垂直セグメントX座標を返す
-                const result = {};
+                // 最終的な垂直セグメントX座標を計算し、depthごとに中央配置調整
+                const tempResult = {};
                 Object.keys(parentVerticalSegmentX).forEach(parentId => {
                     const baseX = parentVerticalSegmentX[parentId];
                     const offset = parentMaxOffset[parentId] || 0;
-                    result[parentId] = baseX + offset;
+                    tempResult[parentId] = baseX + offset;
+                });
+
+                // depthごとに平均X座標と利用可能幅の中央を計算
+                const depthAdjustments = {};
+                const parentsByDepth = {};
+                Object.keys(tempResult).forEach(parentId => {
+                    const firstEdge = edgeInfos.find(e => e.conn.from === parentId && !e.is1to1Horizontal);
+                    if (!firstEdge) return;
+
+                    const depth = firstEdge.depth;
+                    if (!parentsByDepth[depth]) {
+                        parentsByDepth[depth] = {
+                            parents: [],
+                            maxParentRight: depthMaxParentRight[depth],
+                            minChildLeft: depthMinChildLeft[depth]
+                        };
+                    }
+                    parentsByDepth[depth].parents.push({
+                        parentId: parentId,
+                        x: tempResult[parentId]
+                    });
+                });
+
+                // depthごとに中央配置のための調整値を計算
+                Object.keys(parentsByDepth).forEach(depth => {
+                    const info = parentsByDepth[depth];
+                    const avgX = info.parents.reduce((sum, p) => sum + p.x, 0) / info.parents.length;
+                    const centerX = (info.maxParentRight + info.minChildLeft) / 2;
+                    depthAdjustments[depth] = centerX - avgX;
+                });
+
+                // 調整を適用して最終結果を生成
+                const result = {};
+                Object.keys(tempResult).forEach(parentId => {
+                    const firstEdge = edgeInfos.find(e => e.conn.from === parentId && !e.is1to1Horizontal);
+                    const depth = firstEdge ? firstEdge.depth : null;
+                    const adjustment = depth !== null ? (depthAdjustments[depth] || 0) : 0;
+                    result[parentId] = tempResult[parentId] + adjustment;
+
                     if (window.DEBUG_CONNECTIONS && (parentId === 'A1' || parentId === 'A2')) {
-                        console.log('[VerticalSegmentCalculator] Final', parentId, ':', result[parentId].toFixed(1), '= baseX:', baseX.toFixed(1), '+ offset:', offset.toFixed(1));
+                        console.log('[VerticalSegmentCalculator] Final', parentId, ':', result[parentId].toFixed(1), '= temp:', tempResult[parentId].toFixed(1), '+ centerAdj:', adjustment.toFixed(1));
                     }
                 });
 
@@ -141,7 +180,12 @@ function getVerticalSegmentCalculator() {
                     const totalParentsInDepth = parents.length;
                     const maxParentRight = depthMaxParentRight[depth] || parents[0].x1;
                     const minChildLeft = depthMinChildLeft[depth] || parents[0].x2;
-                    const availableWidth = Math.max(minChildLeft - maxParentRight - minOffset * 2, 50);
+                    const rawAvailableWidth = minChildLeft - maxParentRight - minOffset * 2;
+
+                    // 衝突回避オフセットの平均的な値を見込んで、availableWidthを調整
+                    // これにより、最終的な位置が中央付近になる
+                    const estimatedCollisionOffset = rawAvailableWidth * 0.5;
+                    const availableWidth = Math.max(rawAvailableWidth - estimatedCollisionOffset, 50);
 
                     // Y範囲を計算
                     const yMin = parents[0].yPosition;
