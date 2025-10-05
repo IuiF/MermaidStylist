@@ -190,23 +190,8 @@ function getConnectionRenderer() {
                 }
             }
 
-            // 最初の水平線セグメント(p1x,adjustedY)→(p2x,p2y)がラベルと衝突するかチェック
-            if (labelBounds && labelBounds.length > 0) {
-                const avoidanceX = calculateHorizontalLineAvoidance(p1x, p2x, adjustedY, labelBounds);
-                // ラベルの左側で垂直線を立ち上げる（子ノードより右側にならない範囲で）
-                if (avoidanceX !== null && avoidanceX > p1x && avoidanceX < p2x) {
-                    // 通常のケース: ラベル回避のX座標が子ノードより左側なら適用
-                    if (p1x < p2x && avoidanceX < p4x - minMargin) {
-                        p2x = avoidanceX;
-                        p3x = avoidanceX;
-                    }
-                    // 逆向きのケース: すでに制限されている範囲内なら適用
-                    else if (p1x > p2x && avoidanceX < p4x - minMargin) {
-                        p2x = avoidanceX;
-                        p3x = avoidanceX;
-                    }
-                }
-            }
+            // ラベル回避処理は verticalSegmentCalculator で一括処理済みのため、
+            // ここでの個別調整は行わない（親ごとの統一X座標を維持）
 
             // Y座標の調整が必要な場合は、ノードの右端付近で垂直に移動するパスを生成
             if (adjustedY !== p1y) {

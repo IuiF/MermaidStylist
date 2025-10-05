@@ -9,6 +9,9 @@ function getVerticalSegmentCalculator() {
              * @returns {Object} 親IDをキーとした垂直セグメントX座標のマップ
              */
             calculate: function(edgeInfos, options) {
+                if (window.DEBUG_CONNECTIONS) {
+                    console.log('[VerticalSegmentCalculator] Starting calculation for', edgeInfos.length, 'edges');
+                }
                 const {
                     parentYPositions = {},
                     depthMaxParentRight = {},
@@ -56,6 +59,14 @@ function getVerticalSegmentCalculator() {
                 Object.keys(parentVerticalSegmentX).forEach(parentId => {
                     result[parentId] = parentVerticalSegmentX[parentId] + (parentMaxOffset[parentId] || 0);
                 });
+
+                if (window.DEBUG_CONNECTIONS) {
+                    console.log('[VerticalSegmentCalculator] Result:', result);
+                    Object.keys(result).forEach(parentId => {
+                        const edges = edgeInfos.filter(e => e.conn.from === parentId && !e.is1to1Horizontal);
+                        console.log('  Parent', parentId, ':', result[parentId], '(', edges.length, 'edges )');
+                    });
+                }
 
                 return result;
             },
