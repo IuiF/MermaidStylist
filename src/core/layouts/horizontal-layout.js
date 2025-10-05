@@ -202,7 +202,49 @@ function getHorizontalLayout() {
                 }
             }
 
-            // resolveEdgeNodeCollisions(); // 一旦無効化
+            resolveEdgeNodeCollisions();
+
+            // 同じ階層内のノード同士の重なりを解消
+            function resolveSameLevelCollisions() {
+                treeStructure.levels.forEach((level, levelIndex) => {
+                    // この階層のノードをY座標でソート
+                    const levelNodes = level.map(node => ({
+                        node: node,
+                        pos: nodePositions.get(node.id)
+                    })).filter(item => item.pos).sort((a, b) => a.pos.y - b.pos.y);
+
+                    // 重なりをチェックして調整
+                    for (let i = 0; i < levelNodes.length - 1; i++) {
+                        const current = levelNodes[i];
+                        const next = levelNodes[i + 1];
+
+                        const currentBottom = current.pos.y + current.pos.height;
+                        const nextTop = next.pos.y;
+                        const nodeSpacing = calculateNodeSpacing(next.node.id, connections);
+
+                        // 重なりまたは間隔不足をチェック
+                        if (currentBottom + nodeSpacing > nextTop) {
+                            const shiftAmount = currentBottom + nodeSpacing - nextTop;
+                            next.pos.y += shiftAmount;
+                            const element = document.getElementById(next.node.id);
+                            if (element) {
+                                setNodePosition(element, next.pos.x, next.pos.y);
+                            }
+
+                            // 後続のノードも全て同じ量だけシフト
+                            for (let j = i + 2; j < levelNodes.length; j++) {
+                                levelNodes[j].pos.y += shiftAmount;
+                                const elem = document.getElementById(levelNodes[j].node.id);
+                                if (elem) {
+                                    setNodePosition(elem, levelNodes[j].pos.x, levelNodes[j].pos.y);
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            resolveSameLevelCollisions();
 
             // ノードとエッジラベルの衝突を検出して回避
             // ラベルの予想位置を計算してノードとの衝突をチェック
