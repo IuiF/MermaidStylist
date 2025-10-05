@@ -220,6 +220,7 @@ function getHorizontalLayout() {
             // resolveEdgeNodeCollisions(); // 無効化：長距離エッジが中間階層全体を下にシフトしてギャップを作るため
 
             // 点線ノード専用のエッジ衝突回避
+            // 点線ノードは通常エッジ（connections）のみを考慮し、点線エッジは無視
             function resolveDashedNodeEdgeCollisions() {
                 const maxIterations = 5;
                 const collisionMargin = 20;
@@ -237,8 +238,10 @@ function getHorizontalLayout() {
                             const nodePos = nodePositions.get(node.id);
                             if (!nodePos) return;
 
-                            // このノードと重なるエッジを探す
+                            // 通常エッジのみを対象（点線エッジは無視）
                             connections.forEach(conn => {
+                                // 点線エッジはスキップ
+                                if (conn.isDashed) return;
                                 const fromPos = nodePositions.get(conn.from);
                                 const toPos = nodePositions.get(conn.to);
 
