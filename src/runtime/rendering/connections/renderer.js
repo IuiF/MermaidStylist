@@ -212,13 +212,35 @@ function getConnectionRenderer() {
                 // 起点から短い水平線、垂直移動、調整されたYで水平移動、垂直移動、終点へ
                 const shortHorizontal = transitionX;
                 const needsFinalVertical = Math.abs(p3y - p4y) > 1;
+                const canCurveFinalVertical = needsFinalVertical && Math.abs(p3y - p4y) > cornerRadius * 2;
+
                 if (Math.abs(p3y - p2y) > cornerRadius * 2) {
                     if (p3y > p2y) {
                         const basePath = \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y}\`;
-                        return needsFinalVertical ? \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\` : \`\${basePath} L \${p4x} \${p4y}\`;
+                        if (canCurveFinalVertical) {
+                            if (p3y > p4y) {
+                                return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y - cornerRadius} L \${p4x} \${p4y}\`;
+                            } else {
+                                return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y + cornerRadius} L \${p4x} \${p4y}\`;
+                            }
+                        } else if (needsFinalVertical) {
+                            return \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\`;
+                        } else {
+                            return \`\${basePath} L \${p4x} \${p4y}\`;
+                        }
                     } else {
                         const basePath = \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y}\`;
-                        return needsFinalVertical ? \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\` : \`\${basePath} L \${p4x} \${p4y}\`;
+                        if (canCurveFinalVertical) {
+                            if (p3y > p4y) {
+                                return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y - cornerRadius} L \${p4x} \${p4y}\`;
+                            } else {
+                                return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y + cornerRadius} L \${p4x} \${p4y}\`;
+                            }
+                        } else if (needsFinalVertical) {
+                            return \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\`;
+                        } else {
+                            return \`\${basePath} L \${p4x} \${p4y}\`;
+                        }
                     }
                 } else {
                     return needsFinalVertical ? \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p3y} L \${p4x} \${p4y}\` : \`M \${p1x} \${p1y} L \${shortHorizontal} \${p1y} L \${shortHorizontal} \${p2y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
@@ -228,13 +250,37 @@ function getConnectionRenderer() {
             // Y座標の調整が不要な場合は通常のパス
             // p3y と p4y が異なる場合は、水平→垂直のセグメントを追加
             const needsFinalVertical = Math.abs(p3y - p4y) > 1;
+            const canCurveFinalVertical = needsFinalVertical && Math.abs(p3y - p4y) > cornerRadius * 2;
+
             if (Math.abs(p3y - p2y) > cornerRadius * 2) {
                 if (p3y > p2y) {
                     const basePath = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y + cornerRadius} L \${p3x} \${p3y - cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y}\`;
-                    return needsFinalVertical ? \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\` : \`\${basePath} L \${p4x} \${p4y}\`;
+                    if (canCurveFinalVertical) {
+                        // p3y と p4y の関係に応じてカーブの向きを決定
+                        if (p3y > p4y) {
+                            return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y - cornerRadius} L \${p4x} \${p4y}\`;
+                        } else {
+                            return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y + cornerRadius} L \${p4x} \${p4y}\`;
+                        }
+                    } else if (needsFinalVertical) {
+                        return \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\`;
+                    } else {
+                        return \`\${basePath} L \${p4x} \${p4y}\`;
+                    }
                 } else {
                     const basePath = \`M \${p1x} \${p1y} L \${p2x - cornerRadius} \${p2y} Q \${p2x} \${p2y} \${p2x} \${p2y - cornerRadius} L \${p3x} \${p3y + cornerRadius} Q \${p3x} \${p3y} \${p3x + cornerRadius} \${p3y}\`;
-                    return needsFinalVertical ? \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\` : \`\${basePath} L \${p4x} \${p4y}\`;
+                    if (canCurveFinalVertical) {
+                        // p3y と p4y の関係に応じてカーブの向きを決定
+                        if (p3y > p4y) {
+                            return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y - cornerRadius} L \${p4x} \${p4y}\`;
+                        } else {
+                            return \`\${basePath} L \${p4x - cornerRadius} \${p3y} Q \${p4x} \${p3y} \${p4x} \${p3y + cornerRadius} L \${p4x} \${p4y}\`;
+                        }
+                    } else if (needsFinalVertical) {
+                        return \`\${basePath} L \${p4x} \${p3y} L \${p4x} \${p4y}\`;
+                    } else {
+                        return \`\${basePath} L \${p4x} \${p4y}\`;
+                    }
                 }
             } else {
                 return needsFinalVertical ? \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p3y} L \${p4x} \${p4y}\` : \`M \${p1x} \${p1y} L \${p2x} \${p2y} L \${p3x} \${p3y} L \${p4x} \${p4y}\`;
