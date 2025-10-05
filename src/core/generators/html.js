@@ -12,6 +12,7 @@ const { getViewportManager } = require('../../runtime/ui/viewport-manager');
 const { getContextMenu } = require('../../runtime/ui/context-menu');
 const { getHighlightManager } = require('../../runtime/state/highlight-manager');
 const { getPathHighlighter } = require('../../runtime/state/path-highlighter');
+const { getRenderOrchestrator } = require('../../runtime/core/render-orchestrator');
 
 function generateHTML(nodes, connections, styles = {}, classDefs = {}, dashedNodes = [], dashedEdges = []) {
     const template = getBaseTemplate();
@@ -86,6 +87,9 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
         // Import context menu
         ${getContextMenu()}
 
+        // Import render orchestrator
+        ${getRenderOrchestrator()}
+
         // スタイルを適用
         function applyNodeStyle(element, nodeId, nodeClasses) {
             const styleObj = {};
@@ -112,148 +116,9 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
             }
         }
 
-        // Create SVG nodes
-        function createSVGNodes() {
-            const svgLayer = svgHelpers.getSVGLayer();
-
-            // 通常のノードを作成
-            nodes.forEach(node => {
-                createSingleNode(node, false);
-            });
-
-            // 点線ノードを作成
-            dashedNodes.forEach(node => {
-                createSingleNode(node, true);
-            });
-
-            function createSingleNode(node, isDashed) {
-                const hasChildren = connections.some(conn => conn.from === node.id);
-
-                // グループ要素を作成
-                const g = svgHelpers.createGroup({
-                    id: node.id,
-                    class: isDashed ? 'node dashed-node' : 'node',
-                    'data-label': node.label,
-                    'data-has-children': hasChildren,
-                    'data-is-dashed': isDashed
-                });
-
-                // テキストサイズを測定（HTMLタグ対応）
-                const textSize = svgHelpers.measureRichText(node.label, 12);
-
-                const padding = 12;
-                const buttonWidth = hasChildren ? 15 : 0;
-                const boxWidth = textSize.width + padding * 2 + buttonWidth;
-                const baseHeight = 28;
-                const boxHeight = Math.max(baseHeight, textSize.height + padding);
-
-                // 背景矩形
-                const rect = svgHelpers.createRect({
-                    class: isDashed ? 'node-rect dashed-rect' : 'node-rect',
-                    width: boxWidth,
-                    height: boxHeight,
-                    rx: 5,
-                    ry: 5
-                });
-
-                // 点線ノードの場合はスタイルを追加
-                if (isDashed) {
-                    rect.style.strokeDasharray = '5,5';
-                    rect.style.opacity = '0.6';
-                }
-
-                // テキスト（HTMLタグ対応）
-                const text = svgHelpers.createRichText(node.label, {
-                    class: 'node-text',
-                    x: padding,
-                    y: boxHeight / 2,
-                    'dominant-baseline': 'central',
-                    'font-size': '12',
-                    'font-family': 'Arial, sans-serif'
-                });
-
-                if (isDashed) {
-                    text.style.opacity = '0.6';
-                }
-
-                g.appendChild(rect);
-                g.appendChild(text);
-
-                // スタイルを適用
-                applyNodeStyle(rect, isDashed ? node.originalId : node.id, node.classes);
-
-                // 折りたたみボタン（点線ノードには折りたたみボタンを付けない）
-                if (hasChildren && !isDashed) {
-                    const button = svgHelpers.createText('▼', {
-                        class: 'collapse-button',
-                        x: boxWidth - padding - 5,
-                        y: boxHeight / 2,
-                        'dominant-baseline': 'central'
-                    });
-                    g.appendChild(button);
-                }
-
-                // データ属性を保存
-                g.setAttribute('data-width', boxWidth);
-                g.setAttribute('data-height', boxHeight);
-
-                // 初期位置を(0,0)に設定
-                g.setAttribute('transform', 'translate(0,0)');
-
-                // イベントリスナーを追加
-                if (isDashed) {
-                    // 点線ノードの場合：元ノードを強調表示
-                    g.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        highlightManager.highlightOriginalNode(node.originalId);
-                    });
-                    g.style.cursor = 'pointer';
-                } else if (hasChildren) {
-                    // 通常ノードで子を持つ場合：折りたたみ
-                    g.addEventListener('click', function() {
-                        toggleNodeCollapse(node.id);
-                    });
-                }
-
-                svgLayer.appendChild(g);
-            }
-        }
-
-        // ルートノードを最前面に移動
-        function bringRootNodesToFront() {
-            const svgLayer = svgHelpers.getNodeLayer();
-            nodes.forEach(node => {
-                const isRoot = !connections.some(conn => conn.to === node.id);
-                if (isRoot) {
-                    const element = document.getElementById(node.id);
-                    if (element && element.parentNode === svgLayer) {
-                        svgLayer.appendChild(element);
-                    }
-                }
-            });
-        }
-
+        // エントリーポイント
         window.onload = function() {
-            createSVGNodes();
-            collapseManager.init();
-            viewportManager.init();
-            contextMenu.init();
-
-            // SVGノードが配置された後に即座にレイアウト
-            requestAnimationFrame(() => {
-                currentNodePositions = horizontalLayout(allNodes, allConnections, calculateAllNodeWidths,
-                    (n, c) => analyzeTreeStructure(n, c, dashedNodes));
-                debugActualWidths(nodes);
-                createCSSLines(allConnections, currentNodePositions);
-
-                // ルートノードを最前面に移動
-                bringRootNodesToFront();
-
-                // レイアウトとエッジ描画完了後、コンテンツ全体が見えるように初期位置を調整
-                requestAnimationFrame(() => {
-                    viewportManager.fitToContent();
-                });
-            });
+            initializeAndRender();
         };
     </script>`;
 }
