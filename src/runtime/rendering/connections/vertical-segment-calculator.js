@@ -218,7 +218,7 @@ function getVerticalSegmentCalculator() {
 
                     // 衝突回避オフセットの平均的な値を見込んで、availableWidthを調整
                     // これにより、最終的な位置が中央付近になる
-                    const estimatedCollisionOffset = rawAvailableWidth * 0.5;
+                    const estimatedCollisionOffset = rawAvailableWidth * 0.35;
                     const availableWidth = Math.max(rawAvailableWidth - estimatedCollisionOffset, 50);
 
                     // Y範囲を計算
