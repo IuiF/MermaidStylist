@@ -641,16 +641,15 @@ function getConnectionRenderer() {
             Object.keys(edgesByTarget).forEach(target => {
                 const edges = edgesByTarget[target];
                 if (edges.length > 1) {
-                    // 複数のエッジがある場合、X座標で分散
+                    // 複数のエッジがある場合、X座標で分散（ノードの左側に配置）
                     const toElement = svgHelpers.getNodeElement(target);
                     if (toElement) {
                         const toPos = getNodePosition(toElement);
-                        const nodeWidth = toPos.width || 100;
-                        const spacing = Math.min(20, nodeWidth / (edges.length + 1));
+                        const spacing = 15;
 
                         edges.forEach((edge, index) => {
-                            const offset = spacing * (index + 1);
-                            edgeToFinalVerticalX[edge.conn.from + '->' + edge.conn.to] = toPos.left + offset;
+                            const offset = spacing * (edges.length - index);
+                            edgeToFinalVerticalX[edge.conn.from + '->' + edge.conn.to] = toPos.left - offset;
                         });
                     }
                 }
