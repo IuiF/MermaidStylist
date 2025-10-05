@@ -95,8 +95,26 @@ function getCollapseManager() {
                 return hasVisibleParent;
             },
 
+            isEdgeVisible: function(connection) {
+                // fromノードが折りたたまれている場合、エッジは非表示
+                if (this.isCollapsed(connection.from)) {
+                    return false;
+                }
+                // fromノードが非表示の場合、エッジは非表示
+                if (!this.isVisible(connection.from)) {
+                    return false;
+                }
+                // toノードが非表示の場合、エッジは非表示
+                if (!this.isVisible(connection.to)) {
+                    return false;
+                }
+                return true;
+            },
+
             updateVisibility: function() {
                 const edgeLayer = svgHelpers.getEdgeLayer();
+
+                // ノードの可視性を更新
                 allNodes.forEach(node => {
                     const element = svgHelpers.getNodeElement(node.id);
                     if (element) {
@@ -121,6 +139,20 @@ function getCollapseManager() {
                             }
                         }
                     }
+                });
+
+                // エッジの可視性を更新
+                allConnections.forEach(conn => {
+                    const visible = this.isEdgeVisible(conn);
+                    const edgeElements = document.querySelectorAll(\`.connection-line[data-from="\${conn.from}"][data-to="\${conn.to}"], .connection-arrow[data-from="\${conn.from}"][data-to="\${conn.to}"], .connection-label[data-from="\${conn.from}"][data-to="\${conn.to}"]\`);
+
+                    edgeElements.forEach(element => {
+                        if (visible) {
+                            element.classList.remove('hidden');
+                        } else {
+                            element.classList.add('hidden');
+                        }
+                    });
                 });
             },
 
