@@ -118,8 +118,8 @@ function getRenderOrchestrator() {
             // スタイルを適用
             applyNodeStyle(rect, isDashed ? node.originalId : node.id, node.classes);
 
-            // 折りたたみボタン（点線ノードには折りたたみボタンを付けない）
-            if (hasChildren && !isDashed) {
+            // 折りたたみボタン
+            if (hasChildren) {
                 const button = svgHelpers.createText('▼', {
                     class: 'collapse-button',
                     x: boxWidth - padding - 5,
@@ -147,18 +147,18 @@ function getRenderOrchestrator() {
          * ノードにイベントリスナーを追加
          */
         function attachNodeEventListeners(element, node, isDashed, hasChildren) {
-            if (isDashed) {
-                // 点線ノードの場合：元ノードを強調表示
+            if (hasChildren) {
+                // 子を持つ場合：折りたたみ
+                element.addEventListener('click', function() {
+                    toggleNodeCollapse(node.id);
+                });
+            } else if (isDashed) {
+                // 点線ノードで子を持たない場合：元ノードを強調表示
                 element.addEventListener('click', function(e) {
                     e.stopPropagation();
                     highlightManager.highlightOriginalNode(node.originalId);
                 });
                 element.style.cursor = 'pointer';
-            } else if (hasChildren) {
-                // 通常ノードで子を持つ場合：折りたたみ
-                element.addEventListener('click', function() {
-                    toggleNodeCollapse(node.id);
-                });
             }
         }
 
