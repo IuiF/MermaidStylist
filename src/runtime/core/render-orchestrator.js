@@ -63,7 +63,9 @@ function getRenderOrchestrator() {
          * 単一ノードの作成
          */
         function createSingleNode(node, isDashed) {
-            const hasChildren = connections.some(conn => conn.from === node.id);
+            // 点線ノードの場合は元ノードの接続を確認
+            const nodeIdToCheck = isDashed ? node.originalId : node.id;
+            const hasChildren = allConnections.some(conn => conn.from === nodeIdToCheck);
 
             // グループ要素を作成
             const g = svgHelpers.createGroup({
@@ -148,9 +150,10 @@ function getRenderOrchestrator() {
          */
         function attachNodeEventListeners(element, node, isDashed, hasChildren) {
             if (hasChildren) {
-                // 子を持つ場合：折りたたみ
+                // 子を持つ場合：折りたたみ（点線ノードの場合は元ノードを折りたたむ）
                 element.addEventListener('click', function() {
-                    toggleNodeCollapse(node.id);
+                    const targetNodeId = isDashed ? node.originalId : node.id;
+                    toggleNodeCollapse(targetNodeId);
                 });
             } else if (isDashed) {
                 // 点線ノードで子を持たない場合：元ノードを強調表示
