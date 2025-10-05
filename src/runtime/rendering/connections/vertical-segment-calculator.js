@@ -57,14 +57,22 @@ function getVerticalSegmentCalculator() {
                 // 最終的な垂直セグメントX座標を返す
                 const result = {};
                 Object.keys(parentVerticalSegmentX).forEach(parentId => {
-                    result[parentId] = parentVerticalSegmentX[parentId] + (parentMaxOffset[parentId] || 0);
+                    const baseX = parentVerticalSegmentX[parentId];
+                    const offset = parentMaxOffset[parentId] || 0;
+                    result[parentId] = baseX + offset;
+                    if (window.DEBUG_CONNECTIONS && (parentId === 'A1' || parentId === 'A2')) {
+                        console.log('[VerticalSegmentCalculator] Final', parentId, ':', result[parentId].toFixed(1), '= baseX:', baseX.toFixed(1), '+ offset:', offset.toFixed(1));
+                    }
                 });
 
                 if (window.DEBUG_CONNECTIONS) {
                     console.log('[VerticalSegmentCalculator] Result:', result);
                     Object.keys(result).forEach(parentId => {
                         const edges = edgeInfos.filter(e => e.conn.from === parentId && !e.is1to1Horizontal);
-                        console.log('  Parent', parentId, ':', result[parentId], '(', edges.length, 'edges )');
+                        const firstEdge = edges[0];
+                        const depth = firstEdge ? firstEdge.depth : 'unknown';
+                        const yPos = parentYPositions[parentId] || 0;
+                        console.log('  Parent', parentId, 'depth:', depth, 'y:', yPos.toFixed(1), 'x:', result[parentId].toFixed(1), '(', edges.length, 'edges )');
                     });
                 }
 
@@ -135,13 +143,32 @@ function getVerticalSegmentCalculator() {
                     const minChildLeft = depthMinChildLeft[depth] || parents[0].x2;
                     const availableWidth = Math.max(minChildLeft - maxParentRight - minOffset * 2, 50);
 
+                    // Y範囲を計算
+                    const yMin = parents[0].yPosition;
+                    const yMax = parents[parents.length - 1].yPosition;
+                    const yRange = yMax - yMin;
+
+                    // Y範囲が大きい場合は最小間隔を確保
+                    const minSpacing = yRange > 100 ? 30 : 10;
+                    const requiredWidth = minSpacing * (totalParentsInDepth + 1);
+                    const effectiveWidth = Math.max(availableWidth, requiredWidth);
+
                     // 親の数で等分してレーン間隔を計算（+1で割って端のマージンを確保）
-                    const laneSpacing = availableWidth / (totalParentsInDepth + 1);
+                    const laneSpacing = effectiveWidth / (totalParentsInDepth + 1);
+
+                    if (window.DEBUG_CONNECTIONS) {
+                        console.log('[VerticalSegmentCalculator] Depth', depth, ':', parents.length, 'parents, yRange:', yRange.toFixed(1), 'availableWidth:', availableWidth.toFixed(1), 'effectiveWidth:', effectiveWidth.toFixed(1), 'laneSpacing:', laneSpacing.toFixed(1));
+                        parents.forEach(p => console.log('  -', p.parentId, 'y:', p.yPosition.toFixed(1)));
+                    }
 
                     // 各親に等間隔でX座標を割り当て（上から下へ順に、右から左へ配置）
                     parents.forEach((parent, index) => {
                         const positionIndex = index;
-                        parentVerticalSegmentX[parent.parentId] = maxParentRight + minOffset + ((totalParentsInDepth - positionIndex) * laneSpacing);
+                        const x = maxParentRight + minOffset + ((totalParentsInDepth - positionIndex) * laneSpacing);
+                        parentVerticalSegmentX[parent.parentId] = x;
+                        if (window.DEBUG_CONNECTIONS && (parent.parentId === 'A1' || parent.parentId === 'A2')) {
+                            console.log('[VerticalSegmentCalculator] Assigning', parent.parentId, 'index:', index, 'x:', x.toFixed(1), '= maxParentRight:', maxParentRight.toFixed(1), '+ minOffset:', minOffset, '+', (totalParentsInDepth - positionIndex), '*', laneSpacing.toFixed(1));
+                        }
                     });
                 });
 
@@ -216,21 +243,45 @@ function getVerticalSegmentCalculator() {
                 calculateNodeAvoidanceOffset,
                 calculateLabelAvoidanceOffset
             ) {
+                // 親をdepthごとにグループ化
+                const parentsByDepth = {};
+                Object.keys(parentVerticalSegmentX).forEach(parentId => {
+                    const firstEdge = edgeInfos.find(e => e.conn.from === parentId && !e.is1to1Horizontal);
+                    if (!firstEdge) return;
+
+                    const depth = firstEdge.depth;
+                    if (!parentsByDepth[depth]) {
+                        parentsByDepth[depth] = [];
+                    }
+                    parentsByDepth[depth].push(parentId);
+                });
+
                 const parentMaxOffset = {};
 
-                Object.keys(parentVerticalSegmentX).forEach(parentId => {
-                    const baseVerticalX = parentVerticalSegmentX[parentId];
-                    let maxOffset = 0;
+                // depthごとに最大オフセットを計算し、同じdepthの全親に適用
+                Object.keys(parentsByDepth).forEach(depth => {
+                    const parentsInDepth = parentsByDepth[depth];
+                    let depthMaxOffset = 0;
 
-                    edgeInfos.filter(e => e.conn.from === parentId && !e.is1to1Horizontal).forEach(edgeInfo => {
-                        const nodeBounds = getAllNodeBounds(edgeInfo.conn.from, edgeInfo.conn.to);
-                        const nodeOffset = calculateNodeAvoidanceOffset(baseVerticalX, edgeInfo.y1, edgeInfo.y2, nodeBounds, edgeInfo.conn.from, edgeInfo.conn.to);
-                        const labelOffset = calculateLabelAvoidanceOffset(baseVerticalX + nodeOffset, edgeInfo.y1, edgeInfo.y2, labelBounds, edgeInfo.conn.from, edgeInfo.conn.to);
-                        const totalOffset = nodeOffset + labelOffset;
-                        maxOffset = Math.max(maxOffset, totalOffset);
+                    parentsInDepth.forEach(parentId => {
+                        const baseVerticalX = parentVerticalSegmentX[parentId];
+                        let parentOffset = 0;
+
+                        edgeInfos.filter(e => e.conn.from === parentId && !e.is1to1Horizontal).forEach(edgeInfo => {
+                            const nodeBounds = getAllNodeBounds(edgeInfo.conn.from, edgeInfo.conn.to);
+                            const nodeOffset = calculateNodeAvoidanceOffset(baseVerticalX, edgeInfo.y1, edgeInfo.y2, nodeBounds, edgeInfo.conn.from, edgeInfo.conn.to);
+                            const labelOffset = calculateLabelAvoidanceOffset(baseVerticalX + nodeOffset, edgeInfo.y1, edgeInfo.y2, labelBounds, edgeInfo.conn.from, edgeInfo.conn.to);
+                            const totalOffset = nodeOffset + labelOffset;
+                            parentOffset = Math.max(parentOffset, totalOffset);
+                        });
+
+                        depthMaxOffset = Math.max(depthMaxOffset, parentOffset);
                     });
 
-                    parentMaxOffset[parentId] = maxOffset;
+                    // 同じdepthの全親に同じオフセットを適用
+                    parentsInDepth.forEach(parentId => {
+                        parentMaxOffset[parentId] = depthMaxOffset;
+                    });
                 });
 
                 return parentMaxOffset;
