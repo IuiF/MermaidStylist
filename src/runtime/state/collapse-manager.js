@@ -59,6 +59,7 @@ function getCollapseManager() {
                     shadowManager.updatePositions(this.collapsedNodes);
                     pathHighlighter.reapplyPathHighlight();
                     highlightManager.reapplyRelationHighlight();
+                    this.updateVisibility();
 
                     // 座標を更新
                     requestAnimationFrame(() => {
