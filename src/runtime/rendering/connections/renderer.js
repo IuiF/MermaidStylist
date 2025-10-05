@@ -98,7 +98,7 @@ function getConnectionRenderer() {
         }
 
         // 曲線パスを生成
-        function createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds) {
+        function createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, connFrom, connTo) {
             const cornerRadius = 8;
             let p1x = x1;
             let p1y = y1;
@@ -114,6 +114,33 @@ function getConnectionRenderer() {
             if (p2x > p4x - minMargin) {
                 p2x = p4x - minMargin;
                 p3x = p2x;
+            }
+
+            // 最初の水平線セグメント(p1x,p1y)→(p2x,p2y)がノードと衝突するかチェック
+            if (nodeBounds && nodeBounds.length > 0) {
+                const intersectingNode = checkHorizontalLineIntersectsNode(p1x, p2x, p1y, nodeBounds);
+                if (intersectingNode) {
+                    // ノードの下または上を通過するようにY座標を調整
+                    const nodePadding = 40;
+                    if (p1y < intersectingNode.top) {
+                        // 水平線がノードより上にある場合、さらに上に移動
+                        p1y = intersectingNode.top - nodePadding;
+                        p2y = p1y;
+                    } else if (p1y > intersectingNode.bottom) {
+                        // 水平線がノードより下にある場合、さらに下に移動
+                        p1y = intersectingNode.bottom + nodePadding;
+                        p2y = p1y;
+                    } else {
+                        // 水平線がノードと重なっている場合、ノードの下を通過
+                        p1y = intersectingNode.bottom + nodePadding;
+                        p2y = p1y;
+                    }
+
+                    if (window.DEBUG_CONNECTIONS) {
+                        console.log('Horizontal line collision: edge=' + connFrom + '->' + connTo +
+                            ', node=' + intersectingNode.id + ', adjusted Y=' + p1y);
+                    }
+                }
             }
 
             // 最初の水平線セグメント(p1x,p1y)→(p2x,p2y)がラベルと衝突するかチェック
@@ -273,7 +300,7 @@ function getConnectionRenderer() {
                 }
             });
 
-            // パス0.5: ラベルの座標を取得
+            // パス0.5: ラベルとノードの座標を取得
             const labelBounds = getAllLabelBounds();
 
             // 2パスアルゴリズムによる動的レーン割り当て
@@ -554,6 +581,13 @@ function getConnectionRenderer() {
                 // 垂直セグメントのX座標
                 let verticalSegmentX = maxParentRight + minOffset + (assignedLane * laneSpacing);
 
+                // ノードとの衝突を考慮してオフセットを追加
+                const nodeBounds = getAllNodeBounds(conn.from, conn.to);
+                const nodeOffset = calculateNodeAvoidanceOffset(verticalSegmentX, y1, y2, nodeBounds, conn.from, conn.to);
+                if (nodeOffset > 0) {
+                    verticalSegmentX += nodeOffset;
+                }
+
                 // ラベルとの衝突を考慮してオフセットを追加
                 const labelOffset = calculateLabelAvoidanceOffset(verticalSegmentX, y1, y2, labelBounds, conn.from, conn.to);
                 if (labelOffset > 0) {
@@ -561,7 +595,7 @@ function getConnectionRenderer() {
                 }
 
                 // パスデータを生成
-                const pathData = createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds);
+                const pathData = createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, conn.from, conn.to);
 
                 const path = svgHelpers.createPath(pathData, {
                     class: conn.isDashed ? 'connection-line dashed-edge' : 'connection-line',
