@@ -32,12 +32,16 @@ function getConnectionLabels() {
             labelOffsets[toNodeId]++;
 
             const labelGroup = svgHelpers.createGroup({
-                class: 'connection-label'
+                class: 'connection-label',
+                'data-to': conn.to,
+                'data-from': conn.from
             });
+
+            const labelVerticalSpacing = 10; // ラベル間の縦方向スペース
 
             const labelRect = svgHelpers.createRect({
                 x: toLeft,
-                y: toTop - labelHeight - 5 - (offset * (labelHeight + 2)),
+                y: toTop - labelHeight - 5 - (offset * (labelHeight + labelVerticalSpacing)),
                 width: labelWidth,
                 height: labelHeight,
                 fill: '#fff',
@@ -49,7 +53,7 @@ function getConnectionLabels() {
 
             const labelText = svgHelpers.createText(conn.label, {
                 x: toLeft + labelPadding,
-                y: toTop - labelHeight / 2 - 5 - (offset * (labelHeight + 2)),
+                y: toTop - labelHeight / 2 - 5 - (offset * (labelHeight + labelVerticalSpacing)),
                 'dominant-baseline': 'central',
                 fill: '#333',
                 'font-size': '11',

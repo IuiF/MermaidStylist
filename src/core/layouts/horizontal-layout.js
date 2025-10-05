@@ -20,14 +20,14 @@ function getHorizontalLayout() {
                 const labelsCount = incomingEdges.filter(conn => conn.label).length;
                 if (labelsCount === 0) return baseSpacing;
 
-                // 推定ラベル高さ（padding含む）
-                const estimatedLabelHeight = 28;
-                const labelSpacing = 2;
+                // 実際のラベル高さとスペース（labels.jsと一致）
+                const actualLabelHeight = 20;
+                const labelVerticalSpacing = 10;
                 const topMargin = 5;
 
                 // 全ラベルの積み重ね高さを考慮
-                const totalLabelHeight = estimatedLabelHeight + topMargin +
-                                          (labelsCount - 1) * (estimatedLabelHeight + labelSpacing);
+                const totalLabelHeight = actualLabelHeight + topMargin +
+                                          (labelsCount - 1) * (actualLabelHeight + labelVerticalSpacing);
 
                 return baseSpacing + totalLabelHeight;
             }
