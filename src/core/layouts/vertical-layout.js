@@ -17,8 +17,8 @@ function getVerticalLayout() {
             function calculateNodeSpacing(nodeId, connections) {
                 const incomingEdges = connections.filter(conn => conn.to === nodeId);
                 const labelsCount = incomingEdges.filter(conn => conn.label).length;
-                // ラベル1つあたり約24pxのスペースを追加
-                return baseSpacing + (labelsCount > 1 ? (labelsCount - 1) * 24 : 0);
+                // ラベル1つあたり約28pxのスペースを追加
+                return baseSpacing + (labelsCount > 1 ? (labelsCount - 1) * 28 : 0);
             }
 
             // 各階層間の必要な距離を動的に計算

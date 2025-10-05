@@ -21,7 +21,7 @@ function getHorizontalLayout() {
                 if (labelsCount === 0) return baseSpacing;
 
                 // 推定ラベル高さ（padding含む）
-                const estimatedLabelHeight = 24;
+                const estimatedLabelHeight = 28;
                 const labelSpacing = 2;
                 const topMargin = 5;
 
