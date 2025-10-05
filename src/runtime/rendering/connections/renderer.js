@@ -2,8 +2,9 @@ function getConnectionRenderer() {
     const connectionArrows = require('./arrows').getConnectionArrows();
     const connectionLabels = require('./labels').getConnectionLabels();
     const collisionDetector = require('./collision-detector').getCollisionDetector();
+    const verticalSegmentCalculator = require('./vertical-segment-calculator').getVerticalSegmentCalculator();
 
-    return connectionArrows + connectionLabels + collisionDetector + `
+    return connectionArrows + connectionLabels + collisionDetector + verticalSegmentCalculator + `
         // 依存: svgHelpers (svg-helpers.js), getNodePosition, getNodeDimensions (layout-utils.js)
         let useCurvedLines = true;
 
@@ -557,133 +558,17 @@ function getConnectionRenderer() {
                 }
             });
 
-            // 階層ごとのレーン管理
-            const lanesByDepth = {}; // depth -> [{ laneIndex, segments: [{yMin, yMax}] }]
-            const parentAssignedLanes = {}; // parentId -> laneIndex
-
-            function findBestLaneForParent(parentId, depth, childrenYMin, childrenYMax, preferredLane) {
-                // すでに割り当て済みの場合はそれを返す
-                if (parentAssignedLanes[parentId] !== undefined) {
-                    return parentAssignedLanes[parentId];
-                }
-
-                // この階層のレーン配列を取得または作成
-                if (!lanesByDepth[depth]) {
-                    lanesByDepth[depth] = [];
-                }
-                const occupiedLanes = lanesByDepth[depth];
-
-                let laneIndex = preferredLane;
-
-                while (true) {
-                    // このレーンで衝突があるか確認
-                    let hasConflict = false;
-                    for (const lane of occupiedLanes) {
-                        if (lane.laneIndex === laneIndex) {
-                            for (const seg of lane.segments) {
-                                // Y範囲をチェック
-                                const yOverlap = !(childrenYMax < seg.yMin || childrenYMin > seg.yMax);
-                                if (yOverlap) {
-                                    hasConflict = true;
-                                    break;
-                                }
-                            }
-                            if (hasConflict) break;
-                        }
-                    }
-
-                    if (!hasConflict) {
-                        // レーンを占有
-                        let lane = occupiedLanes.find(l => l.laneIndex === laneIndex);
-                        if (!lane) {
-                            lane = { laneIndex: laneIndex, segments: [] };
-                            occupiedLanes.push(lane);
-                        }
-                        lane.segments.push({
-                            yMin: childrenYMin,
-                            yMax: childrenYMax
-                        });
-
-                        // 親にレーンを割り当て
-                        parentAssignedLanes[parentId] = laneIndex;
-                        return laneIndex;
-                    }
-
-                    laneIndex++;
-                }
-            }
-
-            // 親ごとに子のY範囲を計算（真横の1:1のみ除外）
-            const parentChildrenYRanges = {};
-            edgeInfos.forEach(info => {
-                // 真横の1:1のみレーン計算から除外
-                if (info.is1to1Horizontal) return;
-
-                if (!parentChildrenYRanges[info.conn.from]) {
-                    parentChildrenYRanges[info.conn.from] = { yMin: Infinity, yMax: -Infinity };
-                }
-                const range = parentChildrenYRanges[info.conn.from];
-                range.yMin = Math.min(range.yMin, info.y2);
-                range.yMax = Math.max(range.yMax, info.y2);
-            });
-
-            // 親ごとにverticalSegmentXを事前に計算
-            const parentVerticalSegmentX = {};
-            Object.keys(parentChildrenYRanges).forEach(parentId => {
-                // 親ノードの最初のエッジのdepthを取得
-                const firstEdge = edgeInfos.find(e => e.conn.from === parentId && !e.is1to1Horizontal);
-                if (!firstEdge) return;
-
-                const depth = firstEdge.depth;
-                const x1 = firstEdge.x1;
-                const x2 = firstEdge.x2;
-
-                // この階層内での親のランクを計算
-                const parentsAtThisDepth = edgeInfos
-                    .filter(e => e.depth === depth && !e.is1to1Horizontal)
-                    .map(e => e.conn.from)
-                    .filter((v, i, a) => a.indexOf(v) === i)
-                    .sort((a, b) => (parentYPositions[a] || 0) - (parentYPositions[b] || 0));
-
-                const parentRankInDepth = parentsAtThisDepth.indexOf(parentId);
-                const totalParentsInDepth = parentsAtThisDepth.length;
-                const basePreference = totalParentsInDepth - 1 - parentRankInDepth;
-                const preferredLane = basePreference * 3;
-
-                const childrenRange = parentChildrenYRanges[parentId];
-                const assignedLane = findBestLaneForParent(
-                    parentId,
-                    depth,
-                    childrenRange.yMin,
-                    childrenRange.yMax,
-                    preferredLane
-                );
-
-                const maxParentRight = depthMaxParentRight[depth] || x1;
-                const minChildLeft = depthMinChildLeft[depth] || x2;
-                const availableWidth = Math.max(minChildLeft - maxParentRight - minOffset * 2, 50);
-                const maxLanes = Math.max(totalParentsInDepth * 3, 10);
-                const laneSpacing = Math.max(5, Math.min(laneWidth, availableWidth / maxLanes));
-
-                parentVerticalSegmentX[parentId] = maxParentRight + minOffset + (assignedLane * laneSpacing);
-            });
-
-            // 親ごとに各エッジの衝突回避オフセットを計算し、最大値を採用
-            const parentMaxOffset = {};
-            Object.keys(parentVerticalSegmentX).forEach(parentId => {
-                const baseVerticalX = parentVerticalSegmentX[parentId];
-                let maxOffset = 0;
-
-                // この親のすべてのエッジに対してオフセットを計算
-                edgeInfos.filter(e => e.conn.from === parentId && !e.is1to1Horizontal).forEach(edgeInfo => {
-                    const nodeBounds = getAllNodeBounds(edgeInfo.conn.from, edgeInfo.conn.to);
-                    const nodeOffset = calculateNodeAvoidanceOffset(baseVerticalX, edgeInfo.y1, edgeInfo.y2, nodeBounds, edgeInfo.conn.from, edgeInfo.conn.to);
-                    const labelOffset = calculateLabelAvoidanceOffset(baseVerticalX + nodeOffset, edgeInfo.y1, edgeInfo.y2, labelBounds, edgeInfo.conn.from, edgeInfo.conn.to);
-                    const totalOffset = nodeOffset + labelOffset;
-                    maxOffset = Math.max(maxOffset, totalOffset);
-                });
-
-                parentMaxOffset[parentId] = maxOffset;
+            // 垂直セグメントX座標を計算（統一モジュールを使用）
+            const parentFinalVerticalSegmentX = verticalSegmentCalculator.calculate(edgeInfos, {
+                parentYPositions: parentYPositions,
+                depthMaxParentRight: depthMaxParentRight,
+                depthMinChildLeft: depthMinChildLeft,
+                labelBounds: labelBounds,
+                getAllNodeBounds: getAllNodeBounds,
+                calculateNodeAvoidanceOffset: calculateNodeAvoidanceOffset,
+                calculateLabelAvoidanceOffset: calculateLabelAvoidanceOffset,
+                minOffset: minOffset,
+                laneWidth: laneWidth
             });
 
             // 同じノードに入るエッジをグループ化
@@ -757,7 +642,7 @@ function getConnectionRenderer() {
                 }
 
                 // 事前に計算した親のverticalSegmentX（衝突回避オフセット込み）を使用
-                let verticalSegmentX = (parentVerticalSegmentX[conn.from] || x1 + 50) + (parentMaxOffset[conn.from] || 0);
+                let verticalSegmentX = parentFinalVerticalSegmentX[conn.from] || x1 + 50;
 
                 // パスデータを生成
                 const fromPos = getNodePosition(fromElement);
