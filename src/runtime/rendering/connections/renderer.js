@@ -626,6 +626,47 @@ function getConnectionRenderer() {
                 range.yMax = Math.max(range.yMax, info.y2);
             });
 
+            // 親ごとにverticalSegmentXを事前に計算
+            const parentVerticalSegmentX = {};
+            Object.keys(parentChildrenYRanges).forEach(parentId => {
+                // 親ノードの最初のエッジのdepthを取得
+                const firstEdge = edgeInfos.find(e => e.conn.from === parentId && !e.is1to1Horizontal);
+                if (!firstEdge) return;
+
+                const depth = firstEdge.depth;
+                const x1 = firstEdge.x1;
+                const x2 = firstEdge.x2;
+
+                // この階層内での親のランクを計算
+                const parentsAtThisDepth = edgeInfos
+                    .filter(e => e.depth === depth && !e.is1to1Horizontal)
+                    .map(e => e.conn.from)
+                    .filter((v, i, a) => a.indexOf(v) === i)
+                    .sort((a, b) => (parentYPositions[a] || 0) - (parentYPositions[b] || 0));
+
+                const parentRankInDepth = parentsAtThisDepth.indexOf(parentId);
+                const totalParentsInDepth = parentsAtThisDepth.length;
+                const basePreference = totalParentsInDepth - 1 - parentRankInDepth;
+                const preferredLane = basePreference * 3;
+
+                const childrenRange = parentChildrenYRanges[parentId];
+                const assignedLane = findBestLaneForParent(
+                    parentId,
+                    depth,
+                    childrenRange.yMin,
+                    childrenRange.yMax,
+                    preferredLane
+                );
+
+                const maxParentRight = depthMaxParentRight[depth] || x1;
+                const minChildLeft = depthMinChildLeft[depth] || x2;
+                const availableWidth = Math.max(minChildLeft - maxParentRight - minOffset * 2, 50);
+                const maxLanes = Math.max(totalParentsInDepth * 3, 10);
+                const laneSpacing = Math.max(5, Math.min(laneWidth, availableWidth / maxLanes));
+
+                parentVerticalSegmentX[parentId] = maxParentRight + minOffset + (assignedLane * laneSpacing);
+            });
+
             // 同じノードに入るエッジをグループ化
             const edgesByTarget = {};
             edgeInfos.forEach(edgeInfo => {
@@ -691,39 +732,8 @@ function getConnectionRenderer() {
                 const fromElement = svgHelpers.getNodeElement(conn.from);
                 const toElement = svgHelpers.getNodeElement(conn.to);
 
-                // この階層内での親のランクを計算（真横の1:1のみ除外）
-                const parentsAtThisDepth = edgeInfos
-                    .filter(e => e.depth === depth && !e.is1to1Horizontal)
-                    .map(e => e.conn.from)
-                    .filter((v, i, a) => a.indexOf(v) === i) // ユニーク
-                    .sort((a, b) => (parentYPositions[a] || 0) - (parentYPositions[b] || 0));
-
-                const parentRankInDepth = parentsAtThisDepth.indexOf(conn.from);
-                const totalParentsInDepth = parentsAtThisDepth.length;
-                const basePreference = totalParentsInDepth - 1 - parentRankInDepth;
-                const preferredLane = basePreference * 3;
-
-                // 親のレーンを取得または割り当て
-                const childrenRange = parentChildrenYRanges[conn.from];
-                const assignedLane = findBestLaneForParent(
-                    conn.from,
-                    depth,
-                    childrenRange.yMin,
-                    childrenRange.yMax,
-                    preferredLane
-                );
-
-                // この階層での垂直セグメントの配置範囲を計算
-                const maxParentRight = depthMaxParentRight[depth] || x1;
-                const minChildLeft = depthMinChildLeft[depth] || x2;
-                const availableWidth = Math.max(minChildLeft - maxParentRight - minOffset * 2, 50);
-
-                // レーンをこの範囲内に配置
-                const maxLanes = Math.max(totalParentsInDepth * 3, 10);
-                const laneSpacing = Math.max(5, Math.min(laneWidth, availableWidth / maxLanes));
-
-                // 垂直セグメントのX座標
-                let verticalSegmentX = maxParentRight + minOffset + (assignedLane * laneSpacing);
+                // 事前に計算した親のverticalSegmentXを使用
+                let verticalSegmentX = parentVerticalSegmentX[conn.from] || x1 + 50;
 
                 // ノードとの衝突を考慮してオフセットを追加
                 const nodeBounds = getAllNodeBounds(conn.from, conn.to);
