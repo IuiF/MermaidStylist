@@ -91,9 +91,55 @@ function getConnectionLabels() {
                     edgePath.style.strokeWidth = '3';
                 }
 
-                // エッジ情報を表示
-                alert('エッジ: ' + fromLabel + ' → ' + toLabel + '\\nラベル: ' + conn.label);
+                // エッジ情報を画面上に表示
+                showEdgeInfo(fromLabel, toLabel, conn.label);
             });
+
+            function showEdgeInfo(from, to, label) {
+                // 既存の情報パネルを削除
+                const existing = document.getElementById('edge-info-panel');
+                if (existing) existing.remove();
+
+                // 情報パネルを作成
+                const panel = document.createElement('div');
+                panel.id = 'edge-info-panel';
+                panel.style.position = 'fixed';
+                panel.style.top = '80px';
+                panel.style.right = '20px';
+                panel.style.backgroundColor = '#fff';
+                panel.style.border = '2px solid #333';
+                panel.style.borderRadius = '8px';
+                panel.style.padding = '15px';
+                panel.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+                panel.style.zIndex = '10000';
+                panel.style.maxWidth = '400px';
+                panel.style.fontSize = '13px';
+                panel.style.lineHeight = '1.6';
+
+                // 閉じるボタン
+                const closeBtn = document.createElement('button');
+                closeBtn.textContent = '×';
+                closeBtn.style.position = 'absolute';
+                closeBtn.style.top = '5px';
+                closeBtn.style.right = '5px';
+                closeBtn.style.border = 'none';
+                closeBtn.style.background = 'none';
+                closeBtn.style.fontSize = '20px';
+                closeBtn.style.cursor = 'pointer';
+                closeBtn.style.color = '#666';
+                closeBtn.onclick = function() { panel.remove(); };
+                panel.appendChild(closeBtn);
+
+                // 内容
+                const content = document.createElement('div');
+                content.innerHTML = '<strong>エッジ情報</strong><br/>' +
+                    '<div style=\"margin-top:10px\"><strong>From:</strong> ' + from + '</div>' +
+                    '<div style=\"margin-top:5px\"><strong>To:</strong> ' + to + '</div>' +
+                    '<div style=\"margin-top:5px\"><strong>ラベル:</strong> ' + label + '</div>';
+                panel.appendChild(content);
+
+                document.body.appendChild(panel);
+            }
 
             return labelGroup;
         }
