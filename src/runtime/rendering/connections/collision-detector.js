@@ -50,6 +50,50 @@ function getCollisionDetector() {
             return null;
         }
 
+        // 水平線がラベルと交差するかチェック
+        function checkHorizontalLineIntersectsLabel(x1, x2, y, labelBounds) {
+            const xMin = Math.min(x1, x2);
+            const xMax = Math.max(x1, x2);
+
+            for (const label of labelBounds) {
+                // 水平線のY座標がラベルの範囲内にあるかチェック
+                if (y >= label.top && y <= label.bottom) {
+                    // 水平線のX範囲がラベルと重なるかチェック
+                    if (!(xMax < label.left || xMin > label.right)) {
+                        return label;
+                    }
+                }
+            }
+            return null;
+        }
+
+        // 水平線がラベルを避けるためのX座標を計算
+        function calculateHorizontalLineAvoidance(x1, x2, y, labelBounds) {
+            const collisionPadding = 15;
+            const xMin = Math.min(x1, x2);
+            const xMax = Math.max(x1, x2);
+
+            // この水平線と交差するラベルを見つける
+            const intersectingLabels = [];
+            for (const label of labelBounds) {
+                // 水平線のY座標がラベルの範囲内にあるかチェック
+                if (y >= label.top - collisionPadding && y <= label.bottom + collisionPadding) {
+                    // 水平線のX範囲がラベルと重なるかチェック
+                    if (!(xMax < label.left - collisionPadding || xMin > label.right + collisionPadding)) {
+                        intersectingLabels.push(label);
+                    }
+                }
+            }
+
+            if (intersectingLabels.length === 0) {
+                return null; // 衝突なし
+            }
+
+            // 最も左にあるラベルの左側で折り返す
+            const minLeft = Math.min(...intersectingLabels.map(l => l.left));
+            return minLeft - collisionPadding;
+        }
+
         // ラベルを避けるためのX座標オフセットを計算
         function calculateLabelAvoidanceOffset(x, y1, y2, labelBounds, edgeFrom, edgeTo) {
             const yMin = Math.min(y1, y2);

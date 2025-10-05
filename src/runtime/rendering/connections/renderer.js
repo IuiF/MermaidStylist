@@ -98,16 +98,26 @@ function getConnectionRenderer() {
         }
 
         // 曲線パスを生成
-        function createCurvedPath(x1, y1, x2, y2, verticalSegmentX) {
+        function createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds) {
             const cornerRadius = 8;
-            const p1x = x1;
-            const p1y = y1;
-            const p2x = verticalSegmentX;
-            const p2y = y1;
-            const p3x = p2x;
-            const p3y = y2;
+            let p1x = x1;
+            let p1y = y1;
+            let p2x = verticalSegmentX;
+            let p2y = y1;
+            let p3x = p2x;
+            let p3y = y2;
             const p4x = x2;
             const p4y = y2;
+
+            // 最初の水平線セグメント(p1x,p1y)→(p2x,p2y)がラベルと衝突するかチェック
+            if (labelBounds && labelBounds.length > 0) {
+                const avoidanceX = calculateHorizontalLineAvoidance(p1x, p2x, p1y, labelBounds);
+                if (avoidanceX !== null && avoidanceX > p1x && avoidanceX < p2x) {
+                    // ラベルの左側で垂直線を立ち上げる
+                    p2x = avoidanceX;
+                    p3x = avoidanceX; // 垂直線のX座標も同じにする
+                }
+            }
 
             if (Math.abs(p3y - p2y) > cornerRadius * 2) {
                 if (p3y > p2y) {
@@ -536,7 +546,7 @@ function getConnectionRenderer() {
                 }
 
                 // パスデータを生成
-                const pathData = createCurvedPath(x1, y1, x2, y2, verticalSegmentX);
+                const pathData = createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds);
 
                 const path = svgHelpers.createPath(pathData, {
                     class: conn.isDashed ? 'connection-line dashed-edge' : 'connection-line',
