@@ -104,20 +104,19 @@ function getVerticalSegmentCalculator() {
                 const parentVerticalSegmentX = {};
 
                 // 階層ごとに親をグループ化
-                const parentsByDepth = {};
-                Object.keys(parentChildrenYRanges).forEach(parentId => {
-                    const firstEdge = edgeInfos.find(e => e.conn.from === parentId && !e.is1to1Horizontal);
-                    if (!firstEdge) return;
+                const parentIdsByDepth = connectionUtils.groupParentsByDepth(edgeInfos, parentChildrenYRanges);
 
-                    const depth = firstEdge.depth;
-                    if (!parentsByDepth[depth]) {
-                        parentsByDepth[depth] = [];
-                    }
-                    parentsByDepth[depth].push({
-                        parentId: parentId,
-                        yPosition: parentYPositions[parentId] || 0,
-                        x1: firstEdge.x1,
-                        x2: firstEdge.x2
+                // 親情報を付加
+                const parentsByDepth = {};
+                Object.keys(parentIdsByDepth).forEach(depth => {
+                    parentsByDepth[depth] = parentIdsByDepth[depth].map(parentId => {
+                        const firstEdge = edgeInfos.find(e => e.conn.from === parentId && !e.is1to1Horizontal);
+                        return {
+                            parentId: parentId,
+                            yPosition: parentYPositions[parentId] || 0,
+                            x1: firstEdge.x1,
+                            x2: firstEdge.x2
+                        };
                     });
                 });
 

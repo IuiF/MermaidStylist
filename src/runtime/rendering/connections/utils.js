@@ -108,6 +108,30 @@ function getConnectionUtils() {
                     }
                 });
                 return parentYPositions;
+            },
+
+            /**
+             * 親ノードをdepthごとにグループ化
+             * @param {Array} edgeInfos - エッジ情報の配列
+             * @param {Array|Object} parentIds - 親ノードIDの配列、またはキーが親IDのオブジェクト
+             * @returns {Object} depth -> [parentId...]のマップ
+             */
+            groupParentsByDepth: function(edgeInfos, parentIds) {
+                const parentsByDepth = {};
+                const parentIdArray = Array.isArray(parentIds) ? parentIds : Object.keys(parentIds);
+
+                parentIdArray.forEach(parentId => {
+                    const firstEdge = edgeInfos.find(e => e.conn.from === parentId && !e.is1to1Horizontal);
+                    if (!firstEdge) return;
+
+                    const depth = firstEdge.depth;
+                    if (!parentsByDepth[depth]) {
+                        parentsByDepth[depth] = [];
+                    }
+                    parentsByDepth[depth].push(parentId);
+                });
+
+                return parentsByDepth;
             }
         };
     `;

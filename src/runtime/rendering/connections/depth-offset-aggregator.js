@@ -25,17 +25,7 @@ function getDepthOffsetAggregator() {
                 calculateLabelAvoidanceOffset
             ) {
                 // 親をdepthごとにグループ化
-                const parentsByDepth = {};
-                Object.keys(parentVerticalSegmentX).forEach(parentId => {
-                    const firstEdge = edgeInfos.find(e => e.conn.from === parentId && !e.is1to1Horizontal);
-                    if (!firstEdge) return;
-
-                    const depth = firstEdge.depth;
-                    if (!parentsByDepth[depth]) {
-                        parentsByDepth[depth] = [];
-                    }
-                    parentsByDepth[depth].push(parentId);
-                });
+                const parentsByDepth = connectionUtils.groupParentsByDepth(edgeInfos, parentVerticalSegmentX);
 
                 const parentMaxOffset = {};
 
