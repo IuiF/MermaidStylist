@@ -12,6 +12,8 @@ const { getEdgeOverlapDetector } = require('../../runtime/rendering/connections/
 const { getPathYAdjuster } = require('../../runtime/rendering/connections/path-y-adjuster');
 const { getPathGenerator } = require('../../runtime/rendering/connections/path-generator');
 const { getFinalVerticalCalculator } = require('../../runtime/rendering/connections/final-vertical-calculator');
+const { getEdgeSpacingCalculator } = require('../../runtime/rendering/connections/edge-spacing-calculator');
+const { getCollisionOffsetCalculator } = require('../../runtime/rendering/connections/collision-offset-calculator');
 const { getConnectionRenderer } = require('../../runtime/rendering/connections/renderer');
 const { getShadowManager } = require('../../runtime/rendering/effects/shadow-manager');
 const { getCollapseManager } = require('../../runtime/state/collapse-manager');
@@ -95,6 +97,12 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
 
         // Import final vertical calculator
         ${getFinalVerticalCalculator()}
+
+        // Import edge spacing calculator
+        ${getEdgeSpacingCalculator()}
+
+        // Import collision offset calculator
+        ${getCollisionOffsetCalculator()}
 
         // Import connection renderer
         ${getConnectionRenderer()}

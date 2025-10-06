@@ -1,0 +1,110 @@
+function getEdgeSpacingCalculator() {
+    return `
+        // エッジ間隔調整モジュール（ノード層間のエッジX座標配置）
+
+        const edgeSpacingCalculator = {
+            /**
+             * 各depthを通過する全エッジ数をカウント（長距離エッジを含む）
+             * @param {Array} edgeInfos - エッジ情報配列
+             * @param {Object} nodeDepthMap - ノードID -> depth のマップ
+             * @returns {Object} depth -> 通過エッジ数のマップ
+             */
+            countEdgesPassingThroughDepth: function(edgeInfos, nodeDepthMap) {
+                const edgesPassingThroughDepth = {};
+                edgeInfos.forEach(info => {
+                    if (info.is1to1Horizontal) return;
+
+                    const fromDepth = info.depth;
+                    // 子ノードのdepthを推定：子ノードが親として他のエッジを持っていればそのdepth、なければfromDepth+1
+                    const childDepth = nodeDepthMap[info.conn.to];
+                    const toDepth = childDepth !== undefined ? childDepth : fromDepth + 1;
+
+                    // エッジが通過する各depthをカウント
+                    // 例: depth=1の親からdepth=3の子へのエッジは、depth=1とdepth=2を通過する
+                    for (let d = fromDepth; d < toDepth; d++) {
+                        if (!edgesPassingThroughDepth[d]) {
+                            edgesPassingThroughDepth[d] = 0;
+                        }
+                        edgesPassingThroughDepth[d]++;
+                    }
+                });
+
+                if (window.DEBUG_CONNECTIONS) {
+                    console.log('[EdgeSpacingCalculator] Edges passing through each depth:', edgesPassingThroughDepth);
+                }
+
+                return edgesPassingThroughDepth;
+            },
+
+            /**
+             * 等間隔配置のX座標を計算
+             * @param {Array} parents - 親ノード情報配列（parentId, yPosition, x1, x2を含む）
+             * @param {number} depth - 階層番号
+             * @param {number} totalEdgesPassingThrough - この階層を通過する全エッジ数
+             * @param {number} maxParentRight - 親ノード群の最大右端X座標
+             * @param {number} minChildLeft - 子ノード群の最小左端X座標
+             * @param {number} minOffset - ノード右端からの最小オフセット
+             * @returns {Object} parentId -> X座標のマップ
+             */
+            calculateEvenSpacing: function(parents, depth, totalEdgesPassingThrough, maxParentRight, minChildLeft, minOffset) {
+                const parentVerticalSegmentX = {};
+
+                // Y座標でソート（上から下）
+                parents.sort((a, b) => a.yPosition - b.yPosition);
+
+                const totalParentsInDepth = parents.length;
+
+                const rawAvailableWidth = minChildLeft - maxParentRight - minOffset * 2;
+
+                // Y範囲を計算
+                const yMin = parents[0].yPosition;
+                const yMax = parents[parents.length - 1].yPosition;
+                const yRange = yMax - yMin;
+
+                // Y範囲が大きい場合は最小間隔を確保
+                const minSpacing = yRange > 100 ? 30 : 10;
+
+                // 必要な幅は、通過する全エッジ数に基づいて計算
+                const requiredWidth = minSpacing * (Math.max(totalParentsInDepth, totalEdgesPassingThrough) + 1);
+
+                // 衝突回避オフセットの平均的な値を見込む
+                const estimatedCollisionOffset = requiredWidth * 0.5;
+
+                // 親の数で等分してレーン間隔を計算
+                const laneSpacing = Math.max(minSpacing, rawAvailableWidth / (totalParentsInDepth + 1));
+
+                // 中央X座標を計算し、衝突回避オフセットを考慮して配置開始位置を決定
+                const centerX = (maxParentRight + minChildLeft) / 2;
+                const totalWidth = laneSpacing * totalParentsInDepth;
+                const startX = centerX - totalWidth / 2 - estimatedCollisionOffset / 2;
+
+                if (window.DEBUG_CONNECTIONS) {
+                    console.log('[EdgeSpacingCalculator] Depth', depth, ':', parents.length, 'parents,', totalEdgesPassingThrough, 'edges passing, yRange:', yRange.toFixed(1), 'rawAvailableWidth:', rawAvailableWidth.toFixed(1), 'estimatedOffset:', estimatedCollisionOffset.toFixed(1), 'laneSpacing:', laneSpacing.toFixed(1), 'centerX:', centerX.toFixed(1), 'startX:', startX.toFixed(1));
+                    parents.forEach(p => console.log('  -', p.parentId, 'y:', p.yPosition.toFixed(1)));
+                }
+
+                // 各親に等間隔でX座標を割り当て（中央基準で左から右へ配置）
+                parents.forEach((parent, index) => {
+                    let x = startX + (index + 0.5) * laneSpacing;
+
+                    // 垂直セグメントX座標は親ノードの右端(x1) + minOffsetより右側にある必要がある
+                    const minX = parent.x1 + minOffset;
+                    if (x < minX) {
+                        x = minX;
+                    }
+
+                    parentVerticalSegmentX[parent.parentId] = x;
+                    if (window.DEBUG_CONNECTIONS && (parent.parentId === 'A1' || parent.parentId === 'A2' || parent.parentId === 'E6')) {
+                        console.log('[EdgeSpacingCalculator] Assigning', parent.parentId, 'index:', index, 'calculated:', (startX + (index + 0.5) * laneSpacing).toFixed(1), 'minX:', minX.toFixed(1), 'final x:', x.toFixed(1));
+                    }
+                });
+
+                return parentVerticalSegmentX;
+            }
+        };
+    `;
+}
+
+module.exports = {
+    getEdgeSpacingCalculator
+};

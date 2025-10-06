@@ -139,87 +139,26 @@ function getVerticalSegmentCalculator() {
                 });
 
                 // 各depthを通過する全エッジ数をカウント（長距離エッジを含む）
-                const edgesPassingThroughDepth = {};
-                edgeInfos.forEach(info => {
-                    if (info.is1to1Horizontal) return;
-
-                    const fromDepth = info.depth;
-                    // 子ノードのdepthを推定：子ノードが親として他のエッジを持っていればそのdepth、なければfromDepth+1
-                    const childDepth = nodeDepthMap[info.conn.to];
-                    const toDepth = childDepth !== undefined ? childDepth : fromDepth + 1;
-
-                    // エッジが通過する各depthをカウント
-                    // 例: depth=1の親からdepth=3の子へのエッジは、depth=1とdepth=2を通過する
-                    for (let d = fromDepth; d < toDepth; d++) {
-                        if (!edgesPassingThroughDepth[d]) {
-                            edgesPassingThroughDepth[d] = 0;
-                        }
-                        edgesPassingThroughDepth[d]++;
-                    }
-                });
-
-                if (window.DEBUG_CONNECTIONS) {
-                    console.log('[VerticalSegmentCalculator] Edges passing through each depth:', edgesPassingThroughDepth);
-                }
+                const edgesPassingThroughDepth = edgeSpacingCalculator.countEdgesPassingThroughDepth(edgeInfos, nodeDepthMap);
 
                 // 階層ごとに等間隔配置を計算
                 Object.keys(parentsByDepth).forEach(depth => {
                     const parents = parentsByDepth[depth];
-
-                    // Y座標でソート（上から下）
-                    parents.sort((a, b) => a.yPosition - b.yPosition);
-
                     const totalParentsInDepth = parents.length;
-
-                    // このdepthを通過する全エッジ数（長距離エッジを含む）
                     const totalEdgesPassingThrough = edgesPassingThroughDepth[depth] || totalParentsInDepth;
-
                     const maxParentRight = depthMaxParentRight[depth] || parents[0].x1;
                     const minChildLeft = depthMinChildLeft[depth] || parents[0].x2;
-                    const rawAvailableWidth = minChildLeft - maxParentRight - minOffset * 2;
 
-                    // Y範囲を計算
-                    const yMin = parents[0].yPosition;
-                    const yMax = parents[parents.length - 1].yPosition;
-                    const yRange = yMax - yMin;
+                    const spacing = edgeSpacingCalculator.calculateEvenSpacing(
+                        parents,
+                        depth,
+                        totalEdgesPassingThrough,
+                        maxParentRight,
+                        minChildLeft,
+                        minOffset
+                    );
 
-                    // Y範囲が大きい場合は最小間隔を確保
-                    const minSpacing = yRange > 100 ? 30 : 10;
-
-                    // 必要な幅は、通過する全エッジ数に基づいて計算
-                    const requiredWidth = minSpacing * (Math.max(totalParentsInDepth, totalEdgesPassingThrough) + 1);
-
-                    // 衝突回避オフセットの平均的な値を見込む
-                    const estimatedCollisionOffset = requiredWidth * 0.5;
-
-                    // 親の数で等分してレーン間隔を計算
-                    const laneSpacing = Math.max(minSpacing, rawAvailableWidth / (totalParentsInDepth + 1));
-
-                    // 中央X座標を計算し、衝突回避オフセットを考慮して配置開始位置を決定
-                    const centerX = (maxParentRight + minChildLeft) / 2;
-                    const totalWidth = laneSpacing * totalParentsInDepth;
-                    const startX = centerX - totalWidth / 2 - estimatedCollisionOffset / 2;
-
-                    if (window.DEBUG_CONNECTIONS) {
-                        console.log('[VerticalSegmentCalculator] Depth', depth, ':', parents.length, 'parents,', totalEdgesPassingThrough, 'edges passing, yRange:', yRange.toFixed(1), 'rawAvailableWidth:', rawAvailableWidth.toFixed(1), 'estimatedOffset:', estimatedCollisionOffset.toFixed(1), 'laneSpacing:', laneSpacing.toFixed(1), 'centerX:', centerX.toFixed(1), 'startX:', startX.toFixed(1));
-                        parents.forEach(p => console.log('  -', p.parentId, 'y:', p.yPosition.toFixed(1)));
-                    }
-
-                    // 各親に等間隔でX座標を割り当て（中央基準で左から右へ配置）
-                    parents.forEach((parent, index) => {
-                        let x = startX + (index + 0.5) * laneSpacing;
-
-                        // 垂直セグメントX座標は親ノードの右端(x1) + minOffsetより右側にある必要がある
-                        const minX = parent.x1 + minOffset;
-                        if (x < minX) {
-                            x = minX;
-                        }
-
-                        parentVerticalSegmentX[parent.parentId] = x;
-                        if (window.DEBUG_CONNECTIONS && (parent.parentId === 'A1' || parent.parentId === 'A2' || parent.parentId === 'E6')) {
-                            console.log('[VerticalSegmentCalculator] Assigning', parent.parentId, 'index:', index, 'calculated:', (startX + (index + 0.5) * laneSpacing).toFixed(1), 'minX:', minX.toFixed(1), 'final x:', x.toFixed(1));
-                        }
-                    });
+                    Object.assign(parentVerticalSegmentX, spacing);
                 });
 
                 return parentVerticalSegmentX;
@@ -293,48 +232,14 @@ function getVerticalSegmentCalculator() {
                 calculateNodeAvoidanceOffset,
                 calculateLabelAvoidanceOffset
             ) {
-                // 親をdepthごとにグループ化
-                const parentsByDepth = {};
-                Object.keys(parentVerticalSegmentX).forEach(parentId => {
-                    const firstEdge = edgeInfos.find(e => e.conn.from === parentId && !e.is1to1Horizontal);
-                    if (!firstEdge) return;
-
-                    const depth = firstEdge.depth;
-                    if (!parentsByDepth[depth]) {
-                        parentsByDepth[depth] = [];
-                    }
-                    parentsByDepth[depth].push(parentId);
-                });
-
-                const parentMaxOffset = {};
-
-                // depthごとに最大オフセットを計算し、同じdepthの全親に適用
-                Object.keys(parentsByDepth).forEach(depth => {
-                    const parentsInDepth = parentsByDepth[depth];
-                    let depthMaxOffset = 0;
-
-                    parentsInDepth.forEach(parentId => {
-                        const baseVerticalX = parentVerticalSegmentX[parentId];
-                        let parentOffset = 0;
-
-                        edgeInfos.filter(e => e.conn.from === parentId && !e.is1to1Horizontal).forEach(edgeInfo => {
-                            const nodeBounds = getAllNodeBounds(edgeInfo.conn.from, edgeInfo.conn.to);
-                            const nodeOffset = calculateNodeAvoidanceOffset(baseVerticalX, edgeInfo.y1, edgeInfo.y2, nodeBounds, edgeInfo.conn.from, edgeInfo.conn.to);
-                            const labelOffset = calculateLabelAvoidanceOffset(baseVerticalX + nodeOffset, edgeInfo.y1, edgeInfo.y2, labelBounds, edgeInfo.conn.from, edgeInfo.conn.to);
-                            const totalOffset = nodeOffset + labelOffset;
-                            parentOffset = Math.max(parentOffset, totalOffset);
-                        });
-
-                        depthMaxOffset = Math.max(depthMaxOffset, parentOffset);
-                    });
-
-                    // 同じdepthの全親に同じオフセットを適用
-                    parentsInDepth.forEach(parentId => {
-                        parentMaxOffset[parentId] = depthMaxOffset;
-                    });
-                });
-
-                return parentMaxOffset;
+                return collisionOffsetCalculator.calculate(
+                    edgeInfos,
+                    parentVerticalSegmentX,
+                    labelBounds,
+                    getAllNodeBounds,
+                    calculateNodeAvoidanceOffset,
+                    calculateLabelAvoidanceOffset
+                );
             }
         };
     `;
