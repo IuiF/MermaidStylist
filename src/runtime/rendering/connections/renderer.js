@@ -623,11 +623,12 @@ function getConnectionRenderer() {
                     return;
                 }
 
-                // 事前に計算した親のverticalSegmentX（衝突回避オフセット込み）を使用
-                let verticalSegmentX = parentFinalVerticalSegmentX[conn.from] || x1 + 50;
+                // 事前に計算した親のverticalSegmentX（衝突回避オフセット込み、ノード右端保証済み）を使用
+                const verticalSegmentX = parentFinalVerticalSegmentX[conn.from] || x1 + 50;
 
                 // パスデータを生成
                 const fromPos = getNodePosition(fromElement);
+
                 const nodeBounds = getAllNodeBounds(conn.from, conn.to);
                 const edgeKey = conn.from + '->' + conn.to;
                 const finalVerticalX = edgeToFinalVerticalX[edgeKey];

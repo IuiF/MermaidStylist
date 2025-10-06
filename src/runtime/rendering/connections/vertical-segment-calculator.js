@@ -207,10 +207,17 @@ function getVerticalSegmentCalculator() {
 
                     // 各親に等間隔でX座標を割り当て（中央基準で左から右へ配置）
                     parents.forEach((parent, index) => {
-                        const x = startX + (index + 0.5) * laneSpacing;
+                        let x = startX + (index + 0.5) * laneSpacing;
+
+                        // 垂直セグメントX座標は親ノードの右端(x1) + minOffsetより右側にある必要がある
+                        const minX = parent.x1 + minOffset;
+                        if (x < minX) {
+                            x = minX;
+                        }
+
                         parentVerticalSegmentX[parent.parentId] = x;
-                        if (window.DEBUG_CONNECTIONS && (parent.parentId === 'A1' || parent.parentId === 'A2')) {
-                            console.log('[VerticalSegmentCalculator] Assigning', parent.parentId, 'index:', index, 'x:', x.toFixed(1), '= startX:', startX.toFixed(1), '+ (', index, '+ 0.5 ) *', laneSpacing.toFixed(1));
+                        if (window.DEBUG_CONNECTIONS && (parent.parentId === 'A1' || parent.parentId === 'A2' || parent.parentId === 'E6')) {
+                            console.log('[VerticalSegmentCalculator] Assigning', parent.parentId, 'index:', index, 'calculated:', (startX + (index + 0.5) * laneSpacing).toFixed(1), 'minX:', minX.toFixed(1), 'final x:', x.toFixed(1));
                         }
                     });
                 });
