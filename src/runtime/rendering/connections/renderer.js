@@ -243,7 +243,7 @@ function getConnectionRenderer() {
             const depthMinChildLeft = depthBounds.depthMinChildLeft;
 
             // 垂直セグメントX座標を計算（統一モジュールを使用）
-            let parentFinalVerticalSegmentX = verticalSegmentCalculator.calculate(edgeInfos, {
+            let parentFinalVerticalSegmentX = verticalSegmentCalculator.calculateVerticalSegmentX(edgeInfos, {
                 parentYPositions: parentYPositions,
                 depthMaxParentRight: depthMaxParentRight,
                 depthMinChildLeft: depthMinChildLeft,

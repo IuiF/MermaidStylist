@@ -8,7 +8,7 @@ function getVerticalSegmentCalculator() {
              * @param {Object} options - 計算オプション
              * @returns {Object} 親IDをキーとした垂直セグメントX座標のマップ
              */
-            calculate: function(edgeInfos, options) {
+            calculateVerticalSegmentX: function(edgeInfos, options) {
                 if (window.DEBUG_CONNECTIONS) {
                     console.log('[VerticalSegmentCalculator] Starting calculation for', edgeInfos.length, 'edges');
                 }
