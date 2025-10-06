@@ -51,83 +51,21 @@ function getConnectionRenderer() {
 
             // 垂直線のX座標制限は親ごとに事前計算済み（parentFinalVerticalSegmentX）
 
-            // 衝突回避のためのY座標調整値
-            let adjustedY = p1y;
+            // 最初の水平線セグメントのY座標調整
+            p2y = pathYAdjuster.adjustInitialSegmentY(p1x, p1y, p2x, fromNodeLeft, nodeBounds, connFrom, connTo);
 
-            // 最初の水平線セグメント（親ノードの範囲）でノードとの衝突をチェック
-            // 親ノードの左端からverticalSegmentXまでの水平線がノードと重なるかを確認
-            if (nodeBounds && nodeBounds.length > 0) {
-                const checkFromX = fromNodeLeft !== undefined ? fromNodeLeft : p1x;
-                const checkToX = p2x;
-                const pathIntersectingNodes = checkEdgePathIntersectsNodes(checkFromX, p1y, checkToX, p1y, nodeBounds);
-                if (pathIntersectingNodes.length > 0) {
-                    const nodePadding = CONNECTION_CONSTANTS.COLLISION_PADDING_NODE;
-
-                    // すべての衝突ノードの中で最も上と最も下を見つける
-                    const topMost = Math.min(...pathIntersectingNodes.map(n => n.top));
-                    const bottomMost = Math.max(...pathIntersectingNodes.map(n => n.bottom));
-
-                    // 水平線のY座標を調整（ノードを避ける）
-                    if (p1y < topMost) {
-                        // 開始Y座標がすべてのノードより上の場合、さらに上に移動
-                        adjustedY = topMost - nodePadding;
-                    } else if (p1y >= topMost && p1y <= bottomMost) {
-                        // 開始Y座標がノードの範囲内の場合、最も下のノードの下を通過
-                        adjustedY = bottomMost + nodePadding;
-                    }
-
-                    if (window.DEBUG_CONNECTIONS) {
-                        console.log('Edge path collision: edge=' + connFrom + '->' + connTo +
-                            ', nodes=' + pathIntersectingNodes.map(n => n.id).join(',') + ', adjusted Y=' + adjustedY);
-                    }
-                }
-            }
-
-            // 調整が必要な場合、p2yを更新
-            if (adjustedY !== p1y) {
-                p2y = adjustedY;
-            }
-
-            // 最後の水平線セグメント（p3xからp4xまで、y=p3y/p4y）でノードとの衝突をチェック
-            // p3yとp4yは通常同じ値だが、念のため両方チェック
-            let finalAdjustedY = null;
-            if (nodeBounds && nodeBounds.length > 0) {
-                if (window.DEBUG_CONNECTIONS) {
-                    console.log('Checking final horizontal segment: p3x=' + p3x + ', p3y=' + p3y + ', p4x=' + p4x + ', p4y=' + p4y + ', nodeBounds.length=' + nodeBounds.length);
-                }
-                const pathIntersectingNodes = checkEdgePathIntersectsNodes(p3x, p3y, p4x, p3y, nodeBounds);
-                if (window.DEBUG_CONNECTIONS) {
-                    console.log('  Intersecting nodes: ' + pathIntersectingNodes.length);
-                }
-                if (pathIntersectingNodes.length > 0) {
-                    const nodePadding = CONNECTION_CONSTANTS.COLLISION_PADDING_NODE;
-                    const topMost = Math.min(...pathIntersectingNodes.map(n => n.top));
-                    const bottomMost = Math.max(...pathIntersectingNodes.map(n => n.bottom));
-
-                    // 水平線のY座標を調整（ノードを避ける）
-                    if (p3y < topMost) {
-                        finalAdjustedY = topMost - nodePadding;
-                    } else if (p3y >= topMost && p3y <= bottomMost) {
-                        finalAdjustedY = bottomMost + nodePadding;
-                    }
-
-                    if (finalAdjustedY !== null) {
-                        p3y = finalAdjustedY;
-                        // p4yは目的ノードのcenterYのまま保持（p3yからp4yへの垂直セグメントが生成される）
-
-                        if (window.DEBUG_CONNECTIONS) {
-                            console.log('Final horizontal segment collision: edge=' + connFrom + '->' + connTo +
-                                ', nodes=' + pathIntersectingNodes.map(n => n.id).join(',') + ', adjusted p3y=' + finalAdjustedY + ', p4y=' + p4y);
-                        }
-                    }
-                }
+            // 最後の水平線セグメントのY座標調整
+            const finalAdjustedY = pathYAdjuster.adjustFinalSegmentY(p3x, p3y, p4x, nodeBounds, connFrom, connTo);
+            if (finalAdjustedY !== null) {
+                p3y = finalAdjustedY;
+                // p4yは目的ノードのcenterYのまま保持（p3yからp4yへの垂直セグメントが生成される）
             }
 
             // ラベル回避処理は verticalSegmentCalculator で一括処理済みのため、
             // ここでの個別調整は行わない（親ごとの統一X座標を維持）
 
             // Y座標の調整が必要な場合は、ノードの右端付近で垂直に移動するパスを生成
-            if (adjustedY !== p1y) {
+            if (p2y !== p1y) {
                 // 起点から垂直セグメントX(p2x)まで水平線、垂直移動
                 const shortHorizontal = p2x;
                 const needsFinalVertical = Math.abs(p3y - p4y) > 1;
