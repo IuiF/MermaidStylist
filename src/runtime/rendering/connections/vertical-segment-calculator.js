@@ -222,7 +222,7 @@ function getVerticalSegmentCalculator() {
             },
 
             /**
-             * 衝突回避オフセットを計算
+             * 衝突回避オフセットをdepth単位で集約
              */
             _calculateCollisionOffsets: function(
                 edgeInfos,
@@ -232,7 +232,7 @@ function getVerticalSegmentCalculator() {
                 calculateNodeAvoidanceOffset,
                 calculateLabelAvoidanceOffset
             ) {
-                return collisionOffsetCalculator.calculate(
+                return depthOffsetAggregator.aggregateOffsetsByDepth(
                     edgeInfos,
                     parentVerticalSegmentX,
                     labelBounds,

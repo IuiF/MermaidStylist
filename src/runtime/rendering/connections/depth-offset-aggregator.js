@@ -1,19 +1,22 @@
-function getCollisionOffsetCalculator() {
+function getDepthOffsetAggregator() {
     return `
-        // 衝突回避オフセット計算モジュール
+        // Depth単位で衝突回避オフセットを集約するモジュール
 
-        const collisionOffsetCalculator = {
+        const depthOffsetAggregator = {
             /**
-             * 衝突回避オフセットを計算
+             * Depth単位で衝突回避オフセットを集約
+             * 同じdepth内のすべての親に最大オフセット値を適用することで、
+             * エッジの垂直セグメントが揃って配置される
+             *
              * @param {Array} edgeInfos - エッジ情報配列
              * @param {Object} parentVerticalSegmentX - 親ID -> 基本X座標のマップ
              * @param {Array} labelBounds - ラベルのバウンディングボックス配列
              * @param {Function} getAllNodeBounds - ノードバウンディングボックス取得関数
              * @param {Function} calculateNodeAvoidanceOffset - ノード回避オフセット計算関数
              * @param {Function} calculateLabelAvoidanceOffset - ラベル回避オフセット計算関数
-             * @returns {Object} parentId -> オフセット値のマップ
+             * @returns {Object} parentId -> 集約されたオフセット値のマップ
              */
-            calculate: function(
+            aggregateOffsetsByDepth: function(
                 edgeInfos,
                 parentVerticalSegmentX,
                 labelBounds,
@@ -56,7 +59,7 @@ function getCollisionOffsetCalculator() {
                         depthMaxOffset = Math.max(depthMaxOffset, parentOffset);
                     });
 
-                    // 同じdepthの全親に同じオフセットを適用
+                    // 同じdepthの全親に同じオフセットを適用（垂直セグメントを揃える）
                     parentsInDepth.forEach(parentId => {
                         parentMaxOffset[parentId] = depthMaxOffset;
                     });
@@ -69,5 +72,5 @@ function getCollisionOffsetCalculator() {
 }
 
 module.exports = {
-    getCollisionOffsetCalculator
+    getDepthOffsetAggregator
 };
