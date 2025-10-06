@@ -37,7 +37,7 @@ function getVerticalSegmentCalculator() {
                 );
 
                 // 衝突回避オフセットを計算
-                const parentMaxOffset = this._calculateCollisionOffsets(
+                const parentMaxOffset = depthOffsetAggregator.aggregateOffsetsByDepth(
                     edgeInfos,
                     parentVerticalSegmentX,
                     labelBounds,
@@ -150,27 +150,6 @@ function getVerticalSegmentCalculator() {
                 });
 
                 return parentVerticalSegmentX;
-            },
-
-            /**
-             * 衝突回避オフセットをdepth単位で集約
-             */
-            _calculateCollisionOffsets: function(
-                edgeInfos,
-                parentVerticalSegmentX,
-                labelBounds,
-                getAllNodeBounds,
-                calculateNodeAvoidanceOffset,
-                calculateLabelAvoidanceOffset
-            ) {
-                return depthOffsetAggregator.aggregateOffsetsByDepth(
-                    edgeInfos,
-                    parentVerticalSegmentX,
-                    labelBounds,
-                    getAllNodeBounds,
-                    calculateNodeAvoidanceOffset,
-                    calculateLabelAvoidanceOffset
-                );
             }
         };
     `;

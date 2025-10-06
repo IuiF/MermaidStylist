@@ -1,10 +1,11 @@
 function getConnectionRenderer() {
     const connectionArrows = require('./arrows').getConnectionArrows();
     const connectionLabels = require('./labels').getConnectionLabels();
-    const collisionUtils = require('./collision-utils').getCollisionUtils();
+    const boundsCollector = require('./bounds-collector').getBoundsCollector();
+    const collisionDetector = require('./collision-detector').getCollisionDetector();
     const verticalSegmentCalculator = require('./vertical-segment-calculator').getVerticalSegmentCalculator();
 
-    return connectionArrows + connectionLabels + collisionUtils + verticalSegmentCalculator + `
+    return connectionArrows + connectionLabels + boundsCollector + collisionDetector + verticalSegmentCalculator + `
         // 依存: svgHelpers (svg-helpers.js), getNodePosition, getNodeDimensions (layout-utils.js)
         let useCurvedLines = true;
 
