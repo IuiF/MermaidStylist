@@ -14,8 +14,9 @@ function getConnectionConstants() {
             MIN_OFFSET: 30,                  // ノード右端からの最小オフセット
             LANE_WIDTH: 20,                  // レーン幅の基準値
 
-            // カーブパス
-            CURVE_CONTROL_RATIO: 0.5         // ベジェ曲線の制御点比率
+            // パス描画
+            CORNER_RADIUS: 8,                // パスのコーナー半径
+            EDGE_SPACING: 15                 // エッジ間のスペース
         };
     `;
 }

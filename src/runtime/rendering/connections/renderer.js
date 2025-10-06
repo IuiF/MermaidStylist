@@ -100,7 +100,7 @@ function getConnectionRenderer() {
 
         // 曲線パスを生成
         function createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, connFrom, connTo, fromNodeLeft, finalVerticalX) {
-            const cornerRadius = 8;
+            const cornerRadius = CONNECTION_CONSTANTS.CORNER_RADIUS;
             const p1x = x1;
             const p1y = y1;  // エッジの起点は常にノードの中心
             let p2x = verticalSegmentX;
@@ -122,7 +122,7 @@ function getConnectionRenderer() {
                 const checkToX = p2x;
                 const pathIntersectingNodes = checkEdgePathIntersectsNodes(checkFromX, p1y, checkToX, p1y, nodeBounds);
                 if (pathIntersectingNodes.length > 0) {
-                    const nodePadding = 40;
+                    const nodePadding = CONNECTION_CONSTANTS.COLLISION_PADDING_NODE;
 
                     // すべての衝突ノードの中で最も上と最も下を見つける
                     const topMost = Math.min(...pathIntersectingNodes.map(n => n.top));
@@ -161,7 +161,7 @@ function getConnectionRenderer() {
                     console.log('  Intersecting nodes: ' + pathIntersectingNodes.length);
                 }
                 if (pathIntersectingNodes.length > 0) {
-                    const nodePadding = 40;
+                    const nodePadding = CONNECTION_CONSTANTS.COLLISION_PADDING_NODE;
                     const topMost = Math.min(...pathIntersectingNodes.map(n => n.top));
                     const bottomMost = Math.max(...pathIntersectingNodes.map(n => n.bottom));
 
@@ -569,7 +569,7 @@ function getConnectionRenderer() {
                     const toElement = svgHelpers.getNodeElement(target);
                     if (toElement) {
                         const toPos = getNodePosition(toElement);
-                        const spacing = 15;
+                        const spacing = CONNECTION_CONSTANTS.EDGE_SPACING;
 
                         edges.forEach((edge, index) => {
                             const offset = spacing * (edges.length - index);

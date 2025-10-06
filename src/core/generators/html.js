@@ -5,7 +5,6 @@ const { getSVGHelpers } = require('../../shared/svg-helpers');
 const { getVerticalLayout } = require('../layouts/vertical-layout');
 const { getHorizontalLayout } = require('../layouts/horizontal-layout');
 const { getConnectionConstants } = require('../../runtime/rendering/connections/constants');
-const { getPathGenerator } = require('../../runtime/rendering/connections/path-generator');
 const { getConnectionRenderer } = require('../../runtime/rendering/connections/renderer');
 const { getShadowManager } = require('../../runtime/rendering/effects/shadow-manager');
 const { getCollapseManager } = require('../../runtime/state/collapse-manager');
@@ -68,9 +67,6 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
 
         // Import connection constants
         ${getConnectionConstants()}
-
-        // Import path generator
-        ${getPathGenerator()}
 
         // Import connection renderer
         ${getConnectionRenderer()}
