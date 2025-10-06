@@ -75,23 +75,6 @@ function getConnectionUtils() {
             },
 
             /**
-             * 同じターゲットノードへのエッジをグループ化
-             * @param {Array} edgeInfos - エッジ情報の配列
-             * @returns {Object} ターゲットIDをキーとしたエッジ情報配列のマップ
-             */
-            groupEdgesByTarget: function(edgeInfos) {
-                const edgesByTarget = {};
-                edgeInfos.forEach(edgeInfo => {
-                    const target = edgeInfo.conn.to;
-                    if (!edgesByTarget[target]) {
-                        edgesByTarget[target] = [];
-                    }
-                    edgesByTarget[target].push(edgeInfo);
-                });
-                return edgesByTarget;
-            },
-
-            /**
              * 親ノードのY座標マップを作成
              * @param {Array} edgeInfos - エッジ情報の配列
              * @returns {Object} 親IDをキーとしたY座標のマップ

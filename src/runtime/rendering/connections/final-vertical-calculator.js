@@ -4,13 +4,30 @@ function getFinalVerticalCalculator() {
 
         const finalVerticalCalculator = {
             /**
+             * 同じターゲットノードへのエッジをグループ化
+             * @param {Array} edgeInfos - エッジ情報の配列
+             * @returns {Object} ターゲットIDをキーとしたエッジ情報配列のマップ
+             */
+            _groupEdgesByTarget: function(edgeInfos) {
+                const edgesByTarget = {};
+                edgeInfos.forEach(edgeInfo => {
+                    const target = edgeInfo.conn.to;
+                    if (!edgesByTarget[target]) {
+                        edgesByTarget[target] = [];
+                    }
+                    edgesByTarget[target].push(edgeInfo);
+                });
+                return edgesByTarget;
+            },
+
+            /**
              * 同じターゲットノードに複数エッジが入る場合のX座標を計算
              * @param {Array} edgeInfos - エッジ情報配列
              * @returns {Object} エッジキー -> 最終垂直X座標のマップ
              */
             calculateFinalVerticalX: function(edgeInfos) {
                 // 同じノードに入るエッジをグループ化
-                const edgesByTarget = connectionUtils.groupEdgesByTarget(edgeInfos);
+                const edgesByTarget = this._groupEdgesByTarget(edgeInfos);
 
                 // 各ターゲットノードに対して、エッジの順序を決定
                 const edgeToFinalVerticalX = {};
