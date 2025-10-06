@@ -91,22 +91,6 @@ function getCollisionDetector() {
             return objects.filter(obj => checkRectOverlap(lineRect, obj));
         }
 
-        // 垂直線がノードと交差するかチェック
-        function checkVerticalLineIntersectsNode(x, y1, y2, nodeBounds) {
-            const intersections = findVerticalLineIntersections(
-                x, y1, y2, nodeBounds, CONNECTION_CONSTANTS.COLLISION_PADDING_NODE
-            );
-            return intersections.length > 0 ? intersections[0] : null;
-        }
-
-        // 垂直線がラベルと交差するかチェック
-        function checkVerticalLineIntersectsLabel(x, y1, y2, labelBounds) {
-            const intersections = findVerticalLineIntersections(
-                x, y1, y2, labelBounds, CONNECTION_CONSTANTS.COLLISION_PADDING_LABEL
-            );
-            return intersections.length > 0 ? intersections[0] : null;
-        }
-
         // エッジの経路全体でノードとの衝突をチェック
         function checkEdgePathIntersectsNodes(x1, y1, x2, y2, nodeBounds) {
             const padding = CONNECTION_CONSTANTS.COLLISION_PADDING_NODE;
@@ -118,33 +102,6 @@ function getCollisionDetector() {
             };
 
             return nodeBounds.filter(node => checkRectOverlap(pathRect, node));
-        }
-
-        // 水平線がノードと交差するかチェック
-        function checkHorizontalLineIntersectsNode(x1, x2, y, nodeBounds) {
-            return findHorizontalLineIntersections(
-                x1, x2, y, nodeBounds, CONNECTION_CONSTANTS.COLLISION_PADDING_NODE
-            );
-        }
-
-        // 水平線がラベルと交差するかチェック
-        function checkHorizontalLineIntersectsLabel(x1, x2, y, labelBounds) {
-            const intersections = findHorizontalLineIntersections(
-                x1, x2, y, labelBounds, CONNECTION_CONSTANTS.COLLISION_PADDING_LABEL
-            );
-            return intersections.length > 0 ? intersections[0] : null;
-        }
-
-        // 水平線がラベルを避けるためのX座標を計算
-        function calculateHorizontalLineAvoidance(x1, x2, y, labelBounds) {
-            const intersections = findHorizontalLineIntersections(
-                x1, x2, y, labelBounds, CONNECTION_CONSTANTS.COLLISION_PADDING_LABEL
-            );
-
-            if (intersections.length === 0) return null;
-
-            const minLeft = Math.min(...intersections.map(l => l.left));
-            return minLeft - CONNECTION_CONSTANTS.COLLISION_PADDING_LABEL;
         }
 
         // 垂直線の衝突回避オフセットを計算（汎用関数）
