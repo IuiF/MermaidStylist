@@ -99,8 +99,9 @@ function getLayoutUtils() {
 
         // 階層間の動的スペーシングを計算
         function calculateLevelSpacing(fromLevel, toLevel, connections, fromLevelIndex, toLevelIndex, allLevels) {
-            // このレベル間を通過する全エッジを検出
-            const passingEdges = new Set();
+            // このレベル間を通過する全エッジと親ノードを検出
+            let passingEdgeCount = 0;
+            const passingParentNodes = new Set();
 
             // 各ノードがどのレベルにあるかのマップを作成
             const nodeToLevel = new Map();
@@ -120,24 +121,33 @@ function getLayoutUtils() {
 
                     if (connFromLevel !== undefined && connToLevel !== undefined &&
                         connFromLevel <= fromLevelIndex && connToLevel >= toLevelIndex) {
-                        passingEdges.add(conn.from);
+                        passingEdgeCount++;
+                        passingParentNodes.add(conn.from);
                     }
                 } else {
                     // レベル情報がない場合：従来の直接接続のみ
                     const fromInLevel = fromLevel.find(n => n.id === conn.from);
                     const toInLevel = toLevel.find(n => n.id === conn.to);
                     if (fromInLevel && toInLevel) {
-                        passingEdges.add(conn.from);
+                        passingEdgeCount++;
+                        passingParentNodes.add(conn.from);
                     }
                 }
             });
 
             const baseSpacing = 60;
-            const laneSpacing = 12;
+            const edgeSpacing = 15; // CONNECTION_CONSTANTS.EDGE_SPACINGと一致
+            const collisionMargin = 40; // 衝突回避用の余裕
             const minSpacing = 80;
-            const maxSpacing = 250;
+            const maxSpacing = 400;
 
-            return Math.max(minSpacing, Math.min(maxSpacing, baseSpacing + passingEdges.size * laneSpacing));
+            // エッジレンダラーと同じロジック: max(親ノード数, エッジ数)を使用
+            const effectiveLaneCount = Math.max(passingParentNodes.size, passingEdgeCount);
+
+            // 基本スペース + エッジレーン幅 + 衝突回避マージン
+            const calculatedSpacing = baseSpacing + effectiveLaneCount * edgeSpacing + collisionMargin;
+
+            return Math.max(minSpacing, Math.min(maxSpacing, calculatedSpacing));
         }
 
         // 兄弟ノードの開始位置を計算
