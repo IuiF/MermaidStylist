@@ -20,16 +20,11 @@ function getVerticalSegmentCalculator() {
                     getAllNodeBounds = () => [],
                     calculateNodeAvoidanceOffset = () => 0,
                     calculateLabelAvoidanceOffset = () => 0,
-                    minOffset = CONNECTION_CONSTANTS.MIN_OFFSET,
-                    laneWidth = CONNECTION_CONSTANTS.LANE_WIDTH
+                    minOffset = CONNECTION_CONSTANTS.MIN_OFFSET
                 } = options;
 
                 // 親ごとの子のY範囲を計算
                 const parentChildrenYRanges = this._calculateParentChildrenYRanges(edgeInfos);
-
-                // レーン管理
-                const lanesByDepth = {};
-                const parentAssignedLanes = {};
 
                 // 親ごとの基本垂直セグメントX座標を計算
                 const parentVerticalSegmentX = this._calculateBaseVerticalSegmentX(
@@ -38,10 +33,7 @@ function getVerticalSegmentCalculator() {
                     parentYPositions,
                     depthMaxParentRight,
                     depthMinChildLeft,
-                    lanesByDepth,
-                    parentAssignedLanes,
-                    minOffset,
-                    laneWidth
+                    minOffset
                 );
 
                 // 衝突回避オフセットを計算
@@ -107,10 +99,7 @@ function getVerticalSegmentCalculator() {
                 parentYPositions,
                 depthMaxParentRight,
                 depthMinChildLeft,
-                lanesByDepth,
-                parentAssignedLanes,
-                minOffset,
-                laneWidth
+                minOffset
             ) {
                 const parentVerticalSegmentX = {};
 
@@ -162,63 +151,6 @@ function getVerticalSegmentCalculator() {
                 });
 
                 return parentVerticalSegmentX;
-            },
-
-            /**
-             * レーンを検索・割り当て
-             */
-            _findBestLaneForParent: function(
-                parentId,
-                depth,
-                childrenYMin,
-                childrenYMax,
-                preferredLane,
-                lanesByDepth,
-                parentAssignedLanes
-            ) {
-                if (parentAssignedLanes[parentId] !== undefined) {
-                    return parentAssignedLanes[parentId];
-                }
-
-                if (!lanesByDepth[depth]) {
-                    lanesByDepth[depth] = [];
-                }
-                const occupiedLanes = lanesByDepth[depth];
-
-                let laneIndex = preferredLane;
-
-                while (true) {
-                    let hasConflict = false;
-                    for (const lane of occupiedLanes) {
-                        if (lane.laneIndex === laneIndex) {
-                            for (const seg of lane.segments) {
-                                const yOverlap = !(childrenYMax < seg.yMin || childrenYMin > seg.yMax);
-                                if (yOverlap) {
-                                    hasConflict = true;
-                                    break;
-                                }
-                            }
-                            if (hasConflict) break;
-                        }
-                    }
-
-                    if (!hasConflict) {
-                        let lane = occupiedLanes.find(l => l.laneIndex === laneIndex);
-                        if (!lane) {
-                            lane = { laneIndex: laneIndex, segments: [] };
-                            occupiedLanes.push(lane);
-                        }
-                        lane.segments.push({
-                            yMin: childrenYMin,
-                            yMax: childrenYMax
-                        });
-
-                        parentAssignedLanes[parentId] = laneIndex;
-                        return laneIndex;
-                    }
-
-                    laneIndex++;
-                }
             },
 
             /**

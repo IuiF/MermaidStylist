@@ -12,7 +12,6 @@ function getConnectionConstants() {
 
             // 垂直セグメント配置
             MIN_OFFSET: 30,                  // ノード右端からの最小オフセット
-            LANE_WIDTH: 20,                  // レーン幅の基準値
 
             // パス描画
             CORNER_RADIUS: 8,                // パスのコーナー半径

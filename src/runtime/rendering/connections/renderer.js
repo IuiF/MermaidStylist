@@ -207,7 +207,6 @@ function getConnectionRenderer() {
             const labelBounds = getAllLabelBounds();
 
             // 2パスアルゴリズムによる動的レーン割り当て
-            const laneWidth = CONNECTION_CONSTANTS.LANE_WIDTH;
             const minOffset = CONNECTION_CONSTANTS.MIN_OFFSET;
 
             // パス1: すべての接続情報を収集
@@ -252,8 +251,7 @@ function getConnectionRenderer() {
                 getAllNodeBounds: getAllNodeBounds,
                 calculateNodeAvoidanceOffset: calculateNodeAvoidanceOffset,
                 calculateLabelAvoidanceOffset: calculateLabelAvoidanceOffset,
-                minOffset: minOffset,
-                laneWidth: laneWidth
+                minOffset: minOffset
             });
 
             // 最終垂直X座標を計算（複数エッジが同じノードに入る場合の分散配置）
