@@ -1,6 +1,6 @@
-function getCollisionDetector() {
+function getCollisionUtils() {
     return `
-        // エッジとラベル/ノードの衝突を検出・回避する汎用モジュール
+        // エッジとラベル/ノードの衝突を検出・回避する汎用ユーティリティ
 
         // すべてのノードの座標を取得
         function getAllNodeBounds(excludeFrom, excludeTo) {
@@ -143,5 +143,5 @@ function getCollisionDetector() {
 }
 
 module.exports = {
-    getCollisionDetector
+    getCollisionUtils
 };
