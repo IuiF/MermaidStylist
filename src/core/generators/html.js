@@ -5,6 +5,9 @@ const { getSVGHelpers } = require('../../shared/svg-helpers');
 const { getVerticalLayout } = require('../layouts/vertical-layout');
 const { getHorizontalLayout } = require('../layouts/horizontal-layout');
 const { getConnectionConstants } = require('../../runtime/rendering/connections/constants');
+const { getConnectionUtils } = require('../../runtime/rendering/connections/utils');
+const { getEdgeInfoCollector } = require('../../runtime/rendering/connections/edge-info-collector');
+const { getDepthCalculator } = require('../../runtime/rendering/connections/depth-calculator');
 const { getConnectionRenderer } = require('../../runtime/rendering/connections/renderer');
 const { getShadowManager } = require('../../runtime/rendering/effects/shadow-manager');
 const { getCollapseManager } = require('../../runtime/state/collapse-manager');
@@ -67,6 +70,15 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
 
         // Import connection constants
         ${getConnectionConstants()}
+
+        // Import connection utils
+        ${getConnectionUtils()}
+
+        // Import edge info collector
+        ${getEdgeInfoCollector()}
+
+        // Import depth calculator
+        ${getDepthCalculator()}
 
         // Import connection renderer
         ${getConnectionRenderer()}

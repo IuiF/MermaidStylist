@@ -36,67 +36,6 @@ function getConnectionRenderer() {
         }
 
         // ノードの階層（深さ）を計算
-        function calculateNodeDepths(connections) {
-            const nodeDepths = {};
-            const allNodeIds = new Set([...connections.map(c => c.from), ...connections.map(c => c.to)]);
-            const childNodeIds = new Set(connections.map(c => c.to));
-            const rootNodeIds = [...allNodeIds].filter(id => !childNodeIds.has(id));
-
-            // ルートノードをレベル0として開始
-            const queue = [];
-            rootNodeIds.forEach(rootId => {
-                nodeDepths[rootId] = 0;
-                queue.push(rootId);
-            });
-
-            // BFSで階層を計算（複数回訪問を許可し、より深い階層を採用）
-            let processed = 0;
-            const maxIterations = allNodeIds.size * allNodeIds.size;
-
-            while (queue.length > 0 && processed < maxIterations) {
-                const currentId = queue.shift();
-                processed++;
-                const currentDepth = nodeDepths[currentId];
-                const children = connections.filter(c => c.from === currentId).map(c => c.to);
-
-                for (const childId of children) {
-                    const newDepth = currentDepth + 1;
-                    const existingDepth = nodeDepths[childId];
-
-                    // より深い階層が見つかった場合、または未設定の場合は更新
-                    if (existingDepth === undefined || newDepth > existingDepth) {
-                        nodeDepths[childId] = newDepth;
-                        queue.push(childId);
-                    }
-                }
-            }
-
-            return nodeDepths;
-        }
-
-        // 親ごとの接続をY座標でソート
-        function sortConnectionsByParent(connections) {
-            const connectionsByParent = {};
-            connections.forEach(conn => {
-                if (!connectionsByParent[conn.from]) {
-                    connectionsByParent[conn.from] = [];
-                }
-                connectionsByParent[conn.from].push(conn);
-            });
-
-            Object.keys(connectionsByParent).forEach(parentId => {
-                connectionsByParent[parentId].sort((a, b) => {
-                    const aElement = svgHelpers.getNodeElement(a.to);
-                    const bElement = svgHelpers.getNodeElement(b.to);
-                    if (!aElement || !bElement) return 0;
-                    const aPos = getNodePosition(aElement);
-                    const bPos = getNodePosition(bElement);
-                    return aPos.top - bPos.top;
-                });
-            });
-
-            return connectionsByParent;
-        }
 
         // 曲線パスを生成
         function createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, connFrom, connTo, fromNodeLeft, finalVerticalX) {
@@ -406,88 +345,21 @@ function getConnectionRenderer() {
             const minOffset = 30;
 
             // パス1: すべての接続情報を収集
-            const edgeInfos = [];
-
             // ノードの階層を計算
-            const nodeDepths = calculateNodeDepths(connections);
+            const nodeDepths = connectionUtils.calculateNodeDepths(connections);
 
             // 親ごとの接続をソート
-            const connectionsByParent = sortConnectionsByParent(connections);
+            const connectionsByParent = connectionUtils.sortConnectionsByParent(connections);
 
-            // パス1: すべての接続の情報を収集（可視性に関係なく）
-            connections.forEach(conn => {
-                const fromElement = svgHelpers.getNodeElement(conn.from);
-                const toElement = svgHelpers.getNodeElement(conn.to);
-
-                if (!fromElement || !toElement) {
-                    if (window.DEBUG_CONNECTIONS && conn.isDashed) {
-                        console.log('  - Skipping dashed edge: ' + conn.from + ' --> ' + conn.to +
-                            ' fromElement: ' + !!fromElement + ' toElement: ' + !!toElement);
-                    }
-                    return;
-                }
-
-                const fromPos = getNodePosition(fromElement);
-                const fromDim = getNodeDimensions(fromElement);
-                const toPos = getNodePosition(toElement);
-                const toDim = getNodeDimensions(toElement);
-
-                const siblings = connectionsByParent[conn.from];
-                const siblingIndex = siblings.findIndex(c => c.to === conn.to);
-                const siblingCount = siblings.length;
-
-                // 子が持つ親の数をカウント
-                const parentCount = connections.filter(c => c.to === conn.to).length;
-
-                // すべてのエッジは親の中央から出発
-                const y1 = fromPos.top + fromDim.height / 2;
-                const x1 = fromPos.left + fromDim.width;
-                const x2 = toPos.left;
-                const y2 = toPos.top + toDim.height / 2;
-
-                // 1:1の親子関係を判定（親が1つの子のみ、子が1つの親のみ）
-                const is1to1 = (siblingCount === 1 && parentCount === 1);
-
-                // 真横にある1:1（Y座標差が小さい）を判定
-                const yDiff = Math.abs(y2 - y1);
-                const is1to1Horizontal = is1to1 && (yDiff < 5);
-
-                // エッジの階層（親の深さ）
-                const edgeDepth = nodeDepths[conn.from] || 0;
-
-                edgeInfos.push({
-                    conn: conn,
-                    x1: x1,
-                    y1: y1,
-                    x2: x2,
-                    y2: y2,
-                    yMin: Math.min(y1, y2),
-                    yMax: Math.max(y1, y2),
-                    siblingIndex: siblingIndex,
-                    siblingCount: siblingCount,
-                    parentX: fromPos.left,
-                    parentY: fromPos.top,
-                    depth: edgeDepth,
-                    is1to1: is1to1,
-                    is1to1Horizontal: is1to1Horizontal
-                });
-            });
+            // すべての接続の情報を収集（可視性に関係なく）
+            const edgeInfos = edgeInfoCollector.collectEdgeInfos(connections, nodeDepths, connectionsByParent);
 
             // パス2: レーン割り当てと描画
             // 親ノードのX座標でソート（左から右へ処理）
             edgeInfos.sort((a, b) => a.parentX - b.parentX);
 
             // 親ノードのY座標の範囲を計算（レーン優先順位のため）
-            const parentYPositions = {};
-            edgeInfos.forEach(info => {
-                if (!parentYPositions[info.conn.from]) {
-                    const fromElement = svgHelpers.getNodeElement(info.conn.from);
-                    if (fromElement) {
-                        const pos = getNodePosition(fromElement);
-                        parentYPositions[info.conn.from] = pos.top;
-                    }
-                }
-            });
+            const parentYPositions = connectionUtils.calculateParentYPositions(edgeInfos);
 
             // 親をY座標でソートして、順位を割り当て
             const parentIds = Object.keys(parentYPositions);
@@ -499,43 +371,11 @@ function getConnectionRenderer() {
 
             // 階層情報を取得（横方向レイアウトから提供される）
             const levelInfo = window.layoutLevelInfo || {};
-            const levelXPositions = levelInfo.levelXPositions || [];
-            const levelMaxWidths = levelInfo.levelMaxWidths || [];
 
             // 階層ごとに親の右端の最大位置を計算（真横の1:1のみ除外）
-            const depthMaxParentRight = {}; // depth -> max(parentRight)
-            const depthMinChildLeft = {}; // depth -> min(childLeft)
-
-            edgeInfos.forEach(info => {
-                // 真横の1:1のみレーン計算から除外
-                if (info.is1to1Horizontal) return;
-
-                const depth = info.depth;
-
-                // 階層情報がある場合は、その階層の最大ノード幅を使用
-                if (levelXPositions[depth] !== undefined && levelMaxWidths[depth] !== undefined) {
-                    const levelMaxRight = levelXPositions[depth] + levelMaxWidths[depth];
-                    depthMaxParentRight[depth] = levelMaxRight;
-                } else {
-                    // フォールバック: 実際のエッジの開始位置から計算
-                    if (!depthMaxParentRight[depth] || info.x1 > depthMaxParentRight[depth]) {
-                        depthMaxParentRight[depth] = info.x1;
-                    }
-                }
-
-                // 次の階層の左端
-                const nextDepth = depth + 1;
-                if (levelXPositions[nextDepth] !== undefined) {
-                    if (!depthMinChildLeft[depth] || levelXPositions[nextDepth] < depthMinChildLeft[depth]) {
-                        depthMinChildLeft[depth] = levelXPositions[nextDepth];
-                    }
-                } else {
-                    // フォールバック: 実際のエッジの終了位置から計算
-                    if (!depthMinChildLeft[depth] || info.x2 < depthMinChildLeft[depth]) {
-                        depthMinChildLeft[depth] = info.x2;
-                    }
-                }
-            });
+            const depthBounds = depthCalculator.calculateDepthBounds(edgeInfos, levelInfo);
+            const depthMaxParentRight = depthBounds.depthMaxParentRight;
+            const depthMinChildLeft = depthBounds.depthMinChildLeft;
 
             // 垂直セグメントX座標を計算（統一モジュールを使用）
             let parentFinalVerticalSegmentX = verticalSegmentCalculator.calculate(edgeInfos, {
@@ -551,14 +391,7 @@ function getConnectionRenderer() {
             });
 
             // 同じノードに入るエッジをグループ化
-            const edgesByTarget = {};
-            edgeInfos.forEach(edgeInfo => {
-                const target = edgeInfo.conn.to;
-                if (!edgesByTarget[target]) {
-                    edgesByTarget[target] = [];
-                }
-                edgesByTarget[target].push(edgeInfo);
-            });
+            const edgesByTarget = connectionUtils.groupEdgesByTarget(edgeInfos);
 
             // 各ターゲットノードに対して、エッジの順序を決定
             const edgeToFinalVerticalX = {};
