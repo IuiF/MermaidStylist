@@ -11,6 +11,7 @@ const { getDepthCalculator } = require('../../runtime/rendering/connections/dept
 const { getEdgeOverlapDetector } = require('../../runtime/rendering/connections/edge-overlap-detector');
 const { getPathYAdjuster } = require('../../runtime/rendering/connections/path-y-adjuster');
 const { getPathGenerator } = require('../../runtime/rendering/connections/path-generator');
+const { getFinalVerticalCalculator } = require('../../runtime/rendering/connections/final-vertical-calculator');
 const { getConnectionRenderer } = require('../../runtime/rendering/connections/renderer');
 const { getShadowManager } = require('../../runtime/rendering/effects/shadow-manager');
 const { getCollapseManager } = require('../../runtime/state/collapse-manager');
@@ -91,6 +92,9 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
 
         // Import path generator
         ${getPathGenerator()}
+
+        // Import final vertical calculator
+        ${getFinalVerticalCalculator()}
 
         // Import connection renderer
         ${getConnectionRenderer()}

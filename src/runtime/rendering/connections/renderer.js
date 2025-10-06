@@ -207,8 +207,8 @@ function getConnectionRenderer() {
             const labelBounds = getAllLabelBounds();
 
             // 2パスアルゴリズムによる動的レーン割り当て
-            const laneWidth = 25;
-            const minOffset = 30;
+            const laneWidth = CONNECTION_CONSTANTS.LANE_WIDTH;
+            const minOffset = CONNECTION_CONSTANTS.MIN_OFFSET;
 
             // パス1: すべての接続情報を収集
             // ノードの階層を計算
@@ -256,27 +256,8 @@ function getConnectionRenderer() {
                 laneWidth: laneWidth
             });
 
-            // 同じノードに入るエッジをグループ化
-            const edgesByTarget = connectionUtils.groupEdgesByTarget(edgeInfos);
-
-            // 各ターゲットノードに対して、エッジの順序を決定
-            const edgeToFinalVerticalX = {};
-            Object.keys(edgesByTarget).forEach(target => {
-                const edges = edgesByTarget[target];
-                if (edges.length > 1) {
-                    // 複数のエッジがある場合、X座標で分散（ノードの左側に配置）
-                    const toElement = svgHelpers.getNodeElement(target);
-                    if (toElement) {
-                        const toPos = getNodePosition(toElement);
-                        const spacing = CONNECTION_CONSTANTS.EDGE_SPACING;
-
-                        edges.forEach((edge, index) => {
-                            const offset = spacing * (edges.length - index);
-                            edgeToFinalVerticalX[edge.conn.from + '->' + edge.conn.to] = toPos.left - offset;
-                        });
-                    }
-                }
-            });
+            // 最終垂直X座標を計算（複数エッジが同じノードに入る場合の分散配置）
+            const edgeToFinalVerticalX = finalVerticalCalculator.calculateFinalVerticalX(edgeInfos);
 
             // 垂直線のX座標制限は親ごとに事前計算済み（parentFinalVerticalSegmentX）
             // vertical-segment-calculatorで衝突回避を含めて計算済みのため、追加の制限は不要
