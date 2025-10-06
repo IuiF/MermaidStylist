@@ -20,8 +20,8 @@ function getVerticalSegmentCalculator() {
                     getAllNodeBounds = () => [],
                     calculateNodeAvoidanceOffset = () => 0,
                     calculateLabelAvoidanceOffset = () => 0,
-                    minOffset = 30,
-                    laneWidth = 20
+                    minOffset = CONNECTION_CONSTANTS.MIN_OFFSET,
+                    laneWidth = CONNECTION_CONSTANTS.LANE_WIDTH
                 } = options;
 
                 // 親ごとの子のY範囲を計算

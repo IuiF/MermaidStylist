@@ -15,7 +15,7 @@ function getConnectionLabels() {
             const textBBox = tempText.getBBox();
             svgLayer.removeChild(tempText);
 
-            const labelPadding = 4;
+            const labelPadding = CONNECTION_CONSTANTS.LABEL_PADDING;
             const labelWidth = textBBox.width + labelPadding * 2;
             const labelHeight = textBBox.height + labelPadding * 2;
 
@@ -37,7 +37,7 @@ function getConnectionLabels() {
                 'data-from': conn.from
             });
 
-            const labelVerticalSpacing = 3; // ラベル間の縦方向スペース
+            const labelVerticalSpacing = CONNECTION_CONSTANTS.LABEL_VERTICAL_SPACING;
 
             const labelRect = svgHelpers.createRect({
                 x: toLeft,

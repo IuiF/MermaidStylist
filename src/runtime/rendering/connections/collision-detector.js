@@ -1,12 +1,11 @@
 function getCollisionDetector() {
     return `
-        // エッジとラベル/ノードの衝突を検出・回避する関数
+        // エッジとラベル/ノードの衝突を検出・回避する汎用モジュール
 
         // すべてのノードの座標を取得
         function getAllNodeBounds(excludeFrom, excludeTo) {
             const nodes = [];
             allNodes.forEach(node => {
-                // 現在のエッジの始点・終点は除外
                 if (node.id === excludeFrom || node.id === excludeTo) return;
 
                 const element = svgHelpers.getNodeElement(node.id);
@@ -34,7 +33,6 @@ function getCollisionDetector() {
             const labelBounds = [];
 
             labels.forEach(label => {
-                // ラベルのrect要素から直接座標を取得（SVG座標系）
                 const rectElement = label.querySelector('rect');
                 if (rectElement) {
                     const x = parseFloat(rectElement.getAttribute('x'));
@@ -58,193 +56,131 @@ function getCollisionDetector() {
             return labelBounds;
         }
 
-        // 垂直線がノードと交差するかチェック
-        function checkVerticalLineIntersectsNode(x, y1, y2, nodeBounds) {
+        // 2つの矩形範囲が重なるかチェック（汎用関数）
+        function checkRectOverlap(rect1, rect2) {
+            const xOverlap = !(rect1.right < rect2.left || rect1.left > rect2.right);
+            const yOverlap = !(rect1.bottom < rect2.top || rect1.top > rect2.bottom);
+            return xOverlap && yOverlap;
+        }
+
+        // 垂直線と交差するオブジェクトを検出（汎用関数）
+        function findVerticalLineIntersections(x, y1, y2, objects, padding) {
             const yMin = Math.min(y1, y2);
             const yMax = Math.max(y1, y2);
-            const collisionPadding = 40; // ノードとの最小距離
+            const lineRect = {
+                left: x - padding,
+                right: x + padding,
+                top: yMin - padding,
+                bottom: yMax + padding
+            };
 
-            for (const node of nodeBounds) {
-                // 垂直線のX座標がノードの範囲内にあるかチェック
-                if (x >= node.left - collisionPadding && x <= node.right + collisionPadding) {
-                    // 垂直線のY範囲がノードと重なるかチェック
-                    if (!(yMax < node.top - collisionPadding || yMin > node.bottom + collisionPadding)) {
-                        return node;
-                    }
-                }
-            }
-            return null;
+            return objects.filter(obj => checkRectOverlap(lineRect, obj));
+        }
+
+        // 水平線と交差するオブジェクトを検出（汎用関数）
+        function findHorizontalLineIntersections(x1, x2, y, objects, padding) {
+            const xMin = Math.min(x1, x2);
+            const xMax = Math.max(x1, x2);
+            const lineRect = {
+                left: xMin - padding,
+                right: xMax + padding,
+                top: y - padding,
+                bottom: y + padding
+            };
+
+            return objects.filter(obj => checkRectOverlap(lineRect, obj));
+        }
+
+        // 垂直線がノードと交差するかチェック
+        function checkVerticalLineIntersectsNode(x, y1, y2, nodeBounds) {
+            const intersections = findVerticalLineIntersections(
+                x, y1, y2, nodeBounds, CONNECTION_CONSTANTS.COLLISION_PADDING_NODE
+            );
+            return intersections.length > 0 ? intersections[0] : null;
         }
 
         // 垂直線がラベルと交差するかチェック
         function checkVerticalLineIntersectsLabel(x, y1, y2, labelBounds) {
-            const yMin = Math.min(y1, y2);
-            const yMax = Math.max(y1, y2);
-
-            for (const label of labelBounds) {
-                // 垂直線のX座標がラベルの範囲内にあるかチェック
-                if (x >= label.left && x <= label.right) {
-                    // 垂直線のY範囲がラベルと重なるかチェック
-                    if (!(yMax < label.top || yMin > label.bottom)) {
-                        return label;
-                    }
-                }
-            }
-            return null;
+            const intersections = findVerticalLineIntersections(
+                x, y1, y2, labelBounds, CONNECTION_CONSTANTS.COLLISION_PADDING_LABEL
+            );
+            return intersections.length > 0 ? intersections[0] : null;
         }
 
-        // エッジの経路全体でノードとの衝突をチェック（X範囲とY範囲の両方を考慮）
+        // エッジの経路全体でノードとの衝突をチェック
         function checkEdgePathIntersectsNodes(x1, y1, x2, y2, nodeBounds) {
-            const xMin = Math.min(x1, x2);
-            const xMax = Math.max(x1, x2);
-            const yMin = Math.min(y1, y2);
-            const yMax = Math.max(y1, y2);
-            const collisionPadding = 40; // ノードとの最小距離
-            const intersectingNodes = [];
+            const padding = CONNECTION_CONSTANTS.COLLISION_PADDING_NODE;
+            const pathRect = {
+                left: Math.min(x1, x2) - padding,
+                right: Math.max(x1, x2) + padding,
+                top: Math.min(y1, y2) - padding,
+                bottom: Math.max(y1, y2) + padding
+            };
 
-            for (const node of nodeBounds) {
-                // エッジのバウンディングボックスとノードのバウンディングボックスが重なるかチェック
-                const xOverlap = !(xMax < node.left - collisionPadding || xMin > node.right + collisionPadding);
-                const yOverlap = !(yMax < node.top - collisionPadding || yMin > node.bottom + collisionPadding);
-
-                if (xOverlap && yOverlap) {
-                    intersectingNodes.push(node);
-                }
-            }
-            return intersectingNodes;
+            return nodeBounds.filter(node => checkRectOverlap(pathRect, node));
         }
 
-        // 水平線がノードと交差するかチェック（すべての衝突ノードを返す）
+        // 水平線がノードと交差するかチェック
         function checkHorizontalLineIntersectsNode(x1, x2, y, nodeBounds) {
-            const xMin = Math.min(x1, x2);
-            const xMax = Math.max(x1, x2);
-            const collisionPadding = 40; // ノードとの最小距離
-            const intersectingNodes = [];
-
-            for (const node of nodeBounds) {
-                // 水平線のY座標がノードの範囲内にあるかチェック
-                if (y >= node.top - collisionPadding && y <= node.bottom + collisionPadding) {
-                    // 水平線のX範囲がノードと重なるかチェック
-                    if (!(xMax < node.left - collisionPadding || xMin > node.right + collisionPadding)) {
-                        intersectingNodes.push(node);
-                    }
-                }
-            }
-            return intersectingNodes;
+            return findHorizontalLineIntersections(
+                x1, x2, y, nodeBounds, CONNECTION_CONSTANTS.COLLISION_PADDING_NODE
+            );
         }
 
         // 水平線がラベルと交差するかチェック
         function checkHorizontalLineIntersectsLabel(x1, x2, y, labelBounds) {
-            const xMin = Math.min(x1, x2);
-            const xMax = Math.max(x1, x2);
-
-            for (const label of labelBounds) {
-                // 水平線のY座標がラベルの範囲内にあるかチェック
-                if (y >= label.top && y <= label.bottom) {
-                    // 水平線のX範囲がラベルと重なるかチェック
-                    if (!(xMax < label.left || xMin > label.right)) {
-                        return label;
-                    }
-                }
-            }
-            return null;
+            const intersections = findHorizontalLineIntersections(
+                x1, x2, y, labelBounds, CONNECTION_CONSTANTS.COLLISION_PADDING_LABEL
+            );
+            return intersections.length > 0 ? intersections[0] : null;
         }
 
         // 水平線がラベルを避けるためのX座標を計算
         function calculateHorizontalLineAvoidance(x1, x2, y, labelBounds) {
-            const collisionPadding = 15;
-            const xMin = Math.min(x1, x2);
-            const xMax = Math.max(x1, x2);
+            const intersections = findHorizontalLineIntersections(
+                x1, x2, y, labelBounds, CONNECTION_CONSTANTS.COLLISION_PADDING_LABEL
+            );
 
-            // この水平線と交差するラベルを見つける
-            const intersectingLabels = [];
-            for (const label of labelBounds) {
-                // 水平線のY座標がラベルの範囲内にあるかチェック
-                if (y >= label.top - collisionPadding && y <= label.bottom + collisionPadding) {
-                    // 水平線のX範囲がラベルと重なるかチェック
-                    if (!(xMax < label.left - collisionPadding || xMin > label.right + collisionPadding)) {
-                        intersectingLabels.push(label);
-                    }
-                }
+            if (intersections.length === 0) return null;
+
+            const minLeft = Math.min(...intersections.map(l => l.left));
+            return minLeft - CONNECTION_CONSTANTS.COLLISION_PADDING_LABEL;
+        }
+
+        // 垂直線の衝突回避オフセットを計算（汎用関数）
+        function calculateVerticalAvoidanceOffset(x, y1, y2, objects, padding, edgeFrom, edgeTo, objectType) {
+            const intersections = findVerticalLineIntersections(x, y1, y2, objects, padding);
+
+            if (intersections.length === 0) return 0;
+
+            const maxRight = Math.max(...intersections.map(obj => obj.right));
+            const offset = maxRight + padding - x;
+
+            if (window.DEBUG_CONNECTIONS) {
+                const ids = intersections.map(obj => obj.id || 'label').join(',');
+                console.log(objectType + ' collision: edge=' + edgeFrom + '->' + edgeTo +
+                    ', intersecting=' + ids + ', offset=' + offset);
             }
 
-            if (intersectingLabels.length === 0) {
-                return null; // 衝突なし
-            }
-
-            // 最も左にあるラベルの左側で折り返す
-            const minLeft = Math.min(...intersectingLabels.map(l => l.left));
-            return minLeft - collisionPadding;
+            return offset;
         }
 
         // ノードを避けるためのX座標オフセットを計算
         function calculateNodeAvoidanceOffset(x, y1, y2, nodeBounds, edgeFrom, edgeTo) {
-            const yMin = Math.min(y1, y2);
-            const yMax = Math.max(y1, y2);
-            const collisionPadding = 40; // ノードとの最小距離
-
-            // この経路と交差するノードを見つける
-            const intersectingNodes = [];
-            for (const node of nodeBounds) {
-                // 垂直線のX座標がノードの範囲内にあるかチェック
-                if (x >= node.left - collisionPadding && x <= node.right + collisionPadding) {
-                    // 垂直線のY範囲がノードと重なるかチェック
-                    if (!(yMax < node.top - collisionPadding || yMin > node.bottom + collisionPadding)) {
-                        intersectingNodes.push(node);
-                    }
-                }
-            }
-
-            if (intersectingNodes.length === 0) {
-                return 0; // 衝突なし
-            }
-
-            // ノードの右側に移動（最も右にあるノード）
-            const maxRight = Math.max(...intersectingNodes.map(n => n.right));
-            const offset = maxRight + collisionPadding - x;
-
-            if (window.DEBUG_CONNECTIONS) {
-                console.log('Node collision: edge=' + edgeFrom + '->' + edgeTo +
-                    ', intersecting=' + intersectingNodes.map(n => n.id).join(',') +
-                    ', offset=' + offset);
-            }
-
-            return offset;
+            return calculateVerticalAvoidanceOffset(
+                x, y1, y2, nodeBounds,
+                CONNECTION_CONSTANTS.COLLISION_PADDING_NODE,
+                edgeFrom, edgeTo, 'Node'
+            );
         }
 
         // ラベルを避けるためのX座標オフセットを計算
         function calculateLabelAvoidanceOffset(x, y1, y2, labelBounds, edgeFrom, edgeTo) {
-            const yMin = Math.min(y1, y2);
-            const yMax = Math.max(y1, y2);
-            const collisionPadding = 15; // ラベルとの最小距離
-
-            // この経路と交差するラベルを見つける
-            const intersectingLabels = [];
-            for (const label of labelBounds) {
-                // 垂直線のX座標がラベルの範囲内にあるかチェック
-                if (x >= label.left - collisionPadding && x <= label.right + collisionPadding) {
-                    // 垂直線のY範囲がラベルと重なるかチェック
-                    if (!(yMax < label.top - collisionPadding || yMin > label.bottom + collisionPadding)) {
-                        intersectingLabels.push(label);
-                    }
-                }
-            }
-
-            if (intersectingLabels.length === 0) {
-                return 0; // 衝突なし
-            }
-
-            // ラベルの右側に移動（最も右にあるラベル）
-            const maxRight = Math.max(...intersectingLabels.map(l => l.right));
-            const offset = maxRight + collisionPadding - x;
-
-            if (window.DEBUG_CONNECTIONS) {
-                console.log('Label collision: edge=' + edgeFrom + '->' + edgeTo +
-                    ', intersecting=' + intersectingLabels.length +
-                    ', offset=' + offset);
-            }
-
-            return offset;
+            return calculateVerticalAvoidanceOffset(
+                x, y1, y2, labelBounds,
+                CONNECTION_CONSTANTS.COLLISION_PADDING_LABEL,
+                edgeFrom, edgeTo, 'Label'
+            );
         }
     `;
 }
