@@ -138,14 +138,19 @@ function getLayoutUtils() {
             const baseSpacing = 60;
             const edgeSpacing = 15; // CONNECTION_CONSTANTS.EDGE_SPACINGと一致
             const collisionMargin = 40; // 衝突回避用の余裕
+            const minOffsetReserve = 60; // minOffset * 2 (エッジレンダラーが引く分)
+            const maxMinSpacing = 30; // edge-spacing-calculator.jsの最大minSpacing
             const minSpacing = 80;
-            const maxSpacing = 400;
+            const maxSpacing = 1200; // 上限をさらに緩和
 
             // エッジレンダラーと同じロジック: max(親ノード数, エッジ数)を使用
             const effectiveLaneCount = Math.max(passingParentNodes.size, passingEdgeCount);
 
-            // 基本スペース + エッジレーン幅 + 衝突回避マージン
-            const calculatedSpacing = baseSpacing + effectiveLaneCount * edgeSpacing + collisionMargin;
+            // 必要な幅の正確な見積もり: minSpacing * (1.5n + 0.5) + 75
+            // = 30 * (1.5n + 0.5) + 75 = 45n + 15 + 75 = 45n + 90
+            // これをspacing + edgeClearance(80)で確保する必要がある
+            // spacing = 45n + 90 - 80 = 45n + 10
+            const calculatedSpacing = maxMinSpacing * 1.5 * effectiveLaneCount + maxMinSpacing * 0.5 + baseSpacing + minOffsetReserve;
 
             return Math.max(minSpacing, Math.min(maxSpacing, calculatedSpacing));
         }
