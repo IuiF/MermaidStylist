@@ -61,14 +61,14 @@ function getEdgeSpacingCalculator() {
                 const yMax = parents[parents.length - 1].yPosition;
                 const yRange = yMax - yMin;
 
-                // Y範囲が大きい場合は最小間隔を確保
-                const minSpacing = yRange > 100 ? 30 : 10;
+                // Y範囲に関わらず一定のminSpacingを使用（レイアウト計算との整合性を保つ）
+                const minSpacing = 15;
 
                 // 必要な幅は、通過する全エッジ数に基づいて計算
                 const requiredWidth = minSpacing * (Math.max(totalParentsInDepth, totalEdgesPassingThrough) + 1);
 
-                // 衝突回避オフセットの平均的な値を見込む
-                const estimatedCollisionOffset = requiredWidth * 0.5;
+                // 衝突回避オフセットの平均的な値を見込む（係数を0.3に削減）
+                const estimatedCollisionOffset = requiredWidth * 0.3;
 
                 // 親の数で等分してレーン間隔を計算
                 const laneSpacing = Math.max(minSpacing, rawAvailableWidth / (totalParentsInDepth + 1));

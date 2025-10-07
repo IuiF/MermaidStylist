@@ -139,18 +139,25 @@ function getLayoutUtils() {
             const edgeSpacing = 15; // CONNECTION_CONSTANTS.EDGE_SPACINGと一致
             const collisionMargin = 40; // 衝突回避用の余裕
             const minOffsetReserve = 60; // minOffset * 2 (エッジレンダラーが引く分)
-            const maxMinSpacing = 30; // edge-spacing-calculator.jsの最大minSpacing
+            const fixedMinSpacing = 15; // edge-spacing-calculator.jsの固定minSpacing
             const minSpacing = 80;
-            const maxSpacing = 1200; // 上限をさらに緩和
+            const maxSpacing = 1200;
 
             // エッジレンダラーと同じロジック: max(親ノード数, エッジ数)を使用
             const effectiveLaneCount = Math.max(passingParentNodes.size, passingEdgeCount);
 
-            // 必要な幅の正確な見積もり: minSpacing * (1.5n + 0.5) + 75
-            // = 30 * (1.5n + 0.5) + 75 = 45n + 15 + 75 = 45n + 90
-            // これをspacing + edgeClearance(80)で確保する必要がある
-            // spacing = 45n + 90 - 80 = 45n + 10
-            const calculatedSpacing = maxMinSpacing * 1.5 * effectiveLaneCount + maxMinSpacing * 0.5 + baseSpacing + minOffsetReserve;
+            // 必要な幅の正確な見積もり:
+            // rawAvailableWidth = calculatedSpacing + edgeClearance - minOffset*2 = calculatedSpacing + 20
+            // 必要幅 = laneSpacing * n + estimatedCollisionOffset
+            //        = laneSpacing * n + fixedMinSpacing * (n+1) * 0.3  (係数を0.5から0.3に変更)
+            // laneSpacing = max(fixedMinSpacing, rawAvailable/(n+1))
+            // 最悪ケース: laneSpacing = rawAvailable/(n+1)
+            // 必要幅 = rawAvailable * n/(n+1) + fixedMinSpacing * (n+1) * 0.3
+            //        = (calculatedSpacing + 20) * n/(n+1) + fixedMinSpacing * (n+1) * 0.3
+            // これが rawAvailable 以下である必要がある:
+            // (calculatedSpacing + 20) * n/(n+1) + fixedMinSpacing * (n+1) * 0.3 <= calculatedSpacing + 20
+            // 解くと: calculatedSpacing >= fixedMinSpacing * (n+1)^2 * 0.3 - 20
+            const calculatedSpacing = fixedMinSpacing * Math.pow(effectiveLaneCount + 1, 2) * 0.3 - 20 + collisionMargin;
 
             return Math.max(minSpacing, Math.min(maxSpacing, calculatedSpacing));
         }
