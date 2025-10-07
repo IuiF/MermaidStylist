@@ -64,22 +64,25 @@ function getEdgeSpacingCalculator() {
                 // Y範囲に関わらず一定のminSpacingを使用（レイアウト計算との整合性を保つ）
                 const minSpacing = 15;
 
+                // layout-utils.jsと同じロジック: max(親ノード数, エッジ数)を使用
+                const effectiveLaneCount = Math.max(totalParentsInDepth, totalEdgesPassingThrough);
+
                 // 必要な幅は、通過する全エッジ数に基づいて計算
-                const requiredWidth = minSpacing * (Math.max(totalParentsInDepth, totalEdgesPassingThrough) + 1);
+                const requiredWidth = minSpacing * (effectiveLaneCount + 1);
 
                 // 衝突回避オフセットの平均的な値を見込む（係数を0.3に削減）
                 const estimatedCollisionOffset = requiredWidth * 0.3;
 
-                // 親の数で等分してレーン間隔を計算
-                const laneSpacing = Math.max(minSpacing, rawAvailableWidth / (totalParentsInDepth + 1));
+                // effectiveLaneCountで等分してレーン間隔を計算
+                const laneSpacing = Math.max(minSpacing, rawAvailableWidth / (effectiveLaneCount + 1));
 
                 // 中央X座標を計算し、衝突回避オフセットを考慮して配置開始位置を決定
                 const centerX = (maxParentRight + minChildLeft) / 2;
-                const totalWidth = laneSpacing * totalParentsInDepth;
+                const totalWidth = laneSpacing * effectiveLaneCount;
                 const startX = centerX - totalWidth / 2 - estimatedCollisionOffset / 2;
 
                 if (window.DEBUG_CONNECTIONS) {
-                    console.log('[EdgeSpacingCalculator] Depth', depth, ':', parents.length, 'parents,', totalEdgesPassingThrough, 'edges passing, yRange:', yRange.toFixed(1), 'rawAvailableWidth:', rawAvailableWidth.toFixed(1), 'estimatedOffset:', estimatedCollisionOffset.toFixed(1), 'laneSpacing:', laneSpacing.toFixed(1), 'centerX:', centerX.toFixed(1), 'startX:', startX.toFixed(1));
+                    console.log('[EdgeSpacingCalculator] Depth', depth, ':', parents.length, 'parents,', totalEdgesPassingThrough, 'edges passing, effectiveLaneCount:', effectiveLaneCount, 'yRange:', yRange.toFixed(1), 'rawAvailableWidth:', rawAvailableWidth.toFixed(1), 'estimatedOffset:', estimatedCollisionOffset.toFixed(1), 'laneSpacing:', laneSpacing.toFixed(1), 'centerX:', centerX.toFixed(1), 'startX:', startX.toFixed(1));
                     parents.forEach(p => console.log('  -', p.parentId, 'y:', p.yPosition.toFixed(1)));
                 }
 
