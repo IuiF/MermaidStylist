@@ -60,7 +60,7 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
         const allConnections = [...connections, ...dashedEdges];
 
         // デバッグフラグ（ブラウザコンソールで window.DEBUG_CONNECTIONS = true で有効化）
-        window.DEBUG_CONNECTIONS = true;
+        window.DEBUG_CONNECTIONS = false;
 
         // Import utilities
         ${getLayoutUtils()}

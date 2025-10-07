@@ -78,7 +78,8 @@ function getEdgeSpacingCalculator() {
 
                 // 中央X座標を計算し、衝突回避オフセットを考慮して配置開始位置を決定
                 const centerX = (maxParentRight + minChildLeft) / 2;
-                const totalWidth = laneSpacing * effectiveLaneCount;
+                // 実際に親ノードが配置される幅（親ノード数ベース）
+                const totalWidth = laneSpacing * totalParentsInDepth;
                 const startX = centerX - totalWidth / 2 - estimatedCollisionOffset / 2;
 
                 if (window.DEBUG_CONNECTIONS) {
