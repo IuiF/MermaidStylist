@@ -26,29 +26,8 @@ function getFinalVerticalCalculator() {
              * @returns {Object} エッジキー -> 最終垂直X座標のマップ
              */
             calculateFinalVerticalX: function(edgeInfos) {
-                // 同じノードに入るエッジをグループ化
-                const edgesByTarget = this._groupEdgesByTarget(edgeInfos);
-
-                // 各ターゲットノードに対して、エッジの順序を決定
-                const edgeToFinalVerticalX = {};
-                Object.keys(edgesByTarget).forEach(target => {
-                    const edges = edgesByTarget[target];
-                    if (edges.length > 1) {
-                        // 複数のエッジがある場合、X座標で分散（ノードの左側に配置）
-                        const toElement = svgHelpers.getNodeElement(target);
-                        if (toElement) {
-                            const toPos = getNodePosition(toElement);
-                            const spacing = CONNECTION_CONSTANTS.EDGE_SPACING;
-
-                            edges.forEach((edge, index) => {
-                                const offset = spacing * (edges.length - index);
-                                edgeToFinalVerticalX[edge.conn.from + '->' + edge.conn.to] = toPos.left - offset;
-                            });
-                        }
-                    }
-                });
-
-                return edgeToFinalVerticalX;
+                // すべてのエッジをノードの左端に接続（分散なし）
+                return {};
             }
         };
     `;
