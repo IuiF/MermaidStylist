@@ -186,9 +186,16 @@ function getVerticalSegmentCalculator() {
 
                     // 各クラスタごとに配置を計算
                     clusters.forEach((cluster, clusterIndex) => {
-                        // クラスタ内の親ノードの最大右端と子ノードの最小左端を計算
+                        // クラスタ内の親ノードの最大右端を計算
                         const clusterMaxParentRight = Math.max(...cluster.map(p => p.x1));
-                        const clusterMinChildLeft = Math.min(...cluster.map(p => p.x2));
+
+                        // クラスタ内の親から出ている全エッジの子ノードの最小左端を計算
+                        const clusterChildXs = [];
+                        cluster.forEach(p => {
+                            const parentEdges = edgeInfos.filter(e => e.conn.from === p.parentId && !e.is1to1Horizontal);
+                            parentEdges.forEach(e => clusterChildXs.push(e.x2));
+                        });
+                        const clusterMinChildLeft = Math.min(...clusterChildXs);
 
                         if (window.DEBUG_CONNECTIONS) {
                             console.log('[VerticalSegmentCalculator] Depth', depth, 'cluster', clusterIndex, ':', cluster.length, 'parents, using', totalEdgesPassingThrough, 'total edges for spacing');
