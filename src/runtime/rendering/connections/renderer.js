@@ -268,7 +268,11 @@ function getConnectionRenderer() {
                     return;
                 }
 
-                const verticalSegmentX = parentFinalVerticalSegmentX[conn.from] || x1 + 50;
+                let verticalSegmentX = parentFinalVerticalSegmentX[conn.from] || x1 + 50;
+                // 点線エッジの場合はオフセットを追加して通常エッジと分離
+                if (conn.isDashed) {
+                    verticalSegmentX += CONNECTION_CONSTANTS.DASHED_EDGE_OFFSET;
+                }
                 const fromPos = getNodePosition(fromElement);
                 const nodeBounds = getAllNodeBounds(conn.from, conn.to);
                 const edgeKey = conn.from + '->' + conn.to;

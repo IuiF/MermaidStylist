@@ -15,7 +15,8 @@ function getConnectionConstants() {
 
             // パス描画
             CORNER_RADIUS: 8,                // パスのコーナー半径
-            EDGE_SPACING: 15                 // エッジ間のスペース
+            EDGE_SPACING: 15,                // エッジ間のスペース
+            DASHED_EDGE_OFFSET: 10           // 点線エッジの垂直線オフセット
         };
     `;
 }
