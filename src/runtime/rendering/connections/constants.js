@@ -15,8 +15,7 @@ function getConnectionConstants() {
 
             // パス描画
             CORNER_RADIUS: 8,                // パスのコーナー半径
-            EDGE_SPACING: 15,                // エッジ間のスペース
-            PRE_NODE_OFFSET: 30              // ノード手前での垂直線折り返し位置
+            EDGE_SPACING: 15                 // エッジ間のスペース
         };
     `;
 }
