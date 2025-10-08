@@ -20,7 +20,8 @@ function getVerticalSegmentCalculator() {
                     getAllNodeBounds = () => [],
                     calculateNodeAvoidanceOffset = () => 0,
                     calculateLabelAvoidanceOffset = () => 0,
-                    minOffset = CONNECTION_CONSTANTS.MIN_OFFSET
+                    minOffset = CONNECTION_CONSTANTS.MIN_OFFSET,
+                    edgeToYAdjustment = null
                 } = options;
 
                 // 親ごとの子のY範囲を計算
@@ -33,7 +34,8 @@ function getVerticalSegmentCalculator() {
                     parentYPositions,
                     depthMaxParentRight,
                     depthMinChildLeft,
-                    minOffset
+                    minOffset,
+                    edgeToYAdjustment
                 );
 
                 // 衝突回避オフセットを計算
@@ -99,7 +101,8 @@ function getVerticalSegmentCalculator() {
                 parentYPositions,
                 depthMaxParentRight,
                 depthMinChildLeft,
-                minOffset
+                minOffset,
+                edgeToYAdjustment
             ) {
                 const parentVerticalSegmentX = {};
 
@@ -126,8 +129,8 @@ function getVerticalSegmentCalculator() {
                     nodeDepthMap[info.conn.from] = info.depth;
                 });
 
-                // 各depthを通過する全エッジ数をカウント（長距離エッジを含む）
-                const edgesPassingThroughDepth = edgeSpacingCalculator.countEdgesPassingThroughDepth(edgeInfos, nodeDepthMap);
+                // 各depthを通過する全エッジ数をカウント（長距離エッジと衝突回避エッジを含む）
+                const edgesPassingThroughDepth = edgeSpacingCalculator.countEdgesPassingThroughDepth(edgeInfos, nodeDepthMap, edgeToYAdjustment);
 
                 // 階層ごとに等間隔配置を計算
                 Object.keys(parentsByDepth).forEach(depth => {

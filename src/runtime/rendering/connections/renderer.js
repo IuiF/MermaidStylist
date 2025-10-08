@@ -228,7 +228,8 @@ function getConnectionRenderer() {
                 const levelInfo = window.layoutLevelInfo || {};
                 const depthBounds = depthCalculator.calculateDepthBounds(edgeInfos, levelInfo);
 
-                const parentFinalVerticalSegmentX = verticalSegmentCalculator.calculateVerticalSegmentX(edgeInfos, {
+                // 第1段階: 初回計算（衝突回避エッジなし）
+                let parentFinalVerticalSegmentX = verticalSegmentCalculator.calculateVerticalSegmentX(edgeInfos, {
                     parentYPositions: parentYPositions,
                     depthMaxParentRight: depthBounds.depthMaxParentRight,
                     depthMinChildLeft: depthBounds.depthMinChildLeft,
@@ -280,6 +281,24 @@ function getConnectionRenderer() {
                         };
                     }
                 });
+
+                // 第2段階: 衝突回避エッジを含めて再計算
+                if (Object.keys(edgeToYAdjustment).length > 0) {
+                    if (window.DEBUG_CONNECTIONS) {
+                        console.log('[Renderer] Recalculating with', Object.keys(edgeToYAdjustment).length, 'collision avoidance edges');
+                    }
+                    parentFinalVerticalSegmentX = verticalSegmentCalculator.calculateVerticalSegmentX(edgeInfos, {
+                        parentYPositions: parentYPositions,
+                        depthMaxParentRight: depthBounds.depthMaxParentRight,
+                        depthMinChildLeft: depthBounds.depthMinChildLeft,
+                        labelBounds: labelBounds,
+                        getAllNodeBounds: getAllNodeBounds,
+                        calculateNodeAvoidanceOffset: calculateNodeAvoidanceOffset,
+                        calculateLabelAvoidanceOffset: calculateLabelAvoidanceOffset,
+                        minOffset: minOffset,
+                        edgeToYAdjustment: edgeToYAdjustment
+                    });
+                }
 
                 // 2本目の垂直セグメントX座標を計算
                 const edgeToSecondVerticalX = collisionAvoidanceSegmentCalculator.calculateSecondVerticalSegmentX(

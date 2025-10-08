@@ -4,12 +4,13 @@ function getEdgeSpacingCalculator() {
 
         const edgeSpacingCalculator = {
             /**
-             * 各depthを通過する全エッジ数をカウント（長距離エッジを含む）
+             * 各depthを通過する全エッジ数をカウント（長距離エッジと衝突回避エッジを含む）
              * @param {Array} edgeInfos - エッジ情報配列
              * @param {Object} nodeDepthMap - ノードID -> depth のマップ
+             * @param {Object} edgeToYAdjustment - エッジキー -> Y調整情報のマップ（オプション）
              * @returns {Object} depth -> 通過エッジ数のマップ
              */
-            countEdgesPassingThroughDepth: function(edgeInfos, nodeDepthMap) {
+            countEdgesPassingThroughDepth: function(edgeInfos, nodeDepthMap, edgeToYAdjustment) {
                 const edgesPassingThroughDepth = {};
                 edgeInfos.forEach(info => {
                     if (info.is1to1Horizontal) return;
@@ -27,10 +28,24 @@ function getEdgeSpacingCalculator() {
                         }
                         edgesPassingThroughDepth[d]++;
                     }
+
+                    // 衝突回避エッジの場合、2本目の垂直セグメントも追加カウント
+                    if (edgeToYAdjustment) {
+                        const edgeKey = info.conn.from + '->' + info.conn.to;
+                        if (edgeToYAdjustment[edgeKey] && edgeToYAdjustment[edgeKey].needsAdjustment) {
+                            for (let d = fromDepth; d < toDepth; d++) {
+                                edgesPassingThroughDepth[d]++;
+                            }
+                        }
+                    }
                 });
 
                 if (window.DEBUG_CONNECTIONS) {
                     console.log('[EdgeSpacingCalculator] Edges passing through each depth:', edgesPassingThroughDepth);
+                    if (edgeToYAdjustment) {
+                        const collisionCount = Object.keys(edgeToYAdjustment).length;
+                        console.log('[EdgeSpacingCalculator] Including', collisionCount, 'collision avoidance edges (doubled)');
+                    }
                 }
 
                 return edgesPassingThroughDepth;
