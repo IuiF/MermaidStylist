@@ -75,6 +75,44 @@ function getVerticalSegmentCalculator() {
             },
 
             /**
+             * 親ノードをX座標でクラスタリング
+             * X座標が大きく離れているノードを別クラスタに分離
+             * @param {Array} parents - 親ノード情報配列
+             * @returns {Array<Array>} クラスタの配列
+             */
+            _clusterParentsByXPosition: function(parents) {
+                if (parents.length === 0) return [];
+                if (parents.length === 1) return [parents];
+
+                // X座標でソート
+                const sorted = [...parents].sort((a, b) => a.x1 - b.x1);
+
+                const clusters = [];
+                let currentCluster = [sorted[0]];
+
+                // X座標の差が大きい箇所で分割（閾値: 200px）
+                const clusterThreshold = 200;
+
+                for (let i = 1; i < sorted.length; i++) {
+                    const gap = sorted[i].x1 - sorted[i - 1].x1;
+
+                    if (gap > clusterThreshold) {
+                        // 大きなギャップ → 新しいクラスタを開始
+                        clusters.push(currentCluster);
+                        currentCluster = [sorted[i]];
+                    } else {
+                        // 同じクラスタに追加
+                        currentCluster.push(sorted[i]);
+                    }
+                }
+
+                // 最後のクラスタを追加
+                clusters.push(currentCluster);
+
+                return clusters;
+            },
+
+            /**
              * 親ごとの子のY範囲を計算
              */
             _calculateParentChildrenYRanges: function(edgeInfos) {
@@ -135,21 +173,38 @@ function getVerticalSegmentCalculator() {
                 // 階層ごとに等間隔配置を計算
                 Object.keys(parentsByDepth).forEach(depth => {
                     const parents = parentsByDepth[depth];
-                    const totalParentsInDepth = parents.length;
-                    const totalEdgesPassingThrough = edgesPassingThroughDepth[depth] || totalParentsInDepth;
-                    const maxParentRight = depthMaxParentRight[depth] || parents[0].x1;
-                    const minChildLeft = depthMinChildLeft[depth] || parents[0].x2;
 
-                    const spacing = edgeSpacingCalculator.calculateEvenSpacing(
-                        parents,
-                        depth,
-                        totalEdgesPassingThrough,
-                        maxParentRight,
-                        minChildLeft,
-                        minOffset
-                    );
+                    // 親ノードをX座標でクラスタリング（X座標が大きく離れているノードを分離）
+                    const clusters = this._clusterParentsByXPosition(parents);
 
-                    Object.assign(parentVerticalSegmentX, spacing);
+                    if (window.DEBUG_CONNECTIONS) {
+                        console.log('[VerticalSegmentCalculator] Depth', depth, 'has', clusters.length, 'cluster(s)');
+                    }
+
+                    // このdepthを通過する全エッジ数（長距離エッジ含む）
+                    const totalEdgesPassingThrough = edgesPassingThroughDepth[depth] || parents.length;
+
+                    // 各クラスタごとに配置を計算
+                    clusters.forEach((cluster, clusterIndex) => {
+                        // クラスタ内の親ノードの最大右端と子ノードの最小左端を計算
+                        const clusterMaxParentRight = Math.max(...cluster.map(p => p.x1));
+                        const clusterMinChildLeft = Math.min(...cluster.map(p => p.x2));
+
+                        if (window.DEBUG_CONNECTIONS) {
+                            console.log('[VerticalSegmentCalculator] Depth', depth, 'cluster', clusterIndex, ':', cluster.length, 'parents, using', totalEdgesPassingThrough, 'total edges for spacing');
+                        }
+
+                        const spacing = edgeSpacingCalculator.calculateEvenSpacing(
+                            cluster,
+                            depth,
+                            totalEdgesPassingThrough,
+                            clusterMaxParentRight,
+                            clusterMinChildLeft,
+                            minOffset
+                        );
+
+                        Object.assign(parentVerticalSegmentX, spacing);
+                    });
                 });
 
                 return parentVerticalSegmentX;
