@@ -70,7 +70,7 @@ function getConnectionRenderer() {
                 p2: { x: p2x, y: p2y },
                 p3: { x: p3x, y: p3y },
                 p4: { x: p4x, y: p4y },
-                end: { x: x2, y: p4y }
+                end: { x: x2, y: y2 }
             };
 
             return pathGenerator.generateCurvedPath(points, cornerRadius);
@@ -272,7 +272,18 @@ function getConnectionRenderer() {
 
                 const verticalSegmentX = parentFinalVerticalSegmentX[conn.from] || x1 + 50;
                 const fromPos = getNodePosition(fromElement);
-                const nodeBounds = getAllNodeBounds(conn.from, conn.to);
+                let nodeBounds = getAllNodeBounds(conn.from, conn.to);
+
+                // 点線エッジの場合は無関係な点線ノードを衝突チェックから除外
+                if (conn.isDashed) {
+                    nodeBounds = nodeBounds.filter(n => {
+                        const isDashedNode = n.id.includes('_dashed_');
+                        const isTargetNode = n.id === conn.to;
+                        // 点線ノードかつターゲットでない場合は除外
+                        return !(isDashedNode && !isTargetNode);
+                    });
+                }
+
                 const edgeKey = conn.from + '->' + conn.to;
                 const finalVerticalX = edgeToFinalVerticalX[edgeKey];
                 const pathData = createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, conn.from, conn.to, fromPos.left, finalVerticalX);

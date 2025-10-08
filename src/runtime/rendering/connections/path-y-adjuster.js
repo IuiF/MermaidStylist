@@ -102,8 +102,9 @@ function getPathYAdjuster() {
                                    n.id.includes('_dashed_' + edgeTo);
 
                     if (isTarget) {
-                        // 水平線がノード左端以下を通過する場合のみチェック対象に含める
-                        return finalVerticalX <= n.left;
+                        // 水平線がノード左端より前を通過する場合のみチェック対象に含める
+                        // （終点がノード左端と一致する場合は接続するため除外）
+                        return finalVerticalX < n.left;
                     }
                     return true;
                 }) : [];
