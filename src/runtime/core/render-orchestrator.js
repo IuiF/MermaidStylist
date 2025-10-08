@@ -181,7 +181,7 @@ function getRenderOrchestrator() {
         function computeLayout() {
             const nodePositions = horizontalLayout(
                 allNodes,
-                allConnections,
+                connections,
                 calculateAllNodeWidths,
                 (n, c) => analyzeTreeStructure(n, c, dashedNodes)
             );

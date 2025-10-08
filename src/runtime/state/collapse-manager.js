@@ -46,10 +46,10 @@ function getCollapseManager() {
                 }
                 requestAnimationFrame(() => {
                     if (currentLayout === 'vertical') {
-                        currentNodePositions = verticalLayout(allNodes, allConnections, calculateAllNodeWidths,
+                        currentNodePositions = verticalLayout(allNodes, connections, calculateAllNodeWidths,
                             (n, c) => analyzeTreeStructure(n, c, dashedNodes));
                     } else {
-                        currentNodePositions = horizontalLayout(allNodes, allConnections, calculateAllNodeWidths,
+                        currentNodePositions = horizontalLayout(allNodes, connections, calculateAllNodeWidths,
                             (n, c) => analyzeTreeStructure(n, c, dashedNodes));
                     }
                     if (window.DEBUG_CONNECTIONS) {

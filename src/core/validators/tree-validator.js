@@ -2,10 +2,17 @@ function validateTreeStructure(nodes, connections) {
     const errors = [];
     const backEdges = []; // サイクルを引き起こすエッジ
 
-    // 子ノードマップを構築
+    // Mermaidの点線エッジは自動的にバックエッジとして扱う
+    const dashedEdges = connections.filter(conn => conn.isDashed);
+    backEdges.push(...dashedEdges.map(({ from, to }) => ({ from, to })));
+
+    // 点線エッジを除外した通常のエッジのみでマップを構築
+    const regularConnections = connections.filter(conn => !conn.isDashed);
+
+    // 子ノードマップを構築（通常のエッジのみ）
     const childrenMap = new Map();
     nodes.forEach(node => childrenMap.set(node.id, []));
-    connections.forEach(conn => {
+    regularConnections.forEach(conn => {
         if (childrenMap.has(conn.from)) {
             childrenMap.get(conn.from).push(conn.to);
         }
@@ -40,8 +47,8 @@ function validateTreeStructure(nodes, connections) {
         return false;
     }
 
-    // 全てのエッジについてバックエッジかチェック
-    connections.forEach(edge => {
+    // 通常のエッジについてのみバックエッジかチェック（点線エッジは既に除外済み）
+    regularConnections.forEach(edge => {
         // edge.to から edge.from に（このエッジを除いて）到達できるか？
         if (canReach(edge.to, edge.from, edge)) {
             backEdges.push({ from: edge.from, to: edge.to });
