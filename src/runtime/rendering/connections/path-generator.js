@@ -99,19 +99,23 @@ function getPathGenerator() {
              * 最終セグメント追加
              */
             _appendFinalSegment: function(basePath, p3, p4, end, r, needsFinalVertical, canCurveFinalVertical) {
+                // p4yとend.yが異なる場合は最終垂直調整が必要
+                const needsFinalYAdjustment = Math.abs(p4.y - end.y) > 0.1;
+                const finalHorizontal = needsFinalYAdjustment ? \`L \${end.x} \${p4.y} L \${end.x} \${end.y}\` : \`L \${end.x} \${end.y}\`;
+
                 if (canCurveFinalVertical) {
                     // 最終垂直セグメントをカーブで描画
                     if (p3.y > p4.y) {
-                        return \`\${basePath} L \${p4.x - r} \${p3.y} Q \${p4.x} \${p3.y} \${p4.x} \${p3.y - r} L \${p4.x} \${p4.y + r} Q \${p4.x} \${p4.y} \${p4.x + r} \${p4.y} L \${end.x} \${p4.y}\`;
+                        return \`\${basePath} L \${p4.x - r} \${p3.y} Q \${p4.x} \${p3.y} \${p4.x} \${p3.y - r} L \${p4.x} \${p4.y + r} Q \${p4.x} \${p4.y} \${p4.x + r} \${p4.y} \${finalHorizontal}\`;
                     } else {
-                        return \`\${basePath} L \${p4.x - r} \${p3.y} Q \${p4.x} \${p3.y} \${p4.x} \${p3.y + r} L \${p4.x} \${p4.y - r} Q \${p4.x} \${p4.y} \${p4.x + r} \${p4.y} L \${end.x} \${p4.y}\`;
+                        return \`\${basePath} L \${p4.x - r} \${p3.y} Q \${p4.x} \${p3.y} \${p4.x} \${p3.y + r} L \${p4.x} \${p4.y - r} Q \${p4.x} \${p4.y} \${p4.x + r} \${p4.y} \${finalHorizontal}\`;
                     }
                 } else if (needsFinalVertical) {
                     // 最終垂直セグメントを直線で描画
-                    return \`\${basePath} L \${p4.x} \${p3.y} L \${p4.x} \${p4.y} L \${end.x} \${p4.y}\`;
+                    return \`\${basePath} L \${p4.x} \${p3.y} L \${p4.x} \${p4.y} \${finalHorizontal}\`;
                 } else {
                     // 最終垂直セグメント不要
-                    return \`\${basePath} L \${end.x} \${p4.y}\`;
+                    return \`\${basePath} \${finalHorizontal}\`;
                 }
             },
 
@@ -119,10 +123,13 @@ function getPathGenerator() {
              * 初期直線セグメント生成（Y調整あり、垂直距離短い）
              */
             _generateInitialStraightSegment: function(p1, p2, p3, p4, end, shortHorizontal, needsFinalVertical) {
+                const needsFinalYAdjustment = Math.abs(p4.y - end.y) > 0.1;
+                const finalSegment = needsFinalYAdjustment ? \`L \${end.x} \${p4.y} L \${end.x} \${end.y}\` : \`L \${end.x} \${end.y}\`;
+
                 if (needsFinalVertical) {
-                    return \`M \${p1.x} \${p1.y} L \${shortHorizontal} \${p1.y} L \${shortHorizontal} \${p2.y} L \${p2.x} \${p2.y} L \${p3.x} \${p3.y} L \${p4.x} \${p3.y} L \${p4.x} \${p4.y} L \${end.x} \${p4.y}\`;
+                    return \`M \${p1.x} \${p1.y} L \${shortHorizontal} \${p1.y} L \${shortHorizontal} \${p2.y} L \${p2.x} \${p2.y} L \${p3.x} \${p3.y} L \${p4.x} \${p3.y} L \${p4.x} \${p4.y} \${finalSegment}\`;
                 } else {
-                    return \`M \${p1.x} \${p1.y} L \${shortHorizontal} \${p1.y} L \${shortHorizontal} \${p2.y} L \${p2.x} \${p2.y} L \${p3.x} \${p3.y} L \${end.x} \${p4.y}\`;
+                    return \`M \${p1.x} \${p1.y} L \${shortHorizontal} \${p1.y} L \${shortHorizontal} \${p2.y} L \${p2.x} \${p2.y} L \${p3.x} \${p3.y} \${finalSegment}\`;
                 }
             },
 
@@ -130,10 +137,13 @@ function getPathGenerator() {
              * 通常直線セグメント生成（Y調整なし、垂直距離短い）
              */
             _generateNormalStraightSegment: function(p1, p2, p3, p4, end, needsFinalVertical) {
+                const needsFinalYAdjustment = Math.abs(p4.y - end.y) > 0.1;
+                const finalSegment = needsFinalYAdjustment ? \`L \${end.x} \${p4.y} L \${end.x} \${end.y}\` : \`L \${end.x} \${end.y}\`;
+
                 if (needsFinalVertical) {
-                    return \`M \${p1.x} \${p1.y} L \${p2.x} \${p2.y} L \${p3.x} \${p3.y} L \${p4.x} \${p3.y} L \${p4.x} \${p4.y} L \${end.x} \${p4.y}\`;
+                    return \`M \${p1.x} \${p1.y} L \${p2.x} \${p2.y} L \${p3.x} \${p3.y} L \${p4.x} \${p3.y} L \${p4.x} \${p4.y} \${finalSegment}\`;
                 } else {
-                    return \`M \${p1.x} \${p1.y} L \${p2.x} \${p2.y} L \${p3.x} \${p3.y} L \${end.x} \${p4.y}\`;
+                    return \`M \${p1.x} \${p1.y} L \${p2.x} \${p2.y} L \${p3.x} \${p3.y} \${finalSegment}\`;
                 }
             }
         };
