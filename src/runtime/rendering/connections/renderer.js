@@ -274,13 +274,24 @@ function getConnectionRenderer() {
                 const fromPos = getNodePosition(fromElement);
                 let nodeBounds = getAllNodeBounds(conn.from, conn.to);
 
-                // 点線エッジの場合は無関係な点線ノードを衝突チェックから除外
+                // 点線エッジの場合は、このエッジに直接関連する点線ノードのみを衝突チェックから除外
                 if (conn.isDashed) {
                     nodeBounds = nodeBounds.filter(n => {
                         const isDashedNode = n.id.includes('_dashed_');
-                        const isTargetNode = n.id === conn.to;
-                        // 点線ノードかつターゲットでない場合は除外
-                        return !(isDashedNode && !isTargetNode);
+                        if (!isDashedNode) return true; // 通常のノードは常に含める
+
+                        // ターゲットノードは別途処理されるため含める
+                        if (n.id === conn.to) return true;
+
+                        // このエッジのソースまたはターゲットに関連する点線ノードかチェック
+                        const sourceId = conn.from;
+                        const targetBaseId = conn.to.includes('_dashed_') ? conn.to.split('_dashed_')[0] : conn.to;
+
+                        const relatedToSource = n.id.startsWith(sourceId + '_dashed_') || n.id.endsWith('_dashed_' + sourceId);
+                        const relatedToTarget = n.id.startsWith(targetBaseId + '_dashed_') || n.id.endsWith('_dashed_' + targetBaseId);
+
+                        // ソースまたはターゲットに関連する点線ノードは除外、それ以外は含める
+                        return !(relatedToSource || relatedToTarget);
                     });
                 }
 
