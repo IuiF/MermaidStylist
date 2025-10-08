@@ -101,8 +101,20 @@ function getPathGenerator() {
             _appendFinalSegment: function(basePath, p3, p4, end, r, needsFinalVertical, canCurveFinalVertical) {
                 // p4yとend.yが異なる場合は最終垂直調整が必要
                 const needsFinalYAdjustment = Math.abs(p4.y - end.y) > 0.1;
-                const finalHorizontal = needsFinalYAdjustment ? \`L \${end.x} \${p4.y} L \${end.x} \${end.y}\` : \`L \${end.x} \${end.y}\`;
 
+                let finalHorizontal;
+                if (needsFinalYAdjustment) {
+                    // Y調整が必要な場合、ノード手前で垂直線を挿入
+                    const intermediateX = end.x - CONNECTION_CONSTANTS.PRE_NODE_OFFSET;
+                    finalHorizontal = \`L \${intermediateX} \${p4.y} L \${intermediateX} \${end.y} L \${end.x} \${end.y}\`;
+
+                    // カーブを無効化（Y調整時は直線で処理）
+                    return \`\${basePath} L \${p4.x} \${p3.y} L \${p4.x} \${p4.y} \${finalHorizontal}\`;
+                } else {
+                    finalHorizontal = \`L \${end.x} \${end.y}\`;
+                }
+
+                // Y調整不要の場合、従来通りカーブ処理
                 if (canCurveFinalVertical) {
                     // 最終垂直セグメントをカーブで描画
                     if (p3.y > p4.y) {
