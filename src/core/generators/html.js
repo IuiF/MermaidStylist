@@ -13,6 +13,7 @@ const { getPathGenerator } = require('../../runtime/rendering/connections/path-g
 const { getFinalVerticalCalculator } = require('../../runtime/rendering/connections/final-vertical-calculator');
 const { getEdgeSpacingCalculator } = require('../../runtime/rendering/connections/edge-spacing-calculator');
 const { getDepthOffsetAggregator } = require('../../runtime/rendering/connections/depth-offset-aggregator');
+const { getCollisionAvoidanceSegmentCalculator } = require('../../runtime/rendering/connections/collision-avoidance-segment-calculator');
 const { getConnectionRenderer } = require('../../runtime/rendering/connections/renderer');
 const { getShadowManager } = require('../../runtime/rendering/effects/shadow-manager');
 const { getCollapseManager } = require('../../runtime/state/collapse-manager');
@@ -99,6 +100,9 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
 
         // Import depth offset aggregator
         ${getDepthOffsetAggregator()}
+
+        // Import collision avoidance segment calculator
+        ${getCollisionAvoidanceSegmentCalculator()}
 
         // Import connection renderer
         ${getConnectionRenderer()}

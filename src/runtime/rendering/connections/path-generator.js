@@ -10,7 +10,7 @@ function getPathGenerator() {
              * @returns {string} SVGパス文字列
              */
             generateCurvedPath: function(points, cornerRadius) {
-                const { p1, p2, p3, p4, end } = points;
+                const { p1, p2, p3, p4, end, secondVerticalX } = points;
 
                 // Y座標調整が必要かチェック
                 const hasInitialYAdjustment = Math.abs(p2.y - p1.y) > 1;
@@ -23,7 +23,8 @@ function getPathGenerator() {
                         p1, p2, p3, p4, end,
                         cornerRadius,
                         needsFinalVertical,
-                        canCurveFinalVertical
+                        canCurveFinalVertical,
+                        secondVerticalX
                     );
                 }
 
@@ -32,38 +33,39 @@ function getPathGenerator() {
                     p1, p2, p3, p4, end,
                     cornerRadius,
                     needsFinalVertical,
-                    canCurveFinalVertical
+                    canCurveFinalVertical,
+                    secondVerticalX
                 );
             },
 
             /**
              * 初期Y調整ありのパスを生成
              */
-            _generatePathWithInitialAdjustment: function(p1, p2, p3, p4, end, cornerRadius, needsFinalVertical, canCurveFinalVertical) {
+            _generatePathWithInitialAdjustment: function(p1, p2, p3, p4, end, cornerRadius, needsFinalVertical, canCurveFinalVertical, secondVerticalX) {
                 const shortHorizontal = p2.x;
                 const canCurveVertical = Math.abs(p3.y - p2.y) > cornerRadius * 2;
 
                 if (canCurveVertical) {
                     const basePath = this._generateInitialCurvedSegment(p1, p2, p3, cornerRadius);
-                    return this._appendFinalSegment(basePath, p3, p4, end, cornerRadius, needsFinalVertical, canCurveFinalVertical);
+                    return this._appendFinalSegment(basePath, p3, p4, end, cornerRadius, needsFinalVertical, canCurveFinalVertical, secondVerticalX);
                 } else {
                     // 垂直距離が短い場合は直線
-                    return this._generateInitialStraightSegment(p1, p2, p3, p4, end, shortHorizontal, needsFinalVertical);
+                    return this._generateInitialStraightSegment(p1, p2, p3, p4, end, shortHorizontal, needsFinalVertical, secondVerticalX);
                 }
             },
 
             /**
              * 通常パス（Y調整なし）を生成
              */
-            _generateNormalPath: function(p1, p2, p3, p4, end, cornerRadius, needsFinalVertical, canCurveFinalVertical) {
+            _generateNormalPath: function(p1, p2, p3, p4, end, cornerRadius, needsFinalVertical, canCurveFinalVertical, secondVerticalX) {
                 const canCurveVertical = Math.abs(p3.y - p2.y) > cornerRadius * 2;
 
                 if (canCurveVertical) {
                     const basePath = this._generateNormalCurvedSegment(p1, p2, p3, cornerRadius);
-                    return this._appendFinalSegment(basePath, p3, p4, end, cornerRadius, needsFinalVertical, canCurveFinalVertical);
+                    return this._appendFinalSegment(basePath, p3, p4, end, cornerRadius, needsFinalVertical, canCurveFinalVertical, secondVerticalX);
                 } else {
                     // 垂直距離が短い場合は直線
-                    return this._generateNormalStraightSegment(p1, p2, p3, p4, end, needsFinalVertical);
+                    return this._generateNormalStraightSegment(p1, p2, p3, p4, end, needsFinalVertical, secondVerticalX);
                 }
             },
 
@@ -98,14 +100,15 @@ function getPathGenerator() {
             /**
              * 最終セグメント追加
              */
-            _appendFinalSegment: function(basePath, p3, p4, end, r, needsFinalVertical, canCurveFinalVertical) {
+            _appendFinalSegment: function(basePath, p3, p4, end, r, needsFinalVertical, canCurveFinalVertical, secondVerticalX) {
                 // p4yとend.yが異なる場合は最終垂直調整が必要
                 const needsFinalYAdjustment = Math.abs(p4.y - end.y) > 0.1;
 
                 let finalHorizontal;
                 if (needsFinalYAdjustment) {
-                    // Y調整が必要な場合、ノード手前で垂直線を挿入
-                    const intermediateX = end.x - CONNECTION_CONSTANTS.PRE_NODE_OFFSET;
+                    // Y調整が必要な場合、2本目の垂直セグメントで折り返す
+                    // secondVerticalXが指定されていればそれを使用、なければp4xとend.xの中間
+                    const intermediateX = secondVerticalX !== undefined ? secondVerticalX : (p4.x + end.x) / 2;
                     finalHorizontal = \`L \${intermediateX} \${p4.y} L \${intermediateX} \${end.y} L \${end.x} \${end.y}\`;
 
                     // カーブを無効化（Y調整時は直線で処理）
@@ -134,9 +137,15 @@ function getPathGenerator() {
             /**
              * 初期直線セグメント生成（Y調整あり、垂直距離短い）
              */
-            _generateInitialStraightSegment: function(p1, p2, p3, p4, end, shortHorizontal, needsFinalVertical) {
+            _generateInitialStraightSegment: function(p1, p2, p3, p4, end, shortHorizontal, needsFinalVertical, secondVerticalX) {
                 const needsFinalYAdjustment = Math.abs(p4.y - end.y) > 0.1;
-                const finalSegment = needsFinalYAdjustment ? \`L \${end.x} \${p4.y} L \${end.x} \${end.y}\` : \`L \${end.x} \${end.y}\`;
+                let finalSegment;
+                if (needsFinalYAdjustment) {
+                    const intermediateX = secondVerticalX !== undefined ? secondVerticalX : (p4.x + end.x) / 2;
+                    finalSegment = \`L \${intermediateX} \${p4.y} L \${intermediateX} \${end.y} L \${end.x} \${end.y}\`;
+                } else {
+                    finalSegment = \`L \${end.x} \${end.y}\`;
+                }
 
                 if (needsFinalVertical) {
                     return \`M \${p1.x} \${p1.y} L \${shortHorizontal} \${p1.y} L \${shortHorizontal} \${p2.y} L \${p2.x} \${p2.y} L \${p3.x} \${p3.y} L \${p4.x} \${p3.y} L \${p4.x} \${p4.y} \${finalSegment}\`;
@@ -148,9 +157,15 @@ function getPathGenerator() {
             /**
              * 通常直線セグメント生成（Y調整なし、垂直距離短い）
              */
-            _generateNormalStraightSegment: function(p1, p2, p3, p4, end, needsFinalVertical) {
+            _generateNormalStraightSegment: function(p1, p2, p3, p4, end, needsFinalVertical, secondVerticalX) {
                 const needsFinalYAdjustment = Math.abs(p4.y - end.y) > 0.1;
-                const finalSegment = needsFinalYAdjustment ? \`L \${end.x} \${p4.y} L \${end.x} \${end.y}\` : \`L \${end.x} \${end.y}\`;
+                let finalSegment;
+                if (needsFinalYAdjustment) {
+                    const intermediateX = secondVerticalX !== undefined ? secondVerticalX : (p4.x + end.x) / 2;
+                    finalSegment = \`L \${intermediateX} \${p4.y} L \${intermediateX} \${end.y} L \${end.x} \${end.y}\`;
+                } else {
+                    finalSegment = \`L \${end.x} \${end.y}\`;
+                }
 
                 if (needsFinalVertical) {
                     return \`M \${p1.x} \${p1.y} L \${p2.x} \${p2.y} L \${p3.x} \${p3.y} L \${p4.x} \${p3.y} L \${p4.x} \${p4.y} \${finalSegment}\`;
