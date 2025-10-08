@@ -49,7 +49,8 @@ function getConnectionRenderer() {
             let p2y = y1;
             let p3x = p2x;
             let p3y = y2;
-            const p4x = finalVerticalX !== undefined ? finalVerticalX : x2;
+            // 最終垂直セグメントは垂直線と同じX座標（ノード左端への長い水平線を回避）
+            const p4x = finalVerticalX !== undefined ? finalVerticalX : verticalSegmentX;
             let p4y = y2;
 
             // 最初の水平線セグメントのY座標調整

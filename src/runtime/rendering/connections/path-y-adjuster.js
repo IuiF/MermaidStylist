@@ -95,12 +95,17 @@ function getPathYAdjuster() {
                         ', nodeBounds.length=' + (nodeBounds ? nodeBounds.length : 0));
                 }
 
-                // ターゲットノードと関連する点線ノードを全て衝突チェックから除外
+                // ターゲットノードと関連する点線ノードの扱い
                 const filteredBounds = nodeBounds ? nodeBounds.filter(function(n) {
-                    // edgeToと完全一致または edgeTo_dashed で始まる、または _dashed_edgeTo を含む
-                    return n.id !== edgeTo &&
-                           !n.id.startsWith(edgeTo + '_dashed_') &&
-                           !n.id.includes('_dashed_' + edgeTo);
+                    const isTarget = n.id === edgeTo ||
+                                   n.id.startsWith(edgeTo + '_dashed_') ||
+                                   n.id.includes('_dashed_' + edgeTo);
+
+                    if (isTarget) {
+                        // 水平線がノード左端以下を通過する場合のみチェック対象に含める
+                        return finalVerticalX <= n.left;
+                    }
+                    return true;
                 }) : [];
 
                 const adjustedY = this.adjustHorizontalSegmentY(
