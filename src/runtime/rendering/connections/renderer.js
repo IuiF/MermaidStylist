@@ -56,10 +56,12 @@ function getConnectionRenderer() {
             // 最初の水平線セグメントのY座標調整
             p2y = pathYAdjuster.adjustInitialSegmentY(p1x, p1y, p2x, fromNodeLeft, nodeBounds, connFrom, connTo);
 
-            // 最後の水平線セグメントのY座標調整
-            const finalAdjustedY = pathYAdjuster.adjustFinalSegmentY(p3x, p3y, p4x, nodeBounds, connFrom, connTo);
+            // 最後の水平線セグメントのY座標調整（実際の最終水平セグメント: p4x→x2, Y=p4y）
+            const finalAdjustedY = pathYAdjuster.adjustFinalSegmentY(p4x, p4y, x2, nodeBounds, connFrom, connTo);
             if (finalAdjustedY !== null) {
+                // p3yとp4yを同期して調整（p3y !== p4yだと不要な垂直セグメントが生成される）
                 p3y = finalAdjustedY;
+                p4y = finalAdjustedY;
             }
 
             // pathGeneratorを使用してSVGパスを生成
