@@ -68,8 +68,11 @@ function getPathYAdjuster() {
                 const checkFromX = fromNodeLeft !== undefined ? fromNodeLeft : x1;
                 const checkToX = verticalX;
 
+                // ソースノード自体を衝突チェックから除外
+                const filteredBounds = nodeBounds ? nodeBounds.filter(n => n.id !== edgeFrom) : [];
+
                 const adjustedY = this.adjustHorizontalSegmentY(
-                    checkFromX, y1, checkToX, nodeBounds, edgeFrom, edgeTo
+                    checkFromX, y1, checkToX, filteredBounds, edgeFrom, edgeTo
                 );
 
                 return adjustedY !== null ? adjustedY : y1;
@@ -92,8 +95,16 @@ function getPathYAdjuster() {
                         ', nodeBounds.length=' + (nodeBounds ? nodeBounds.length : 0));
                 }
 
+                // ターゲットノードと関連する点線ノードを全て衝突チェックから除外
+                const filteredBounds = nodeBounds ? nodeBounds.filter(function(n) {
+                    // edgeToと完全一致または edgeTo_dashed で始まる、または _dashed_edgeTo を含む
+                    return n.id !== edgeTo &&
+                           !n.id.startsWith(edgeTo + '_dashed_') &&
+                           !n.id.includes('_dashed_' + edgeTo);
+                }) : [];
+
                 const adjustedY = this.adjustHorizontalSegmentY(
-                    verticalX, y2, finalVerticalX, nodeBounds, edgeFrom, edgeTo
+                    verticalX, y2, finalVerticalX, filteredBounds, edgeFrom, edgeTo
                 );
 
                 if (window.DEBUG_CONNECTIONS && adjustedY !== null) {
