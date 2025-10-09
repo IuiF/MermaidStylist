@@ -14,6 +14,15 @@ function getConnectionUtils() {
                 const childNodeIds = new Set(connections.map(c => c.to));
                 const rootNodeIds = [...allNodeIds].filter(id => !childNodeIds.has(id));
 
+                // 子ノードマップを事前作成（O(E)）
+                const childrenMap = {};
+                connections.forEach(conn => {
+                    if (!childrenMap[conn.from]) {
+                        childrenMap[conn.from] = [];
+                    }
+                    childrenMap[conn.from].push(conn.to);
+                });
+
                 // ルートノードをレベル0として開始
                 const queue = [];
                 rootNodeIds.forEach(rootId => {
@@ -29,7 +38,7 @@ function getConnectionUtils() {
                     const currentId = queue.shift();
                     processed++;
                     const currentDepth = nodeDepths[currentId];
-                    const children = connections.filter(c => c.from === currentId).map(c => c.to);
+                    const children = childrenMap[currentId] || [];
 
                     for (const childId of children) {
                         const newDepth = currentDepth + 1;
