@@ -162,6 +162,13 @@ function getRenderOrchestrator() {
                     highlightManager.highlightOriginalNode(node.originalId);
                 });
                 element.style.cursor = 'pointer';
+            } else {
+                // 通常ノードで子を持たない場合：同名ノードを強調表示
+                element.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    highlightManager.highlightAllByLabel(node.label);
+                });
+                element.style.cursor = 'pointer';
             }
         }
 
