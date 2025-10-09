@@ -1,10 +1,8 @@
 function getConnectionRenderer() {
     const connectionLabels = require('./labels').getConnectionLabels();
-    const boundsCollector = require('./bounds-collector').getBoundsCollector();
-    const collisionDetector = require('./collision-detector').getCollisionDetector();
     const verticalSegmentCalculator = require('./vertical-segment-calculator').getVerticalSegmentCalculator();
 
-    return connectionLabels + boundsCollector + collisionDetector + verticalSegmentCalculator + `
+    return connectionLabels + verticalSegmentCalculator + `
         // 矢印描画関数
         function createArrow(x1, y1, x2, y2, conn) {
             const angle = Math.atan2(y2 - y1, x2 - x1);

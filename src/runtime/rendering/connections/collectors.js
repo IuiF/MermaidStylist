@@ -1,8 +1,8 @@
-function getEdgeInfoCollector() {
+function getCollectors() {
     return `
-        // エッジ情報の収集と分類モジュール
+        // データ収集モジュール
 
-        const edgeInfoCollector = {
+        const collectors = {
             /**
              * 全接続からエッジ情報を収集
              * @param {Array} connections - 接続情報の配列
@@ -72,11 +72,81 @@ function getEdgeInfoCollector() {
                 });
 
                 return edgeInfos;
+            },
+
+            /**
+             * すべてのノードの座標を取得
+             * @param {string} excludeFrom - 除外する開始ノードID
+             * @param {string} excludeTo - 除外する終了ノードID
+             * @returns {Array} ノードのバウンディングボックス配列
+             */
+            getAllNodeBounds: function(excludeFrom, excludeTo) {
+                const nodes = [];
+                allNodes.forEach(node => {
+                    if (node.id === excludeFrom || node.id === excludeTo) return;
+
+                    const element = svgHelpers.getNodeElement(node.id);
+                    if (element && !element.classList.contains('hidden')) {
+                        const pos = svgHelpers.getNodePosition(element);
+                        const dim = svgHelpers.getNodeDimensions(element);
+                        nodes.push({
+                            id: node.id,
+                            left: pos.left,
+                            top: pos.top,
+                            right: pos.left + dim.width,
+                            bottom: pos.top + dim.height,
+                            width: dim.width,
+                            height: dim.height
+                        });
+                    }
+                });
+                return nodes;
+            },
+
+            /**
+             * すべてのラベルの座標を取得
+             * @returns {Array} ラベルのバウンディングボックス配列
+             */
+            getAllLabelBounds: function() {
+                const svgLayer = svgHelpers.getEdgeLayer();
+                const labels = svgLayer.querySelectorAll('.connection-label');
+                const labelBounds = [];
+
+                labels.forEach(label => {
+                    const rectElement = label.querySelector('rect');
+                    if (rectElement) {
+                        const x = parseFloat(rectElement.getAttribute('x'));
+                        const y = parseFloat(rectElement.getAttribute('y'));
+                        const width = parseFloat(rectElement.getAttribute('width'));
+                        const height = parseFloat(rectElement.getAttribute('height'));
+
+                        labelBounds.push({
+                            from: label.getAttribute('data-from'),
+                            to: label.getAttribute('data-to'),
+                            left: x,
+                            top: y,
+                            right: x + width,
+                            bottom: y + height,
+                            width: width,
+                            height: height
+                        });
+                    }
+                });
+
+                return labelBounds;
             }
         };
+
+        // 後方互換性のためのエイリアス
+        const edgeInfoCollector = {
+            collectEdgeInfos: collectors.collectEdgeInfos
+        };
+
+        const getAllNodeBounds = collectors.getAllNodeBounds;
+        const getAllLabelBounds = collectors.getAllLabelBounds;
     `;
 }
 
 module.exports = {
-    getEdgeInfoCollector
+    getCollectors
 };

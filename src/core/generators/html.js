@@ -6,13 +6,12 @@ const { getVerticalLayout } = require('../layouts/vertical-layout');
 const { getHorizontalLayout } = require('../layouts/horizontal-layout');
 const { getConnectionConstants } = require('../../runtime/rendering/connections/constants');
 const { getConnectionUtils } = require('../../runtime/rendering/connections/utils');
-const { getEdgeInfoCollector } = require('../../runtime/rendering/connections/edge-info-collector');
-const { getDepthCalculator } = require('../../runtime/rendering/connections/depth-calculator');
+const { getCollectors } = require('../../runtime/rendering/connections/collectors');
+const { getDepthUtils } = require('../../runtime/rendering/connections/depth-utils');
 const { getPathYAdjuster } = require('../../runtime/rendering/connections/path-y-adjuster');
 const { getPathGenerator } = require('../../runtime/rendering/connections/path-generator');
 const { getEdgeSpacingCalculator } = require('../../runtime/rendering/connections/edge-spacing-calculator');
-const { getDepthOffsetAggregator } = require('../../runtime/rendering/connections/depth-offset-aggregator');
-const { getCollisionAvoidanceSegmentCalculator } = require('../../runtime/rendering/connections/collision-avoidance-segment-calculator');
+const { getCollisionUtils } = require('../../runtime/rendering/connections/collision-utils');
 const { getConnectionRenderer } = require('../../runtime/rendering/connections/renderer');
 const { getRedrawHelpers } = require('../../runtime/rendering/redraw-helpers');
 const { getShadowManager } = require('../../runtime/rendering/effects/shadow-manager');
@@ -80,11 +79,14 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
         // Import connection utils
         ${getConnectionUtils()}
 
-        // Import edge info collector
-        ${getEdgeInfoCollector()}
+        // Import collectors (edge info, bounds)
+        ${getCollectors()}
 
-        // Import depth calculator
-        ${getDepthCalculator()}
+        // Import depth utils (calculator, offset aggregator)
+        ${getDepthUtils()}
+
+        // Import collision utils (detector, avoidance calculator)
+        ${getCollisionUtils()}
 
         // Import path Y adjuster
         ${getPathYAdjuster()}
@@ -94,12 +96,6 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
 
         // Import edge spacing calculator
         ${getEdgeSpacingCalculator()}
-
-        // Import depth offset aggregator
-        ${getDepthOffsetAggregator()}
-
-        // Import collision avoidance segment calculator
-        ${getCollisionAvoidanceSegmentCalculator()}
 
         // Import connection renderer
         ${getConnectionRenderer()}
