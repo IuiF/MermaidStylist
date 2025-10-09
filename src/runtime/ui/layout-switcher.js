@@ -12,25 +12,14 @@ function getLayoutSwitcher() {
             document.getElementById('horizontalBtn').classList.toggle('active', layoutType === 'horizontal');
 
             // Apply layout
-            if (layoutType === 'vertical') {
-                currentNodePositions = verticalLayout(allNodes, connections, calculateAllNodeWidths,
-                    (n, c) => analyzeTreeStructure(n, c, dashedNodes));
-            } else {
-                currentNodePositions = horizontalLayout(allNodes, connections, calculateAllNodeWidths,
-                    (n, c) => analyzeTreeStructure(n, c, dashedNodes));
-            }
+            currentNodePositions = redrawHelpers.recalculateLayout(layoutType);
 
             // Redraw lines
             requestAnimationFrame(() => {
-                createCSSLines(allConnections, currentNodePositions);
-                pathHighlighter.reapplyPathHighlight();
-                highlightManager.reapplyRelationHighlight();
+                redrawHelpers.redrawConnectionsWithHighlights(allConnections, currentNodePositions);
 
                 // レイアウト変更後、座標を更新してコンテンツ全体が見えるように位置を調整
-                requestAnimationFrame(() => {
-                    viewportManager.updateContentBounds();
-                    viewportManager.fitToContent();
-                });
+                redrawHelpers.updateViewport({ fitToContent: true });
             });
         }
 
@@ -43,9 +32,7 @@ function getLayoutSwitcher() {
 
             // Redraw lines
             requestAnimationFrame(() => {
-                createCSSLines(allConnections, currentNodePositions);
-                pathHighlighter.reapplyPathHighlight();
-                highlightManager.reapplyRelationHighlight();
+                redrawHelpers.redrawConnectionsWithHighlights(allConnections, currentNodePositions);
             });
         }
     `;

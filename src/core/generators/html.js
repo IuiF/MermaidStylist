@@ -15,6 +15,7 @@ const { getEdgeSpacingCalculator } = require('../../runtime/rendering/connection
 const { getDepthOffsetAggregator } = require('../../runtime/rendering/connections/depth-offset-aggregator');
 const { getCollisionAvoidanceSegmentCalculator } = require('../../runtime/rendering/connections/collision-avoidance-segment-calculator');
 const { getConnectionRenderer } = require('../../runtime/rendering/connections/renderer');
+const { getRedrawHelpers } = require('../../runtime/rendering/redraw-helpers');
 const { getShadowManager } = require('../../runtime/rendering/effects/shadow-manager');
 const { getCollapseManager } = require('../../runtime/state/collapse-manager');
 const { getLayoutSwitcher } = require('../../runtime/ui/layout-switcher');
@@ -106,6 +107,9 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
 
         // Import connection renderer
         ${getConnectionRenderer()}
+
+        // Import redraw helpers
+        ${getRedrawHelpers()}
 
         // Import shadow manager
         ${getShadowManager()}

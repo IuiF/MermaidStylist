@@ -186,12 +186,7 @@ function getRenderOrchestrator() {
          * ノード位置を計算して配置
          */
         function computeLayout() {
-            const nodePositions = horizontalLayout(
-                allNodes,
-                connections,
-                calculateAllNodeWidths,
-                (n, c) => analyzeTreeStructure(n, c, dashedNodes)
-            );
+            const nodePositions = redrawHelpers.recalculateLayout('horizontal');
 
             debugActualWidths(nodes);
 
@@ -216,9 +211,7 @@ function getRenderOrchestrator() {
             bringRootNodesToFront();
 
             // コンテンツ全体が見えるように初期位置を調整
-            requestAnimationFrame(() => {
-                viewportManager.fitToContent();
-            });
+            redrawHelpers.updateViewport({ fitToContent: true });
         }
 
         /**

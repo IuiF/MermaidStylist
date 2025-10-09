@@ -45,26 +45,17 @@ function getCollapseManager() {
                     console.log('recalculateLayout called');
                 }
                 requestAnimationFrame(() => {
-                    if (currentLayout === 'vertical') {
-                        currentNodePositions = verticalLayout(allNodes, connections, calculateAllNodeWidths,
-                            (n, c) => analyzeTreeStructure(n, c, dashedNodes));
-                    } else {
-                        currentNodePositions = horizontalLayout(allNodes, connections, calculateAllNodeWidths,
-                            (n, c) => analyzeTreeStructure(n, c, dashedNodes));
-                    }
+                    currentNodePositions = redrawHelpers.recalculateLayout(currentLayout);
+
                     if (window.DEBUG_CONNECTIONS) {
                         console.log('Calling createCSSLines with ' + allConnections.length + ' connections');
                     }
-                    createCSSLines(allConnections, currentNodePositions);
+                    redrawHelpers.redrawConnectionsWithHighlights(allConnections, currentNodePositions);
                     shadowManager.updatePositions(this.collapsedNodes);
-                    pathHighlighter.reapplyPathHighlight();
-                    highlightManager.reapplyRelationHighlight();
                     this.updateVisibility();
 
                     // 座標を更新
-                    requestAnimationFrame(() => {
-                        viewportManager.updateContentBounds();
-                    });
+                    redrawHelpers.updateViewport({ fitToContent: false });
                 });
             },
 
