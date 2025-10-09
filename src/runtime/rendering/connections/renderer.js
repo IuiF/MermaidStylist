@@ -39,7 +39,20 @@ function getConnectionRenderer() {
         // ノードの階層（深さ）を計算
 
         // 曲線パスを生成
-        function createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, nodeBounds, connFrom, connTo, fromNodeLeft, finalVerticalX, yAdjustment, secondVerticalX) {
+        function createCurvedPath(pathParams) {
+            const {
+                x1, y1, x2, y2,
+                verticalSegmentX,
+                labelBounds,
+                nodeBounds,
+                connFrom,
+                connTo,
+                fromNodeLeft,
+                finalVerticalX,
+                yAdjustment,
+                secondVerticalX
+            } = pathParams;
+
             const cornerRadius = CONNECTION_CONSTANTS.CORNER_RADIUS;
 
             // 制御点を計算
@@ -178,6 +191,11 @@ function getConnectionRenderer() {
         }
 
         function createCurvedLines(connections, nodePositions) {
+            // エッジキーを生成
+            function createEdgeKey(fromId, toId) {
+                return fromId + '->' + toId;
+            }
+
             // 点線エッジ用のノードバウンドフィルタリング
             function filterNodeBoundsForDashedEdge(nodeBounds, edge) {
                 if (!edge.isDashed) {
@@ -243,7 +261,7 @@ function getConnectionRenderer() {
                     if (edgeInfo.is1to1Horizontal) return;
 
                     const verticalSegmentX = parentFinalVerticalSegmentX[edgeInfo.conn.from] || edgeInfo.x1 + 50;
-                    const edgeKey = edgeInfo.conn.from + '->' + edgeInfo.conn.to;
+                    const edgeKey = createEdgeKey(edgeInfo.conn.from, edgeInfo.conn.to);
                     const finalVerticalX = edgeToFinalVerticalX[edgeKey];
                     const p4x = finalVerticalX !== undefined ? finalVerticalX : verticalSegmentX;
 
@@ -329,43 +347,49 @@ function getConnectionRenderer() {
                 };
             }
 
-            // Phase 3: 単一エッジ描画
-            function renderSingleEdge(edgeInfo, parentFinalVerticalSegmentX, edgeToFinalVerticalX, edgeToYAdjustment, edgeToSecondVerticalX, svgLayer, labelBounds) {
-                const { conn, x1, y1, x2, y2, is1to1Horizontal } = edgeInfo;
+            // 1:1水平エッジを描画
+            function render1to1HorizontalEdge(conn, x1, y1, x2, y2, svgLayer) {
+                const line = svgHelpers.createLine({
+                    class: conn.isDashed ? 'connection-line dashed-edge' : 'connection-line',
+                    x1, y1, x2, y2,
+                    'data-from': conn.from,
+                    'data-to': conn.to
+                });
 
+                if (conn.isDashed) {
+                    line.style.strokeDasharray = '5,5';
+                    line.style.opacity = '0.6';
+                }
+
+                svgLayer.appendChild(line);
+                svgLayer.appendChild(createHorizontalArrow(x2, y2, conn));
+            }
+
+            // 通常のカーブエッジを描画
+            function renderCurvedEdge(conn, x1, y1, x2, y2, parentFinalVerticalSegmentX, edgeToFinalVerticalX, edgeToYAdjustment, edgeToSecondVerticalX, svgLayer, labelBounds) {
                 const fromElement = svgHelpers.getNodeElement(conn.from);
-                const toElement = svgHelpers.getNodeElement(conn.to);
-                if (fromElement.classList.contains('hidden') || toElement.classList.contains('hidden')) {
-                    return;
-                }
-
-                if (is1to1Horizontal) {
-                    const line = svgHelpers.createLine({
-                        class: conn.isDashed ? 'connection-line dashed-edge' : 'connection-line',
-                        x1: x1, y1: y1, x2: x2, y2: y2,
-                        'data-from': conn.from, 'data-to': conn.to
-                    });
-
-                    if (conn.isDashed) {
-                        line.style.strokeDasharray = '5,5';
-                        line.style.opacity = '0.6';
-                    }
-
-                    svgLayer.appendChild(line);
-                    svgLayer.appendChild(createHorizontalArrow(x2, y2, conn));
-                    return;
-                }
-
                 const verticalSegmentX = parentFinalVerticalSegmentX[conn.from] || x1 + 50;
                 const fromPos = getNodePosition(fromElement);
                 const nodeBounds = getAllNodeBounds(conn.from, conn.to);
                 const filteredBounds = filterNodeBoundsForDashedEdge(nodeBounds, conn);
 
-                const edgeKey = conn.from + '->' + conn.to;
+                const edgeKey = createEdgeKey(conn.from, conn.to);
                 const finalVerticalX = edgeToFinalVerticalX[edgeKey];
                 const yAdjustment = edgeToYAdjustment[edgeKey];
                 const secondVerticalX = edgeToSecondVerticalX[edgeKey];
-                const pathData = createCurvedPath(x1, y1, x2, y2, verticalSegmentX, labelBounds, filteredBounds, conn.from, conn.to, fromPos.left, finalVerticalX, yAdjustment, secondVerticalX);
+
+                const pathData = createCurvedPath({
+                    x1, y1, x2, y2,
+                    verticalSegmentX,
+                    labelBounds,
+                    nodeBounds: filteredBounds,
+                    connFrom: conn.from,
+                    connTo: conn.to,
+                    fromNodeLeft: fromPos.left,
+                    finalVerticalX,
+                    yAdjustment,
+                    secondVerticalX
+                });
 
                 const path = svgHelpers.createPath(pathData, {
                     class: conn.isDashed ? 'connection-line dashed-edge' : 'connection-line',
@@ -380,6 +404,23 @@ function getConnectionRenderer() {
 
                 svgLayer.appendChild(path);
                 svgLayer.appendChild(createHorizontalArrow(x2, y2, conn));
+            }
+
+            // Phase 3: 単一エッジ描画
+            function renderSingleEdge(edgeInfo, layoutData, svgLayer, labelBounds) {
+                const { conn, x1, y1, x2, y2, is1to1Horizontal } = edgeInfo;
+
+                const fromElement = svgHelpers.getNodeElement(conn.from);
+                const toElement = svgHelpers.getNodeElement(conn.to);
+                if (fromElement.classList.contains('hidden') || toElement.classList.contains('hidden')) {
+                    return;
+                }
+
+                if (is1to1Horizontal) {
+                    render1to1HorizontalEdge(conn, x1, y1, x2, y2, svgLayer);
+                } else {
+                    renderCurvedEdge(conn, x1, y1, x2, y2, layoutData.parentFinalVerticalSegmentX, layoutData.edgeToFinalVerticalX, layoutData.edgeToYAdjustment, layoutData.edgeToSecondVerticalX, svgLayer, labelBounds);
+                }
             }
 
             // Phase 4: ラベルを最前面に移動
@@ -398,7 +439,7 @@ function getConnectionRenderer() {
             const layoutData = calculateEdgeLayout(connections, labelBounds);
 
             layoutData.edgeInfos.forEach(edgeInfo => {
-                renderSingleEdge(edgeInfo, layoutData.parentFinalVerticalSegmentX, layoutData.edgeToFinalVerticalX, layoutData.edgeToYAdjustment, layoutData.edgeToSecondVerticalX, svgLayer, labelBounds);
+                renderSingleEdge(edgeInfo, layoutData, svgLayer, labelBounds);
             });
 
             finalizeLabels(svgLayer);
