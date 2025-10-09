@@ -196,6 +196,21 @@ function getConnectionRenderer() {
                 return fromId + '->' + toId;
             }
 
+            // 点線スタイルを適用
+            function applyDashedStyle(element, conn) {
+                if (conn.isDashed) {
+                    element.style.strokeDasharray = '5,5';
+                    element.style.opacity = '0.6';
+                }
+            }
+
+            // ノードが表示されているかチェック
+            function areNodesVisible(fromElement, toElement) {
+                return fromElement && toElement &&
+                       !fromElement.classList.contains('hidden') &&
+                       !toElement.classList.contains('hidden');
+            }
+
             // 点線エッジ用のノードバウンドフィルタリング
             function filterNodeBoundsForDashedEdge(nodeBounds, edge) {
                 if (!edge.isDashed) {
@@ -242,9 +257,7 @@ function getConnectionRenderer() {
                 connections.forEach(conn => {
                     const fromElement = svgHelpers.getNodeElement(conn.from);
                     const toElement = svgHelpers.getNodeElement(conn.to);
-                    if (fromElement && toElement &&
-                        !fromElement.classList.contains('hidden') &&
-                        !toElement.classList.contains('hidden')) {
+                    if (areNodesVisible(fromElement, toElement)) {
                         const labelGroup = createConnectionLabel(conn, toElement);
                         if (labelGroup) {
                             svgLayer.appendChild(labelGroup);
@@ -260,7 +273,7 @@ function getConnectionRenderer() {
                 edgeInfos.forEach(edgeInfo => {
                     if (edgeInfo.is1to1Horizontal) return;
 
-                    const verticalSegmentX = parentFinalVerticalSegmentX[edgeInfo.conn.from] || edgeInfo.x1 + 50;
+                    const verticalSegmentX = parentFinalVerticalSegmentX[edgeInfo.conn.from] || edgeInfo.x1 + CONNECTION_CONSTANTS.DEFAULT_VERTICAL_OFFSET;
                     const edgeKey = createEdgeKey(edgeInfo.conn.from, edgeInfo.conn.to);
                     const finalVerticalX = edgeToFinalVerticalX[edgeKey];
                     const p4x = finalVerticalX !== undefined ? finalVerticalX : verticalSegmentX;
@@ -356,10 +369,7 @@ function getConnectionRenderer() {
                     'data-to': conn.to
                 });
 
-                if (conn.isDashed) {
-                    line.style.strokeDasharray = '5,5';
-                    line.style.opacity = '0.6';
-                }
+                applyDashedStyle(line, conn);
 
                 svgLayer.appendChild(line);
                 svgLayer.appendChild(createHorizontalArrow(x2, y2, conn));
@@ -368,7 +378,7 @@ function getConnectionRenderer() {
             // 通常のカーブエッジを描画
             function renderCurvedEdge(conn, x1, y1, x2, y2, parentFinalVerticalSegmentX, edgeToFinalVerticalX, edgeToYAdjustment, edgeToSecondVerticalX, svgLayer, labelBounds) {
                 const fromElement = svgHelpers.getNodeElement(conn.from);
-                const verticalSegmentX = parentFinalVerticalSegmentX[conn.from] || x1 + 50;
+                const verticalSegmentX = parentFinalVerticalSegmentX[conn.from] || x1 + CONNECTION_CONSTANTS.DEFAULT_VERTICAL_OFFSET;
                 const fromPos = getNodePosition(fromElement);
                 const nodeBounds = getAllNodeBounds(conn.from, conn.to);
                 const filteredBounds = filterNodeBoundsForDashedEdge(nodeBounds, conn);
@@ -397,10 +407,7 @@ function getConnectionRenderer() {
                     fill: 'none'
                 });
 
-                if (conn.isDashed) {
-                    path.style.strokeDasharray = '5,5';
-                    path.style.opacity = '0.6';
-                }
+                applyDashedStyle(path, conn);
 
                 svgLayer.appendChild(path);
                 svgLayer.appendChild(createHorizontalArrow(x2, y2, conn));
@@ -412,7 +419,7 @@ function getConnectionRenderer() {
 
                 const fromElement = svgHelpers.getNodeElement(conn.from);
                 const toElement = svgHelpers.getNodeElement(conn.to);
-                if (fromElement.classList.contains('hidden') || toElement.classList.contains('hidden')) {
+                if (!areNodesVisible(fromElement, toElement)) {
                     return;
                 }
 

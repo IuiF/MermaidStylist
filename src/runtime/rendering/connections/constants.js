@@ -12,6 +12,7 @@ function getConnectionConstants() {
 
             // 垂直セグメント配置
             MIN_OFFSET: 30,                  // ノード右端からの最小オフセット
+            DEFAULT_VERTICAL_OFFSET: 50,     // デフォルトの垂直セグメントオフセット
 
             // パス描画
             CORNER_RADIUS: 8,                // パスのコーナー半径
