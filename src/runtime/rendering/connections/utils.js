@@ -65,8 +65,8 @@ function getConnectionUtils() {
                         const aElement = svgHelpers.getNodeElement(a.to);
                         const bElement = svgHelpers.getNodeElement(b.to);
                         if (!aElement || !bElement) return 0;
-                        const aPos = getNodePosition(aElement);
-                        const bPos = getNodePosition(bElement);
+                        const aPos = svgHelpers.getNodePosition(aElement);
+                        const bPos = svgHelpers.getNodePosition(bElement);
                         return aPos.top - bPos.top;
                     });
                 });
@@ -85,7 +85,7 @@ function getConnectionUtils() {
                     if (!parentYPositions[info.conn.from]) {
                         const fromElement = svgHelpers.getNodeElement(info.conn.from);
                         if (fromElement) {
-                            const pos = getNodePosition(fromElement);
+                            const pos = svgHelpers.getNodePosition(fromElement);
                             parentYPositions[info.conn.from] = pos.top;
                         }
                     }

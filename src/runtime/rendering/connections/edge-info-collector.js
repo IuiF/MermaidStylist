@@ -25,10 +25,10 @@ function getEdgeInfoCollector() {
                         return;
                     }
 
-                    const fromPos = getNodePosition(fromElement);
-                    const fromDim = getNodeDimensions(fromElement);
-                    const toPos = getNodePosition(toElement);
-                    const toDim = getNodeDimensions(toElement);
+                    const fromPos = svgHelpers.getNodePosition(fromElement);
+                    const fromDim = svgHelpers.getNodeDimensions(fromElement);
+                    const toPos = svgHelpers.getNodePosition(toElement);
+                    const toDim = svgHelpers.getNodeDimensions(toElement);
 
                     const siblings = connectionsByParent[conn.from];
                     const siblingIndex = siblings.findIndex(c => c.to === conn.to);

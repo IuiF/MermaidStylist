@@ -145,15 +145,15 @@ function getConnectionRenderer() {
                 if (areNodesVisible(fromElement, toElement)) {
 
                     // ノードの位置と寸法を取得
-                    const fromPos = getNodePosition(fromElement);
-                    const fromDim = getNodeDimensions(fromElement);
+                    const fromPos = svgHelpers.getNodePosition(fromElement);
+                    const fromDim = svgHelpers.getNodeDimensions(fromElement);
                     const fromLeft = fromPos.left;
                     const fromTop = fromPos.top;
                     const fromWidth = fromDim.width;
                     const fromHeight = fromDim.height;
 
-                    const toPos = getNodePosition(toElement);
-                    const toDim = getNodeDimensions(toElement);
+                    const toPos = svgHelpers.getNodePosition(toElement);
+                    const toDim = svgHelpers.getNodeDimensions(toElement);
                     const toLeft = toPos.left;
                     const toTop = toPos.top;
                     const toWidth = toDim.width;
@@ -368,7 +368,7 @@ function getConnectionRenderer() {
             function renderCurvedEdge(conn, x1, y1, x2, y2, parentFinalVerticalSegmentX, edgeToFinalVerticalX, edgeToYAdjustment, edgeToSecondVerticalX, svgLayer, labelBounds) {
                 const fromElement = svgHelpers.getNodeElement(conn.from);
                 const verticalSegmentX = parentFinalVerticalSegmentX[conn.from] || x1 + CONNECTION_CONSTANTS.DEFAULT_VERTICAL_OFFSET;
-                const fromPos = getNodePosition(fromElement);
+                const fromPos = svgHelpers.getNodePosition(fromElement);
                 const nodeBounds = getAllNodeBounds(conn.from, conn.to);
                 const filteredBounds = filterNodeBoundsForDashedEdge(nodeBounds, conn);
 

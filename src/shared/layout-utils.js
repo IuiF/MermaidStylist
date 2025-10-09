@@ -71,30 +71,11 @@ function getLayoutUtils() {
         }
 
         function getNodeDimensions(element) {
-            if (element.tagName === 'g') {
-                // SVGノードの場合
-                const width = parseFloat(element.getAttribute('data-width')) || 0;
-                const height = parseFloat(element.getAttribute('data-height')) || 0;
-                return { width: width, height: height };
-            } else {
-                // HTML要素の場合
-                return { width: element.offsetWidth, height: element.offsetHeight };
-            }
+            return svgHelpers.getNodeDimensions(element);
         }
 
         function getNodePosition(element) {
-            if (element.tagName === 'g') {
-                // SVGノードの場合
-                const transform = element.getAttribute('transform');
-                const pos = svgHelpers.parseTransform(transform);
-                return { left: pos.x, top: pos.y };
-            } else {
-                // HTML要素の場合
-                return {
-                    left: parseFloat(element.style.left) || 0,
-                    top: parseFloat(element.style.top) || 0
-                };
-            }
+            return svgHelpers.getNodePosition(element);
         }
 
         // 階層間の動的スペーシングを計算

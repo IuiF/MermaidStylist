@@ -10,8 +10,8 @@ function getBoundsCollector() {
 
                 const element = svgHelpers.getNodeElement(node.id);
                 if (element && !element.classList.contains('hidden')) {
-                    const pos = getNodePosition(element);
-                    const dim = getNodeDimensions(element);
+                    const pos = svgHelpers.getNodePosition(element);
+                    const dim = svgHelpers.getNodeDimensions(element);
                     nodes.push({
                         id: node.id,
                         left: pos.left,

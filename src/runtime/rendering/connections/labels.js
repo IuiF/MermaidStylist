@@ -19,7 +19,7 @@ function getConnectionLabels() {
             const labelWidth = textBBox.width + labelPadding * 2;
             const labelHeight = textBBox.height + labelPadding * 2;
 
-            const toPos = getNodePosition(toElement);
+            const toPos = svgHelpers.getNodePosition(toElement);
             const toLeft = toPos.left;
             const toTop = toPos.top;
 

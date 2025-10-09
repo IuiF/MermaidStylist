@@ -196,6 +196,35 @@ function getSVGHelpers() {
                 if (overlay) {
                     overlay.remove();
                 }
+            },
+
+            // ノードの位置を取得
+            getNodePosition: function(element) {
+                if (element.tagName === 'g') {
+                    // SVGノードの場合
+                    const transform = element.getAttribute('transform');
+                    const pos = this.parseTransform(transform);
+                    return { left: pos.x, top: pos.y };
+                } else {
+                    // HTML要素の場合
+                    return {
+                        left: parseFloat(element.style.left) || 0,
+                        top: parseFloat(element.style.top) || 0
+                    };
+                }
+            },
+
+            // ノードの寸法を取得
+            getNodeDimensions: function(element) {
+                if (element.tagName === 'g') {
+                    // SVGノードの場合
+                    const width = parseFloat(element.getAttribute('data-width')) || 0;
+                    const height = parseFloat(element.getAttribute('data-height')) || 0;
+                    return { width: width, height: height };
+                } else {
+                    // HTML要素の場合
+                    return { width: element.offsetWidth, height: element.offsetHeight };
+                }
             }
         };
     `;
