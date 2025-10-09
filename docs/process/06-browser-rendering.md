@@ -256,39 +256,134 @@ function renderConnections(nodePositions) {
 }
 ```
 
-#### エッジ描画の15モジュール連携
+#### エッジ描画の主要概念
 
-**`createCSSLines()` の処理フロー:**
+エッジ描画は以下の主要概念に基づいて実装されている:
 
-1. **SVGレイヤーの初期化と消去**
-   - `initializeAndClearSVGLayer()`
+**階層（Depth）ベースの配置**
+- 各ノードは階層（depth）を持つ（ルート=0、子=親+1）
+- エッジの垂直セグメントは階層ごとにグループ化して配置
+- 同じ階層内の全エッジは統一された配置ルールに従う
 
-2. **ラベル描画**
-   - `renderAllLabels(connections, svgLayer)`
-   - 全エッジのラベルをSVGに配置
+**クラスタリング**
+- X座標が大きく離れた親ノード群は別クラスタとして扱う（閾値200px）
+- クラスタごとに独立して等間隔配置を計算
+- 離れた位置のエッジが互いに干渉しないようにする
 
-3. **エッジレイアウト計算**
-   - `calculateEdgeLayout(connections, labelBounds)`
-   - 以下のモジュールを順次実行:
-     - `edge-info-collector.js` - エッジ情報収集
-     - `depth-calculator.js` - 深度計算
-     - `collision-detector.js` - 衝突検出（純粋関数）
-     - `bounds-collector.js` - ノード座標収集（DOM依存）
-     - `edge-spacing-calculator.js` - エッジ間隔計算
-     - `depth-offset-aggregator.js` - オフセット集約
-     - `path-y-adjuster.js` - Y座標調整
-     - `vertical-segment-calculator.js` - 垂直セグメント計算
-     - `final-vertical-calculator.js` - 最終垂直座標
-     - `path-generator.js` - パス生成
+**通過エッジ数カウント**
+- 各階層を通過するエッジの本数を正確にカウント
+- 長距離エッジ（複数階層をまたぐ）も考慮
+- 衝突回避エッジは2本としてカウント（2本の垂直セグメントを持つため）
 
-4. **各エッジの描画**
-   - `renderSingleEdge()` を各エッジに対して実行
-   - `arrows.js` - 矢印描画
-   - SVGパスとして描画
+**等間隔配置**
+- 親ノード数とエッジ数の大きい方を基準にレーン数を決定
+- 利用可能な幅を等分してX座標を割り当て
+- 中央基準で左右対称に配置
 
-5. **ラベルのZ-order調整**
-   - `finalizeLabels(svgLayer)`
-   - ラベルを最前面に移動
+**衝突回避の2段階計算**
+- 第1段階: 衝突回避なしで基本配置を計算
+- 衝突判定: 最終水平セグメントとノードの交差を検出
+- 第2段階: 衝突回避エッジをカウントに含めて再計算
+- 2本目の垂直セグメントで折り返して衝突を回避
+
+**階層単位でのオフセット集約**
+- 各親ノードの衝突回避オフセットを計算
+- 同じ階層内の全親に最大オフセット値を適用
+- 垂直セグメントを階層ごとに揃えて視覚的に整然とさせる
+
+---
+
+#### エッジ描画の詳細プロセス
+
+**`createCurvedLines()` の4フェーズ:**
+
+##### Phase 0: SVGレイヤー初期化
+`initializeAndClearSVGLayer()`
+- SVGエッジレイヤーを取得
+- 既存のエッジ、矢印、ラベルを削除
+- ラベルオフセットマップをリセット
+
+##### Phase 1: ラベル描画
+`renderAllLabels(connections, svgLayer)`
+- 表示中の全エッジに対してラベルを描画
+- ラベルのバウンディングボックスを取得（後の衝突判定に使用）
+
+##### Phase 2: エッジレイアウト計算
+`calculateEdgeLayout(connections, labelBounds)`
+
+以下の10ステップで構成:
+
+**1. エッジ情報収集** (`edge-info-collector.js`)
+- 各エッジの開始/終了座標、親子関係、階層情報を収集
+- 1:1の水平エッジを判定（特殊処理対象）
+- 兄弟エッジのインデックスとカウントを記録
+
+**2. ノード階層計算** (`utils.js` - `calculateNodeDepths`)
+- BFSでノードの階層（depth）を計算
+- 複数の親を持つノードは最も深い階層を採用
+
+**3. 親ごとの接続グループ化** (`utils.js` - `sortConnectionsByParent`)
+- 親ノードごとにエッジをグループ化
+- Y座標でソート
+
+**4. 階層境界計算** (`depth-calculator.js`)
+- 各階層の親ノード群の最大右端X座標を計算
+- 各階層の子ノード群の最小左端X座標を計算
+- レイアウト情報から取得、フォールバックとしてエッジ座標から計算
+
+**5. 第1段階: 基本垂直セグメント計算** (`vertical-segment-calculator.js`)
+- 親ノードをX座標でクラスタリング（閾値200px）
+- 各階層を通過するエッジ数をカウント（長距離エッジ含む）
+- クラスタ内でエッジを等間隔配置
+  - 親ノード数とエッジ数の大きい方を基準にレーン数を決定
+  - 利用可能な幅を等分してX座標を割り当て
+  - 衝突回避オフセットを見込んで配置開始位置を調整
+
+**6. 最終垂直X座標計算** (`final-vertical-calculator.js`)
+- 現在は空実装（全エッジをノード左端に接続）
+
+**7. 衝突判定とY座標調整** (`path-y-adjuster.js`)
+- 最終水平セグメントとノードの衝突を検出
+- 衝突がある場合はY座標を調整
+- 点線エッジの場合は関連点線ノードを除外して判定
+- 調整情報を `edgeToYAdjustment` に記録
+
+**8. 第2段階: 衝突回避エッジを含めて再計算** (`vertical-segment-calculator.js`)
+- Y調整が必要なエッジを衝突回避エッジとして追加カウント
+- 通過エッジ数を2倍にして等間隔配置を再計算
+- 垂直セグメントX座標を更新
+
+**9. 2本目の垂直セグメント計算** (`collision-avoidance-segment-calculator.js`)
+- 衝突回避エッジの2本目の垂直セグメントX座標を計算
+- p4xとendXの中間付近に配置
+- 複数の衝突回避エッジがある場合はスペースを確保
+
+**10. 衝突回避オフセット集約** (`depth-offset-aggregator.js`)
+- 各親ノードの衝突回避オフセットを計算（ノード回避+ラベル回避）
+- 同じ階層内の全親に最大オフセット値を適用
+- 垂直セグメントを階層ごとに揃える
+
+計算結果:
+- `edgeInfos`: エッジ情報配列
+- `parentFinalVerticalSegmentX`: 親ID → 垂直セグメントX座標
+- `edgeToFinalVerticalX`: エッジキー → 最終垂直X座標
+- `edgeToYAdjustment`: エッジキー → Y調整情報
+- `edgeToSecondVerticalX`: エッジキー → 2本目の垂直X座標
+
+##### Phase 3: 単一エッジ描画
+`renderSingleEdge()` を各エッジに対して実行
+
+- **1:1水平エッジの場合**: 直線で描画
+- **通常エッジの場合**:
+  - 点線エッジは関連点線ノードを衝突判定から除外
+  - `createCurvedPath()` でSVGパスデータを生成 (`path-generator.js`)
+  - カーブ付きパスをSVGに追加
+  - 矢印を描画 (`arrows.js`)
+
+##### Phase 4: ラベル最前面配置
+`finalizeLabels(svgLayer)`
+- 全ラベルをSVGレイヤーの最後に移動
+- Z-orderを調整してエッジより前面に表示
 
 ---
 
@@ -647,11 +742,21 @@ initializeAndRender()
     ↓
 [Phase 4] renderConnections()
     → createCSSLines()
-        → ラベル描画
-        → エッジ情報収集
-        → 衝突検出・オフセット計算
-        → パス生成
-        → 矢印描画
+        [Phase 0] SVGレイヤー初期化
+        [Phase 1] ラベル描画
+        [Phase 2] エッジレイアウト計算
+            1. エッジ情報収集
+            2. ノード階層計算
+            3. 親ごとの接続グループ化
+            4. 階層境界計算
+            5. 第1段階: 基本垂直セグメント計算（クラスタリング、等間隔配置）
+            6. 最終垂直X座標計算
+            7. 衝突判定とY座標調整
+            8. 第2段階: 衝突回避エッジを含めて再計算
+            9. 2本目の垂直セグメント計算
+            10. 衝突回避オフセット集約
+        [Phase 3] 単一エッジ描画（パス生成、矢印描画）
+        [Phase 4] ラベル最前面配置
     ↓
 [Phase 5] applyFinalAdjustments()
     → bringRootNodesToFront()
@@ -693,8 +798,22 @@ initializeAndRender()
 - `src/shared/tree-structure.js` - 階層構造解析
 
 **エッジレンダリング:**
-- `src/runtime/rendering/connections/renderer.js` - レンダリング統合
-- `src/runtime/rendering/connections/*.js` - 15個の接続モジュール
+- `src/runtime/rendering/connections/renderer.js` - レンダリング統合（4フェーズオーケストレーター）
+- `src/runtime/rendering/connections/edge-info-collector.js` - エッジ情報収集
+- `src/runtime/rendering/connections/utils.js` - ユーティリティ（階層計算、グループ化）
+- `src/runtime/rendering/connections/depth-calculator.js` - 階層境界計算
+- `src/runtime/rendering/connections/vertical-segment-calculator.js` - 垂直セグメントX座標計算（クラスタリング、等間隔配置）
+- `src/runtime/rendering/connections/edge-spacing-calculator.js` - エッジ間隔計算（通過エッジ数カウント、レーン配置）
+- `src/runtime/rendering/connections/final-vertical-calculator.js` - 最終垂直X座標計算
+- `src/runtime/rendering/connections/path-y-adjuster.js` - Y座標衝突回避調整
+- `src/runtime/rendering/connections/collision-avoidance-segment-calculator.js` - 2本目の垂直セグメント計算
+- `src/runtime/rendering/connections/depth-offset-aggregator.js` - 階層単位オフセット集約
+- `src/runtime/rendering/connections/path-generator.js` - SVGパス生成
+- `src/runtime/rendering/connections/arrows.js` - 矢印描画
+- `src/runtime/rendering/connections/labels.js` - ラベル描画
+- `src/runtime/rendering/connections/bounds-collector.js` - ノードバウンディングボックス収集
+- `src/runtime/rendering/connections/collision-detector.js` - 衝突検出（純粋関数）
+- `src/runtime/rendering/connections/constants.js` - 定数定義
 
 **UI:**
 - `src/runtime/ui/layout-switcher.js` - レイアウト切り替え
