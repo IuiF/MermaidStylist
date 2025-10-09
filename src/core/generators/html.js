@@ -10,7 +10,6 @@ const { getEdgeInfoCollector } = require('../../runtime/rendering/connections/ed
 const { getDepthCalculator } = require('../../runtime/rendering/connections/depth-calculator');
 const { getPathYAdjuster } = require('../../runtime/rendering/connections/path-y-adjuster');
 const { getPathGenerator } = require('../../runtime/rendering/connections/path-generator');
-const { getFinalVerticalCalculator } = require('../../runtime/rendering/connections/final-vertical-calculator');
 const { getEdgeSpacingCalculator } = require('../../runtime/rendering/connections/edge-spacing-calculator');
 const { getDepthOffsetAggregator } = require('../../runtime/rendering/connections/depth-offset-aggregator');
 const { getCollisionAvoidanceSegmentCalculator } = require('../../runtime/rendering/connections/collision-avoidance-segment-calculator');
@@ -92,9 +91,6 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
 
         // Import path generator
         ${getPathGenerator()}
-
-        // Import final vertical calculator
-        ${getFinalVerticalCalculator()}
 
         // Import edge spacing calculator
         ${getEdgeSpacingCalculator()}
