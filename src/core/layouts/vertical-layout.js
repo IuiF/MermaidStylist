@@ -13,20 +13,6 @@ function getVerticalLayout() {
             const edgeClearance = 80; // エッジとノード間のクリアランス
             const minLevelSpacing = 120; // 階層間の最小距離
 
-            // ノード間のエッジラベル数を計算
-            function calculateNodeSpacing(nodeId, connections) {
-                const incomingEdges = connections.filter(conn => conn.to === nodeId);
-                const labelsCount = incomingEdges.filter(conn => conn.label).length;
-                if (labelsCount === 0) return baseSpacing;
-
-                // 実際のラベル高さとスペース（labels.jsと一致）
-                const actualLabelHeight = 20;
-                const labelVerticalSpacing = 10;
-
-                // ラベルは縦に積み重なるため、1つあたりのスペースを計算
-                return baseSpacing + (labelsCount > 0 ? labelsCount * (actualLabelHeight + labelVerticalSpacing) : 0);
-            }
-
             // 各階層間の必要な距離を動的に計算
             const levelHeights = [];
             for (let i = 0; i < treeStructure.levels.length - 1; i++) {
@@ -51,9 +37,9 @@ function getVerticalLayout() {
                         const element = document.getElementById(node.id);
                         if (element && !element.classList.contains('hidden')) {
                             setNodePosition(element, currentX, y);
-                            const dimensions = getNodeDimensions(element);
+                            const dimensions = svgHelpers.getNodeDimensions(element);
                             nodePositions.set(node.id, { x: currentX, y: y, width: dimensions.width });
-                            const nodeSpacing = calculateNodeSpacing(node.id, connections);
+                            const nodeSpacing = calculateNodeSpacing(node.id, connections, true);
                             currentX += dimensions.width + nodeSpacing;
                         }
                     });
@@ -102,7 +88,7 @@ function getVerticalLayout() {
                                     const siblings = connections.filter(conn => conn.from === selectedParent).map(conn => conn.to);
 
                                     // 複数の親を持つ場合は親の右に、単一の親なら親と同じ位置から
-                                    const nodeSpacing = calculateNodeSpacing(node.id, connections);
+                                    const nodeSpacing = calculateNodeSpacing(node.id, connections, true);
                                     let startX = parents.length > 1
                                         ? parentPos.x + parentPos.width + nodeSpacing
                                         : parentPos.x;
@@ -111,7 +97,7 @@ function getVerticalLayout() {
                                     siblings.forEach(siblingId => {
                                         if (siblingId !== node.id && nodePositions.has(siblingId)) {
                                             const siblingPos = nodePositions.get(siblingId);
-                                            const siblingSpacing = calculateNodeSpacing(siblingId, connections);
+                                            const siblingSpacing = calculateNodeSpacing(siblingId, connections, true);
                                             startX = Math.max(startX, siblingPos.x + siblingPos.width + siblingSpacing);
                                         }
                                     });
@@ -119,21 +105,21 @@ function getVerticalLayout() {
                                     startX = Math.max(startX, levelMaxX);
 
                                     setNodePosition(element, startX, y);
-                                    const dimensions = getNodeDimensions(element);
+                                    const dimensions = svgHelpers.getNodeDimensions(element);
                                     nodePositions.set(node.id, { x: startX, y: y, width: dimensions.width });
 
                                     levelMaxX = Math.max(levelMaxX, startX + dimensions.width + nodeSpacing);
                                 } else {
-                                    const nodeSpacing = calculateNodeSpacing(node.id, connections);
+                                    const nodeSpacing = calculateNodeSpacing(node.id, connections, true);
                                     setNodePosition(element, levelMaxX, y);
-                                    const dimensions = getNodeDimensions(element);
+                                    const dimensions = svgHelpers.getNodeDimensions(element);
                                     nodePositions.set(node.id, { x: levelMaxX, y: y, width: dimensions.width });
                                     levelMaxX += dimensions.width + nodeSpacing;
                                 }
                             } else {
-                                const nodeSpacing = calculateNodeSpacing(node.id, connections);
+                                const nodeSpacing = calculateNodeSpacing(node.id, connections, true);
                                 setNodePosition(element, levelMaxX, y);
-                                const dimensions = getNodeDimensions(element);
+                                const dimensions = svgHelpers.getNodeDimensions(element);
                                 nodePositions.set(node.id, { x: levelMaxX, y: y, width: dimensions.width });
                                 levelMaxX += dimensions.width + nodeSpacing;
                             }
@@ -213,7 +199,7 @@ function getVerticalLayout() {
                 level.forEach(node => {
                     const element = document.getElementById(node.id);
                     if (element && !element.classList.contains('hidden')) {
-                        const dimensions = getNodeDimensions(element);
+                        const dimensions = svgHelpers.getNodeDimensions(element);
                         maxHeight = Math.max(maxHeight, dimensions.height);
                     }
                 });

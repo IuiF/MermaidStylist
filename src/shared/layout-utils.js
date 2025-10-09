@@ -70,12 +70,26 @@ function getLayoutUtils() {
             }
         }
 
-        function getNodeDimensions(element) {
-            return svgHelpers.getNodeDimensions(element);
-        }
+        // ノード間のエッジラベル数を計算してスペーシングを決定
+        function calculateNodeSpacing(nodeId, connections, isVertical = true) {
+            const baseSpacing = 60;
+            const incomingEdges = connections.filter(conn => conn.to === nodeId);
+            const labelsCount = incomingEdges.filter(conn => conn.label).length;
+            if (labelsCount === 0) return baseSpacing;
 
-        function getNodePosition(element) {
-            return svgHelpers.getNodePosition(element);
+            const actualLabelHeight = 20;
+            const labelVerticalSpacing = 10;
+
+            if (isVertical) {
+                // 垂直レイアウト: ラベルは縦に積み重なる
+                return baseSpacing + (labelsCount > 0 ? labelsCount * (actualLabelHeight + labelVerticalSpacing) : 0);
+            } else {
+                // 水平レイアウト: 全ラベルの積み重ね高さを考慮
+                const topMargin = 5;
+                const totalLabelHeight = actualLabelHeight + topMargin +
+                                          (labelsCount - 1) * (actualLabelHeight + labelVerticalSpacing);
+                return baseSpacing + totalLabelHeight;
+            }
         }
 
         // 階層間の動的スペーシングを計算

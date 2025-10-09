@@ -14,24 +14,6 @@ function getHorizontalLayout() {
             const edgeClearance = 80; // エッジとノード間のクリアランス
             const minLevelSpacing = 200; // 階層間の最小距離
 
-            // ノード間のエッジラベル数を計算
-            function calculateNodeSpacing(nodeId, connections) {
-                const incomingEdges = connections.filter(conn => conn.to === nodeId);
-                const labelsCount = incomingEdges.filter(conn => conn.label).length;
-                if (labelsCount === 0) return baseSpacing;
-
-                // 実際のラベル高さとスペース（labels.jsと一致）
-                const actualLabelHeight = 20;
-                const labelVerticalSpacing = 10;
-                const topMargin = 5;
-
-                // 全ラベルの積み重ね高さを考慮
-                const totalLabelHeight = actualLabelHeight + topMargin +
-                                          (labelsCount - 1) * (actualLabelHeight + labelVerticalSpacing);
-
-                return baseSpacing + totalLabelHeight;
-            }
-
             // 各階層の最大ノード幅を事前に計算
             const levelMaxWidths = [];
             treeStructure.levels.forEach((level, levelIndex) => {
@@ -39,7 +21,7 @@ function getHorizontalLayout() {
                 level.forEach(node => {
                     const element = document.getElementById(node.id);
                     if (element && !element.classList.contains('hidden')) {
-                        const dimensions = getNodeDimensions(element);
+                        const dimensions = svgHelpers.getNodeDimensions(element);
                         maxWidth = Math.max(maxWidth, dimensions.width);
                     }
                 });
@@ -80,7 +62,7 @@ function getHorizontalLayout() {
                                 if (nodePositions.has(parentId)) {
                                     const parentPos = nodePositions.get(parentId);
                                     const siblings = connections.filter(conn => conn.from === parentId).map(conn => conn.to);
-                                    const nodeSpacing = calculateNodeSpacing(node.id, connections);
+                                    const nodeSpacing = calculateNodeSpacing(node.id, connections, false);
 
                                     // この親を選択した場合の配置Y座標を計算
                                     let candidateY = parentPos.y;
@@ -89,7 +71,7 @@ function getHorizontalLayout() {
                                     siblings.forEach(siblingId => {
                                         if (siblingId !== node.id && nodePositions.has(siblingId)) {
                                             const siblingPos = nodePositions.get(siblingId);
-                                            const siblingSpacing = calculateNodeSpacing(siblingId, connections);
+                                            const siblingSpacing = calculateNodeSpacing(siblingId, connections, false);
                                             candidateY = Math.max(candidateY, siblingPos.y + siblingPos.height + siblingSpacing);
                                         }
                                     });
@@ -106,24 +88,24 @@ function getHorizontalLayout() {
 
                             if (selectedParent) {
                                 // 既に計算済みの最適Y座標を使用
-                                const nodeSpacing = calculateNodeSpacing(node.id, connections);
+                                const nodeSpacing = calculateNodeSpacing(node.id, connections, false);
 
                                 setNodePosition(element, levelX, minResultY);
-                                const dimensions = getNodeDimensions(element);
+                                const dimensions = svgHelpers.getNodeDimensions(element);
                                 nodePositions.set(node.id, { x: levelX, y: minResultY, width: dimensions.width, height: dimensions.height });
 
                                 currentY = Math.max(currentY, minResultY + dimensions.height + nodeSpacing);
                             } else {
-                                const nodeSpacing = calculateNodeSpacing(node.id, connections);
+                                const nodeSpacing = calculateNodeSpacing(node.id, connections, false);
                                 setNodePosition(element, levelX, currentY);
-                                const dimensions = getNodeDimensions(element);
+                                const dimensions = svgHelpers.getNodeDimensions(element);
                                 nodePositions.set(node.id, { x: levelX, y: currentY, width: dimensions.width, height: dimensions.height });
                                 currentY += dimensions.height + nodeSpacing;
                             }
                         } else {
-                            const nodeSpacing = calculateNodeSpacing(node.id, connections);
+                            const nodeSpacing = calculateNodeSpacing(node.id, connections, false);
                             setNodePosition(element, levelX, currentY);
-                            const dimensions = getNodeDimensions(element);
+                            const dimensions = svgHelpers.getNodeDimensions(element);
                             nodePositions.set(node.id, { x: levelX, y: currentY, width: dimensions.width, height: dimensions.height });
                             currentY += dimensions.height + nodeSpacing;
                         }
@@ -299,7 +281,7 @@ function getHorizontalLayout() {
 
                         const currentBottom = current.pos.y + current.pos.height;
                         const nextTop = next.pos.y;
-                        const nodeSpacing = calculateNodeSpacing(next.node.id, connections);
+                        const nodeSpacing = calculateNodeSpacing(next.node.id, connections, false);
 
                         // 重なりまたは間隔不足をチェック
                         if (currentBottom + nodeSpacing > nextTop) {
