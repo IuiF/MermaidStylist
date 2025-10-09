@@ -24,6 +24,7 @@ function getLayoutSwitcher() {
             requestAnimationFrame(() => {
                 createCSSLines(allConnections, currentNodePositions);
                 pathHighlighter.reapplyPathHighlight();
+                highlightManager.reapplyRelationHighlight();
 
                 // レイアウト変更後、座標を更新してコンテンツ全体が見えるように位置を調整
                 requestAnimationFrame(() => {
@@ -44,6 +45,7 @@ function getLayoutSwitcher() {
             requestAnimationFrame(() => {
                 createCSSLines(allConnections, currentNodePositions);
                 pathHighlighter.reapplyPathHighlight();
+                highlightManager.reapplyRelationHighlight();
             });
         }
     `;
