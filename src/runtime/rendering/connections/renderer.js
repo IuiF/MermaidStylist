@@ -94,6 +94,21 @@ function getConnectionRenderer() {
             return pathGenerator.generateCurvedPath(points, cornerRadius);
         }
 
+        // 点線スタイルを適用
+        function applyDashedStyle(element, conn) {
+            if (conn.isDashed) {
+                element.style.strokeDasharray = '5,5';
+                element.style.opacity = '0.6';
+            }
+        }
+
+        // ノードが表示されているかチェック
+        function areNodesVisible(fromElement, toElement) {
+            return fromElement && toElement &&
+                   !fromElement.classList.contains('hidden') &&
+                   !toElement.classList.contains('hidden');
+        }
+
         function createStraightLines(connections, nodePositions) {
             const svgLayer = svgHelpers.getEdgeLayer();
             if (!svgLayer) {
@@ -127,9 +142,7 @@ function getConnectionRenderer() {
                 }
 
                 // 両端のノードが存在し、かつ表示されている場合のみ接続線を描画
-                if (fromElement && toElement &&
-                    !fromElement.classList.contains('hidden') &&
-                    !toElement.classList.contains('hidden')) {
+                if (areNodesVisible(fromElement, toElement)) {
 
                     // ノードの位置と寸法を取得
                     const fromPos = getNodePosition(fromElement);
@@ -162,11 +175,7 @@ function getConnectionRenderer() {
                         'data-to': conn.to
                     });
 
-                    // 点線エッジの場合はスタイルを追加
-                    if (conn.isDashed) {
-                        line.style.strokeDasharray = '5,5';
-                        line.style.opacity = '0.6';
-                    }
+                    applyDashedStyle(line, conn);
 
                     svgLayer.appendChild(line);
 
@@ -191,26 +200,6 @@ function getConnectionRenderer() {
         }
 
         function createCurvedLines(connections, nodePositions) {
-            // エッジキーを生成
-            function createEdgeKey(fromId, toId) {
-                return fromId + '->' + toId;
-            }
-
-            // 点線スタイルを適用
-            function applyDashedStyle(element, conn) {
-                if (conn.isDashed) {
-                    element.style.strokeDasharray = '5,5';
-                    element.style.opacity = '0.6';
-                }
-            }
-
-            // ノードが表示されているかチェック
-            function areNodesVisible(fromElement, toElement) {
-                return fromElement && toElement &&
-                       !fromElement.classList.contains('hidden') &&
-                       !toElement.classList.contains('hidden');
-            }
-
             // 点線エッジ用のノードバウンドフィルタリング
             function filterNodeBoundsForDashedEdge(nodeBounds, edge) {
                 if (!edge.isDashed) {
@@ -274,7 +263,7 @@ function getConnectionRenderer() {
                     if (edgeInfo.is1to1Horizontal) return;
 
                     const verticalSegmentX = parentFinalVerticalSegmentX[edgeInfo.conn.from] || edgeInfo.x1 + CONNECTION_CONSTANTS.DEFAULT_VERTICAL_OFFSET;
-                    const edgeKey = createEdgeKey(edgeInfo.conn.from, edgeInfo.conn.to);
+                    const edgeKey = connectionUtils.createEdgeKey(edgeInfo.conn.from, edgeInfo.conn.to);
                     const finalVerticalX = edgeToFinalVerticalX[edgeKey];
                     const p4x = finalVerticalX !== undefined ? finalVerticalX : verticalSegmentX;
 
@@ -383,7 +372,7 @@ function getConnectionRenderer() {
                 const nodeBounds = getAllNodeBounds(conn.from, conn.to);
                 const filteredBounds = filterNodeBoundsForDashedEdge(nodeBounds, conn);
 
-                const edgeKey = createEdgeKey(conn.from, conn.to);
+                const edgeKey = connectionUtils.createEdgeKey(conn.from, conn.to);
                 const finalVerticalX = edgeToFinalVerticalX[edgeKey];
                 const yAdjustment = edgeToYAdjustment[edgeKey];
                 const secondVerticalX = edgeToSecondVerticalX[edgeKey];

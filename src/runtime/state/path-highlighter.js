@@ -3,32 +3,6 @@ function getPathHighlighter() {
         const pathHighlighter = {
             currentHighlightedNodeId: null,
 
-            addDoubleStroke: function(nodeElement) {
-                const rect = nodeElement.querySelector('.node-rect');
-                if (!rect) return;
-
-                const existingOverlay = nodeElement.querySelector('.double-stroke-overlay');
-                if (existingOverlay) {
-                    existingOverlay.remove();
-                }
-
-                const overlayRect = svgHelpers.createRect({
-                    class: 'double-stroke-overlay',
-                    x: rect.getAttribute('x'),
-                    y: rect.getAttribute('y'),
-                    width: rect.getAttribute('width'),
-                    height: rect.getAttribute('height'),
-                    rx: rect.getAttribute('rx'),
-                    ry: rect.getAttribute('ry'),
-                    fill: 'none',
-                    stroke: '#ffc107',
-                    'stroke-width': '2',
-                    'pointer-events': 'none'
-                });
-
-                rect.parentNode.insertBefore(overlayRect, rect.nextSibling);
-            },
-
             highlightPathToRoot: function(nodeId) {
                 this.clearPathHighlight();
                 this.currentHighlightedNodeId = nodeId;
@@ -53,7 +27,7 @@ function getPathHighlighter() {
 
                     for (const parentId of parents) {
                         pathNodes.add(parentId);
-                        pathConnections.add(parentId + '->' + currentId);
+                        pathConnections.add(connectionUtils.createEdgeKey(parentId, currentId));
 
                         if (!visited.has(parentId)) {
                             visited.add(parentId);
@@ -68,7 +42,7 @@ function getPathHighlighter() {
                         element.classList.add('path-highlighted');
 
                         if (element.classList.contains('highlighted')) {
-                            this.addDoubleStroke(element);
+                            svgHelpers.addDoubleStroke(element);
                         }
                     }
                 });
@@ -81,7 +55,7 @@ function getPathHighlighter() {
                     const from = element.getAttribute('data-from');
                     const to = element.getAttribute('data-to');
                     if (from && to) {
-                        const connKey = from + '->' + to;
+                        const connKey = connectionUtils.createEdgeKey(from, to);
                         if (!edgeElementsByConnection.has(connKey)) {
                             edgeElementsByConnection.set(connKey, []);
                         }

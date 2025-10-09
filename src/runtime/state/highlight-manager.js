@@ -6,39 +6,6 @@ function getHighlightManager() {
             currentHighlightTimeout: null,
             currentRelationNodeId: null,
 
-            addDoubleStroke: function(nodeElement) {
-                const rect = nodeElement.querySelector('.node-rect');
-                if (!rect) return;
-
-                const existingOverlay = nodeElement.querySelector('.double-stroke-overlay');
-                if (existingOverlay) {
-                    existingOverlay.remove();
-                }
-
-                const overlayRect = svgHelpers.createRect({
-                    class: 'double-stroke-overlay',
-                    x: rect.getAttribute('x') || 0,
-                    y: rect.getAttribute('y') || 0,
-                    width: rect.getAttribute('width'),
-                    height: rect.getAttribute('height'),
-                    rx: rect.getAttribute('rx'),
-                    ry: rect.getAttribute('ry'),
-                    fill: 'none',
-                    stroke: '#ffc107',
-                    'stroke-width': '3',
-                    'pointer-events': 'none'
-                });
-
-                rect.parentNode.insertBefore(overlayRect, rect.nextSibling);
-            },
-
-            removeDoubleStroke: function(nodeElement) {
-                const overlay = nodeElement.querySelector('.double-stroke-overlay');
-                if (overlay) {
-                    overlay.remove();
-                }
-            },
-
             highlightAllByLabel: function(label) {
                 this.clearHighlight();
 
@@ -49,7 +16,7 @@ function getHighlightManager() {
                             nodeElement.classList.add('highlighted');
 
                             if (nodeElement.classList.contains('path-highlighted')) {
-                                this.addDoubleStroke(nodeElement);
+                                svgHelpers.addDoubleStroke(nodeElement);
                             }
                         }
                     }
@@ -65,7 +32,7 @@ function getHighlightManager() {
                             const nodeElement = svgHelpers.getNodeElement(node.id);
                             if (nodeElement) {
                                 nodeElement.classList.remove('highlighted');
-                                this.removeDoubleStroke(nodeElement);
+                                svgHelpers.removeDoubleStroke(nodeElement);
                             }
                         }
                     });
@@ -82,7 +49,7 @@ function getHighlightManager() {
                     const prevNode = svgHelpers.getNodeElement(this.currentHighlightedNodeId);
                     if (prevNode) {
                         prevNode.classList.remove('highlighted');
-                        this.removeDoubleStroke(prevNode);
+                        svgHelpers.removeDoubleStroke(prevNode);
                     }
                 }
 
@@ -93,12 +60,12 @@ function getHighlightManager() {
                 }
 
                 nodeElement.classList.add('highlighted');
-                this.addDoubleStroke(nodeElement);
+                svgHelpers.addDoubleStroke(nodeElement);
                 this.currentHighlightedNodeId = originalNodeId;
 
                 this.currentHighlightTimeout = setTimeout(() => {
                     nodeElement.classList.remove('highlighted');
-                    this.removeDoubleStroke(nodeElement);
+                    svgHelpers.removeDoubleStroke(nodeElement);
                     this.currentHighlightedNodeId = null;
                     this.currentHighlightTimeout = null;
                 }, duration);

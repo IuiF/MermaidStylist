@@ -161,6 +161,41 @@ function getSVGHelpers() {
 
                 const height = lines.length * lineHeight;
                 return { width: maxWidth, height: height, lineCount: lines.length };
+            },
+
+            // ノードに二重線の装飾を追加
+            addDoubleStroke: function(nodeElement) {
+                const rect = nodeElement.querySelector('.node-rect');
+                if (!rect) return;
+
+                const existingOverlay = nodeElement.querySelector('.double-stroke-overlay');
+                if (existingOverlay) {
+                    existingOverlay.remove();
+                }
+
+                const overlayRect = this.createRect({
+                    class: 'double-stroke-overlay',
+                    x: rect.getAttribute('x') || 0,
+                    y: rect.getAttribute('y') || 0,
+                    width: rect.getAttribute('width'),
+                    height: rect.getAttribute('height'),
+                    rx: rect.getAttribute('rx'),
+                    ry: rect.getAttribute('ry'),
+                    fill: 'none',
+                    stroke: '#ffc107',
+                    'stroke-width': '3',
+                    'pointer-events': 'none'
+                });
+
+                rect.parentNode.insertBefore(overlayRect, rect.nextSibling);
+            },
+
+            // ノードから二重線の装飾を削除
+            removeDoubleStroke: function(nodeElement) {
+                const overlay = nodeElement.querySelector('.double-stroke-overlay');
+                if (overlay) {
+                    overlay.remove();
+                }
             }
         };
     `;

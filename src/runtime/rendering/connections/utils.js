@@ -115,6 +115,16 @@ function getConnectionUtils() {
                 });
 
                 return parentsByDepth;
+            },
+
+            /**
+             * エッジキーを生成
+             * @param {string} fromId - 開始ノードID
+             * @param {string} toId - 終了ノードID
+             * @returns {string} エッジキー
+             */
+            createEdgeKey: function(fromId, toId) {
+                return fromId + '->' + toId;
             }
         };
     `;
