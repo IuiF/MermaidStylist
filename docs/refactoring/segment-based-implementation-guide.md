@@ -82,6 +82,12 @@ function getSegmentBuilder() {
     return `
         // 制御点からセグメントリストを構築
         function buildSegments(points) {
+            // 入力検証
+            if (!points || !points.p1 || !points.p2 || !points.p3 || !points.p4 || !points.end) {
+                console.error('Invalid points object');
+                return [];
+            }
+
             const { p1, p2, p3, p4, end, secondVerticalX } = points;
             const segments = [];
 
@@ -91,32 +97,29 @@ function getSegmentBuilder() {
             // 最終Y調整の有無を判定
             const needsFinalYAdjustment = Math.abs(p4.y - end.y) > 0.1;
 
-            // セグメント1: p1からp2への水平線
+            // セグメント1: p1から垂直セグメントX位置への水平線
             if (hasInitialYAdjustment) {
-                // Y調整がある場合は短い水平線
+                // Y調整がある場合は短い水平線でp2.xまで移動
                 segments.push(createSegment(SegmentType.HORIZONTAL, p1, { x: p2.x, y: p1.y }));
-                // 調整用の垂直線
+                // Y調整用の垂直線でp2.yまで移動
                 segments.push(createSegment(SegmentType.VERTICAL, { x: p2.x, y: p1.y }, p2));
+            } else {
+                // Y調整なしの場合はp1からp2への水平線
+                segments.push(createSegment(SegmentType.HORIZONTAL, p1, { x: p2.x, y: p1.y }));
             }
-            // p2からp3への長い水平線
-            segments.push(createSegment(SegmentType.HORIZONTAL,
-                hasInitialYAdjustment ? p2 : p1,
-                { x: p2.x, y: hasInitialYAdjustment ? p2.y : p1.y }
-            ));
 
-            // セグメント2: p2からp3への垂直線
-            const verticalStart = hasInitialYAdjustment
-                ? { x: p2.x, y: p2.y }
-                : { x: p2.x, y: p1.y };
-            segments.push(createSegment(SegmentType.VERTICAL, verticalStart, { x: p3.x, y: p3.y }));
+            // セグメント2: 垂直セグメント（p2からp3へ）
+            const verticalStart = hasInitialYAdjustment ? p2 : { x: p2.x, y: p1.y };
+            segments.push(createSegment(SegmentType.VERTICAL, verticalStart, p3));
 
-            // セグメント3: p3からp4への水平線
+            // セグメント3: p3から最終垂直セグメント位置への水平線
             const needsFinalVertical = Math.abs(p3.y - p4.y) > 1;
             if (needsFinalVertical) {
                 segments.push(createSegment(SegmentType.HORIZONTAL, p3, { x: p4.x, y: p3.y }));
-                segments.push(createSegment(SegmentType.VERTICAL, { x: p4.x, y: p3.y }, { x: p4.x, y: p4.y }));
+                segments.push(createSegment(SegmentType.VERTICAL, { x: p4.x, y: p3.y }, p4));
             } else {
-                segments.push(createSegment(SegmentType.HORIZONTAL, p3, { x: p4.x, y: p3.y }));
+                // 最終垂直が不要な場合
+                segments.push(createSegment(SegmentType.HORIZONTAL, p3, { x: p4.x, y: p4.y }));
             }
 
             // 最終セグメント: p4からendへ
@@ -126,6 +129,7 @@ function getSegmentBuilder() {
                 segments.push(createSegment(SegmentType.VERTICAL, { x: secondVerticalX, y: p4.y }, { x: secondVerticalX, y: end.y }));
                 segments.push(createSegment(SegmentType.HORIZONTAL, { x: secondVerticalX, y: end.y }, end));
             } else {
+                // Y調整不要な場合は直接endへ
                 segments.push(createSegment(SegmentType.HORIZONTAL, { x: p4.x, y: p4.y }, end));
             }
 
@@ -235,18 +239,15 @@ function getSegmentRenderer() {
             const corner = seg1.to; // 折り返し点
             let path = '';
 
+            const dir1 = getSegmentDirection(seg1);
+            const dir2 = getSegmentDirection(seg2);
+
             // seg1の終点手前までを直線で描画
             if (seg1.type === SegmentType.HORIZONTAL) {
-                const direction = getSegmentDirection(seg1);
-                const beforeCornerX = direction === 'right'
-                    ? corner.x - r
-                    : corner.x + r;
+                const beforeCornerX = dir1 === 'right' ? corner.x - r : corner.x + r;
                 path += \` L \${beforeCornerX} \${corner.y}\`;
             } else {
-                const direction = getSegmentDirection(seg1);
-                const beforeCornerY = direction === 'down'
-                    ? corner.y - r
-                    : corner.y + r;
+                const beforeCornerY = dir1 === 'down' ? corner.y - r : corner.y + r;
                 path += \` L \${corner.x} \${beforeCornerY}\`;
             }
 
@@ -255,16 +256,10 @@ function getSegmentRenderer() {
 
             // seg2の開始点からr分進んだ位置へ
             if (seg2.type === SegmentType.HORIZONTAL) {
-                const direction = getSegmentDirection(seg2);
-                const afterCornerX = direction === 'right'
-                    ? corner.x + r
-                    : corner.x - r;
+                const afterCornerX = dir2 === 'right' ? corner.x + r : corner.x - r;
                 path += \` \${afterCornerX} \${corner.y}\`;
             } else {
-                const direction = getSegmentDirection(seg2);
-                const afterCornerY = direction === 'down'
-                    ? corner.y + r
-                    : corner.y - r;
+                const afterCornerY = dir2 === 'down' ? corner.y + r : corner.y - r;
                 path += \` \${corner.x} \${afterCornerY}\`;
             }
 
@@ -292,11 +287,15 @@ module.exports = {
 **チェックポイント**:
 - [ ] renderSegments関数が空セグメントを処理できる
 - [ ] canApplyCurve関数が正しく判定している
-- [ ] renderCurvedTransition関数が4方向全てに対応している
+- [ ] renderCurvedTransition関数が8方向全てに対応している
   - [ ] 右→下のカーブ
   - [ ] 右→上のカーブ
+  - [ ] 左→下のカーブ
+  - [ ] 左→上のカーブ
   - [ ] 下→右のカーブ
+  - [ ] 下→左のカーブ
   - [ ] 上→右のカーブ
+  - [ ] 上→左のカーブ
 - [ ] Qコマンドの座標が正しい
 - [ ] カーブ半径が適切に適用されている
 
@@ -323,22 +322,20 @@ generateCurvedPath: function(points, cornerRadius) {
         if (window.DEBUG_CONNECTIONS) {
             console.log('Using segment-based path generation');
             console.log(debugSegments(segments));
+        }
 
-            // 検証
-            if (!validateSegments(segments)) {
-                console.error('Segment validation failed, falling back to legacy');
-                // フォールバックして従来の処理を実行
-            } else {
-                return renderSegments(segments, cornerRadius);
-            }
-        } else {
+        // 検証
+        if (validateSegments(segments)) {
             return renderSegments(segments, cornerRadius);
+        } else {
+            console.error('Segment validation failed, falling back to legacy');
+            // バリデーション失敗時は下のレガシー実装にフォールスルー
         }
     }
 
     // 既存の実装（レガシー）
     const { p1, p2, p3, p4, end, secondVerticalX } = points;
-    // ... 既存のコード ...
+    // ... 既存のコード（ここに従来の処理が続く）...
 }
 ```
 
