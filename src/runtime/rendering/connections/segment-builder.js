@@ -17,12 +17,90 @@ function getSegmentBuilder() {
                 return [];
             }
 
+            const { p1, p2, p3, p4, end } = points;
             const segments = [];
 
-            // TODO: フェーズ2で実装
-            // - 初期Y調整の判定
-            // - セグメント生成ロジック
-            // - 最終Y調整の処理
+            // 初期Y調整の有無を判定
+            const hasInitialYAdjustment = Math.abs(p2.y - p1.y) > 1;
+
+            // 最終Y調整の有無を判定
+            const needsFinalYAdjustment = Math.abs(p4.y - end.y) > 0.1;
+
+            // セグメント1: p1から垂直セグメントX位置への水平線
+            if (hasInitialYAdjustment) {
+                // タスク2.1b: 初期Y調整あり
+                // 短い水平セグメント: p1からp2.xまで
+                segments.push(createSegment(SegmentType.HORIZONTAL, p1, { x: p2.x, y: p1.y }));
+                // Y調整用垂直セグメント: p1.yからp2.yまで
+                segments.push(createSegment(SegmentType.VERTICAL, { x: p2.x, y: p1.y }, p2));
+            } else {
+                // 初期Y調整なし
+                segments.push(createSegment(SegmentType.HORIZONTAL, p1, { x: p2.x, y: p1.y }));
+            }
+
+            // セグメント2: 垂直セグメント（垂直線の開始からp3へ）
+            const verticalStart = hasInitialYAdjustment ? p2 : { x: p2.x, y: p1.y };
+            segments.push(createSegment(SegmentType.VERTICAL, verticalStart, p3));
+
+            // セグメント3: p3からp4への移動（必要な場合のみ）
+            const needsFinalVertical = Math.abs(p3.y - p4.y) > 1;
+            if (needsFinalVertical) {
+                // 垂直方向に大きく移動する必要がある
+                if (Math.abs(p3.x - p4.x) > 0.1) {
+                    // X座標も異なる場合は水平→垂直
+                    segments.push(createSegment(SegmentType.HORIZONTAL, p3, { x: p4.x, y: p3.y }));
+                    segments.push(createSegment(SegmentType.VERTICAL, { x: p4.x, y: p3.y }, p4));
+                } else {
+                    // X座標が同じ場合は垂直のみ
+                    segments.push(createSegment(SegmentType.VERTICAL, p3, p4));
+                }
+            } else if (Math.abs(p3.x - p4.x) > 0.1) {
+                // Y座標が同じでX座標が異なる場合は水平のみ
+                segments.push(createSegment(SegmentType.HORIZONTAL, p3, { x: p4.x, y: p4.y }));
+            }
+            // p3とp4が完全に同じ座標の場合は何も追加しない
+
+            // セグメント4: p4からendへ（最終Y調整の有無で分岐）
+            if (needsFinalYAdjustment) {
+                // タスク2.1c: 最終Y調整あり
+                const { secondVerticalX } = points;
+
+                if (secondVerticalX !== undefined) {
+                    // 2本目の垂直セグメントが必要
+                    // p4からsecondVerticalXへの水平セグメント
+                    if (Math.abs(p4.x - secondVerticalX) > 0.1) {
+                        segments.push(createSegment(SegmentType.HORIZONTAL, { x: p4.x, y: p4.y }, { x: secondVerticalX, y: p4.y }));
+                    }
+                    // secondVerticalXでp4.yからend.yへの垂直セグメント
+                    if (Math.abs(p4.y - end.y) > 0.1) {
+                        segments.push(createSegment(SegmentType.VERTICAL, { x: secondVerticalX, y: p4.y }, { x: secondVerticalX, y: end.y }));
+                    }
+                    // secondVerticalXからendへの水平セグメント
+                    if (Math.abs(secondVerticalX - end.x) > 0.1) {
+                        segments.push(createSegment(SegmentType.HORIZONTAL, { x: secondVerticalX, y: end.y }, end));
+                    }
+                } else {
+                    // secondVerticalXが未定義の場合は中間点を計算
+                    const intermediateX = (p4.x + end.x) / 2;
+                    // p4からintermediateXへの水平セグメント
+                    if (Math.abs(p4.x - intermediateX) > 0.1) {
+                        segments.push(createSegment(SegmentType.HORIZONTAL, { x: p4.x, y: p4.y }, { x: intermediateX, y: p4.y }));
+                    }
+                    // intermediateXでp4.yからend.yへの垂直セグメント
+                    if (Math.abs(p4.y - end.y) > 0.1) {
+                        segments.push(createSegment(SegmentType.VERTICAL, { x: intermediateX, y: p4.y }, { x: intermediateX, y: end.y }));
+                    }
+                    // intermediateXからendへの水平セグメント
+                    if (Math.abs(intermediateX - end.x) > 0.1) {
+                        segments.push(createSegment(SegmentType.HORIZONTAL, { x: intermediateX, y: end.y }, end));
+                    }
+                }
+            } else {
+                // 最終Y調整なし: p4からendへの最終水平線
+                if (Math.abs(p4.x - end.x) > 0.1) {
+                    segments.push(createSegment(SegmentType.HORIZONTAL, { x: p4.x, y: p4.y }, end));
+                }
+            }
 
             return segments;
         }
