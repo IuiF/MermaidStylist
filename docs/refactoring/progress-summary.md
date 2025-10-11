@@ -1,11 +1,12 @@
 # リファクタリング進捗サマリー
 
-最終更新: 2025-10-11 22:50
+最終更新: 2025-10-11 23:15
 
 ## 概要
 
 エッジ描画システムのセグメントベース実装へのリファクタリングを実施中。
 **フェーズ0〜4が完了**し、新実装が統合されました。
+**フェーズ6の準備も完了**し、レガシーコード削除の準備が整いました。
 
 ## 主な成果
 
@@ -142,14 +143,15 @@ src/runtime/rendering/connections/
 └── segment-renderer.js     (3.5 KB, 95行)
 ```
 
-### ドキュメント（5ファイル）
+### ドキュメント（6ファイル）
 
 ```
 docs/refactoring/
 ├── phase0-analysis.md                  (283行)
 ├── browser-test-guide.md               (189行)
 ├── phase5-verification-checklist.md    (361行)
-└── phase5-verification-script.js       (255行)
+├── phase5-verification-script.js       (255行)
+└── phase6-legacy-removal-plan.md       (309行)
 ```
 
 ### テストファイル（2ファイル）
@@ -160,7 +162,7 @@ tests/scripts/
 └── test-integration.js        (147行)
 ```
 
-**合計**: 10ファイル、約1,400行
+**合計**: 11ファイル、約1,700行
 
 ---
 
@@ -240,11 +242,18 @@ window.createCSSLines(allConnections, nodePositions);
 
 **前提条件**: フェーズ5がすべて完了
 
+**準備完了**:
+- ✓ 詳細実行計画作成済み（`phase6-legacy-removal-plan.md`）
+- ✓ 削除対象のレガシー関数を特定（8関数、約200行）
+- ✓ コミット計画作成済み（4コミット予定）
+
 **タスク**:
 - [ ] 6.1: 切り替えフラグの削除
 - [ ] 6.2: レガシー関数の削除
 - [ ] 6.3: ファイル構成の整理
 - [ ] 6.4: ドキュメント更新
+
+**詳細計画**: `docs/refactoring/phase6-legacy-removal-plan.md`
 
 ---
 
@@ -260,6 +269,8 @@ window.createCSSLines(allConnections, nodePositions);
 ## コミット履歴
 
 ```
+a69dd1a フェーズ6計画書作成: レガシーコード削除手順
+<previous> 進捗サマリー追加: フェーズ0-4完了記録
 06626c1 フェーズ5準備: 検証チェックリストとスクリプト追加
 f2e7dd2 フェーズ4完了: ブラウザテストガイドと統合テスト追加
 fab89a7 フェーズ4: 新実装を統合・切り替えフラグ追加
@@ -399,6 +410,7 @@ path += ` Q ${corner.x} ${corner.y} ${afterCorner.x} ${afterCorner.y}`;
 - **実装ガイド**: `docs/refactoring/segment-based-implementation-guide.md`
 - **レビュー**: `docs/refactoring/REVIEW.md`
 - **README**: `docs/refactoring/README.md`
+- **フェーズ6計画**: `docs/refactoring/phase6-legacy-removal-plan.md`
 
 ### テストファイル
 
@@ -412,3 +424,4 @@ path += ` Q ${corner.x} ${corner.y} ${afterCorner.x} ${afterCorner.y}`;
 - 2025-10-11 17:00: リファクタリング計画作成
 - 2025-10-11 21:30: レビュー指摘事項修正、フェーズ0追加
 - 2025-10-11 22:50: フェーズ0〜4完了、フェーズ5準備完了
+- 2025-10-11 23:15: フェーズ6準備完了、レガシーコード削除計画作成
