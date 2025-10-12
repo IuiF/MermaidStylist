@@ -69,13 +69,13 @@ function getPathGenerator() {
             // セグメント3: p3からp4への移動
             const needsFinalVertical = Math.abs(p3.y - p4.y) > MIN_SEGMENT_LENGTH;
             if (needsFinalVertical) {
-                if (Math.abs(p3.x - p4.x) > 0.1) {
+                if (Math.abs(p3.x - p4.x) > MIN_SEGMENT_LENGTH) {
                     segments.push(createSegment(SegmentType.HORIZONTAL, p3, { x: p4.x, y: p3.y }));
                     segments.push(createSegment(SegmentType.VERTICAL, { x: p4.x, y: p3.y }, p4));
                 } else {
                     segments.push(createSegment(SegmentType.VERTICAL, p3, p4));
                 }
-            } else if (Math.abs(p3.x - p4.x) > 0.1) {
+            } else if (Math.abs(p3.x - p4.x) > MIN_SEGMENT_LENGTH) {
                 segments.push(createSegment(SegmentType.HORIZONTAL, p3, { x: p4.x, y: p4.y }));
             }
 
@@ -83,29 +83,29 @@ function getPathGenerator() {
             if (needsFinalYAdjustment) {
                 const { secondVerticalX } = points;
                 if (secondVerticalX !== undefined) {
-                    if (Math.abs(p4.x - secondVerticalX) > 0.1) {
+                    if (Math.abs(p4.x - secondVerticalX) > MIN_SEGMENT_LENGTH) {
                         segments.push(createSegment(SegmentType.HORIZONTAL, { x: p4.x, y: p4.y }, { x: secondVerticalX, y: p4.y }));
                     }
-                    if (Math.abs(p4.y - end.y) > 0.1) {
+                    if (Math.abs(p4.y - end.y) > MIN_SEGMENT_LENGTH) {
                         segments.push(createSegment(SegmentType.VERTICAL, { x: secondVerticalX, y: p4.y }, { x: secondVerticalX, y: end.y }));
                     }
-                    if (Math.abs(secondVerticalX - end.x) > 0.1) {
+                    if (Math.abs(secondVerticalX - end.x) > MIN_SEGMENT_LENGTH) {
                         segments.push(createSegment(SegmentType.HORIZONTAL, { x: secondVerticalX, y: end.y }, end));
                     }
                 } else {
                     const intermediateX = (p4.x + end.x) / 2;
-                    if (Math.abs(p4.x - intermediateX) > 0.1) {
+                    if (Math.abs(p4.x - intermediateX) > MIN_SEGMENT_LENGTH) {
                         segments.push(createSegment(SegmentType.HORIZONTAL, { x: p4.x, y: p4.y }, { x: intermediateX, y: p4.y }));
                     }
-                    if (Math.abs(p4.y - end.y) > 0.1) {
+                    if (Math.abs(p4.y - end.y) > MIN_SEGMENT_LENGTH) {
                         segments.push(createSegment(SegmentType.VERTICAL, { x: intermediateX, y: p4.y }, { x: intermediateX, y: end.y }));
                     }
-                    if (Math.abs(intermediateX - end.x) > 0.1) {
+                    if (Math.abs(intermediateX - end.x) > MIN_SEGMENT_LENGTH) {
                         segments.push(createSegment(SegmentType.HORIZONTAL, { x: intermediateX, y: end.y }, end));
                     }
                 }
             } else {
-                if (Math.abs(p4.x - end.x) > 0.1) {
+                if (Math.abs(p4.x - end.x) > MIN_SEGMENT_LENGTH) {
                     segments.push(createSegment(SegmentType.HORIZONTAL, { x: p4.x, y: p4.y }, end));
                 }
             }
