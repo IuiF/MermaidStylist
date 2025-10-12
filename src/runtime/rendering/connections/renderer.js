@@ -288,7 +288,7 @@ function getConnectionRenderer() {
                     }
 
                     // collapseManagerのisEdgeVisibleを使用して折りたたみ状態を考慮
-                    if (window.collapseManager && !window.collapseManager.isEdgeVisible(conn)) {
+                    if (typeof collapseManager !== 'undefined' && !collapseManager.isEdgeVisible(conn)) {
                         return false;
                     }
                     return true;
