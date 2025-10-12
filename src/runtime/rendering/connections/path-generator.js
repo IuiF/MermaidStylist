@@ -67,7 +67,7 @@ function getPathGenerator() {
             segments.push(createSegment(SegmentType.VERTICAL, verticalStart, p3));
 
             // セグメント3: p3からp4への移動
-            const needsFinalVertical = Math.abs(p3.y - p4.y) > 1;
+            const needsFinalVertical = Math.abs(p3.y - p4.y) > MIN_SEGMENT_LENGTH;
             if (needsFinalVertical) {
                 if (Math.abs(p3.x - p4.x) > 0.1) {
                     segments.push(createSegment(SegmentType.HORIZONTAL, p3, { x: p4.x, y: p3.y }));
