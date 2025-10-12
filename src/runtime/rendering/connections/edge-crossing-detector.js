@@ -16,6 +16,8 @@ function getEdgeCrossingDetector() {
                 const vMinY = Math.min(vSeg.y1, vSeg.y2);
                 const vMaxY = Math.max(vSeg.y1, vSeg.y2);
 
+                const epsilon = 1.0; // 端点判定の閾値
+
                 // 水平線のY座標が垂直線のY範囲内かチェック
                 if (hSeg.y < vMinY || hSeg.y > vMaxY) {
                     return null;
@@ -23,6 +25,19 @@ function getEdgeCrossingDetector() {
 
                 // 垂直線のX座標が水平線のX範囲内かチェック
                 if (vSeg.x < hMinX || vSeg.x > hMaxX) {
+                    return null;
+                }
+
+                // 交差点がセグメントの端点に近い場合は除外（折れ曲がり点を避ける）
+                const isNearHorizontalEndpoint =
+                    Math.abs(vSeg.x - hSeg.x1) < epsilon ||
+                    Math.abs(vSeg.x - hSeg.x2) < epsilon;
+
+                const isNearVerticalEndpoint =
+                    Math.abs(hSeg.y - vSeg.y1) < epsilon ||
+                    Math.abs(hSeg.y - vSeg.y2) < epsilon;
+
+                if (isNearHorizontalEndpoint || isNearVerticalEndpoint) {
                     return null;
                 }
 
