@@ -51,7 +51,7 @@ function getPathGenerator() {
             const { p1, p2, p3, p4, end } = points;
             const segments = [];
 
-            const hasInitialYAdjustment = Math.abs(p2.y - p1.y) > 1;
+            const hasInitialYAdjustment = Math.abs(p2.y - p1.y) > MIN_SEGMENT_LENGTH;
             const needsFinalYAdjustment = Math.abs(p4.y - end.y) > 0.1;
 
             // セグメント1: p1から垂直セグメントX位置への水平線
