@@ -142,10 +142,9 @@ function getPathGenerator() {
         }
 
         // ジャンプアーク（半円）を生成
-        function renderJumpArc(fromX, toX, y, arcHeight) {
-            const midX = (fromX + toX) / 2;
-            // 上向きの半円を描画
-            return \` L \${fromX} \${y} A \${arcHeight} \${arcHeight} 0 0 1 \${toX} \${y}\`;
+        function renderJumpArc(toX, y, arcHeight) {
+            // 上向きの半円を描画（現在位置からtoXへ）
+            return \` A \${arcHeight} \${arcHeight} 0 0 1 \${toX} \${y}\`;
         }
 
         // 水平セグメントに交差点がある場合、ジャンプアークを挿入
@@ -168,8 +167,8 @@ function getPathGenerator() {
                     path += \` L \${jumpStart} \${y}\`;
                 }
 
-                // ジャンプアーク
-                path += renderJumpArc(jumpStart, jumpEnd, y, arcHeight);
+                // ジャンプアーク（jumpStartからjumpEndへ）
+                path += renderJumpArc(jumpEnd, y, arcHeight);
                 currentX = jumpEnd;
             });
 
@@ -190,6 +189,13 @@ function getPathGenerator() {
             const arcHeight = 6; // ジャンプアークの高さ
             let path = \`M \${segments[0].from.x} \${segments[0].from.y}\`;
 
+            if (window.DEBUG_CONNECTIONS && crossings && crossings.length > 0) {
+                console.log('[Path Generator] renderSegments called with', crossings.length, 'crossings');
+                crossings.forEach(c => {
+                    console.log('[Path Generator]   crossing at (', c.x.toFixed(1), ',', c.y.toFixed(1), ')');
+                });
+            }
+
             for (let i = 0; i < segments.length; i++) {
                 const current = segments[i];
                 const next = segments[i + 1];
@@ -204,7 +210,9 @@ function getPathGenerator() {
 
                     if (segmentCrossings.length > 0) {
                         if (window.DEBUG_CONNECTIONS) {
-                            console.log('[Path Generator] Segment has', segmentCrossings.length, 'crossings at y=', current.from.y);
+                            console.log('[Path Generator] Segment[', i, '] H (', current.from.x.toFixed(1), ',', current.from.y.toFixed(1),
+                                ') -> (', current.to.x.toFixed(1), ',', current.to.y.toFixed(1), ') has',
+                                segmentCrossings.length, 'crossings');
                         }
                         path += renderHorizontalSegmentWithJumps(current, segmentCrossings, arcHeight);
                         continue;

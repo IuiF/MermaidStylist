@@ -161,10 +161,10 @@ function getEdgeCrossingDetector() {
                 const crossings = {};
 
                 // 水平セグメントと垂直セグメントのペアをチェック
-                segments.forEach(hSeg => {
+                segments.forEach((hSeg, hIdx) => {
                     if (hSeg.type !== 'H') return;
 
-                    segments.forEach(vSeg => {
+                    segments.forEach((vSeg, vIdx) => {
                         if (vSeg.type !== 'V') return;
                         if (hSeg.edgeKey === vSeg.edgeKey) return; // 同じエッジのセグメント同士は除外
 
@@ -173,6 +173,12 @@ function getEdgeCrossingDetector() {
                             if (!crossings[hSeg.edgeKey]) {
                                 crossings[hSeg.edgeKey] = [];
                             }
+
+                            if (window.DEBUG_CONNECTIONS) {
+                                console.log('[EdgeCrossing] Found crossing:', hSeg.edgeKey, 'crosses', vSeg.edgeKey,
+                                    'at (', intersection.x.toFixed(1), ',', intersection.y.toFixed(1), ')');
+                            }
+
                             crossings[hSeg.edgeKey].push({
                                 x: intersection.x,
                                 y: intersection.y,
@@ -188,9 +194,7 @@ function getEdgeCrossingDetector() {
                 });
 
                 if (window.DEBUG_CONNECTIONS) {
-                    Object.keys(crossings).forEach(edgeKey => {
-                        console.log('[EdgeCrossing] Edge', edgeKey, 'has', crossings[edgeKey].length, 'crossings');
-                    });
+                    console.log('[EdgeCrossing] Total edges with crossings:', Object.keys(crossings).length);
                 }
 
                 return crossings;
