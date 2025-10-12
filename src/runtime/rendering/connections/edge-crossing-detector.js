@@ -90,7 +90,7 @@ function getEdgeCrossingDetector() {
                         p4y = yAdjustment.adjustedY;
                     }
 
-                    // セグメントを追加（簡略化: 主要セグメントのみ）
+                    // セグメントを追加
                     // 水平セグメント1: p1 -> (p2x, p1y)
                     allSegments.push({
                         edgeKey: edgeKey,
@@ -109,43 +109,116 @@ function getEdgeCrossingDetector() {
                         y2: p3y
                     });
 
-                    if (secondVerticalX !== undefined) {
-                        // 2本目の垂直セグメントがある場合
-                        // 水平セグメント: (p4x, p4y) -> (secondVerticalX, p4y)
+                    // セグメント3: p3からp4への移動
+                    const MIN_SEGMENT_LENGTH = 16;
+                    const needsFinalVertical = Math.abs(p3y - p4y) > MIN_SEGMENT_LENGTH;
+                    if (needsFinalVertical) {
+                        if (Math.abs(p3x - p4x) > MIN_SEGMENT_LENGTH) {
+                            allSegments.push({
+                                edgeKey: edgeKey,
+                                type: 'H',
+                                x1: p3x,
+                                x2: p4x,
+                                y: p3y
+                            });
+                            allSegments.push({
+                                edgeKey: edgeKey,
+                                type: 'V',
+                                x: p4x,
+                                y1: p3y,
+                                y2: p4y
+                            });
+                        } else {
+                            allSegments.push({
+                                edgeKey: edgeKey,
+                                type: 'V',
+                                x: p3x,
+                                y1: p3y,
+                                y2: p4y
+                            });
+                        }
+                    } else if (Math.abs(p3x - p4x) > MIN_SEGMENT_LENGTH) {
                         allSegments.push({
                             edgeKey: edgeKey,
                             type: 'H',
-                            x1: p4x,
-                            x2: secondVerticalX,
+                            x1: p3x,
+                            x2: p4x,
                             y: p4y
                         });
+                    }
 
-                        // 垂直セグメント: (secondVerticalX, p4y) -> (secondVerticalX, y2)
-                        allSegments.push({
-                            edgeKey: edgeKey,
-                            type: 'V',
-                            x: secondVerticalX,
-                            y1: p4y,
-                            y2: edgeInfo.y2
-                        });
-
-                        // 最終水平セグメント
-                        allSegments.push({
-                            edgeKey: edgeKey,
-                            type: 'H',
-                            x1: secondVerticalX,
-                            x2: edgeInfo.x2,
-                            y: edgeInfo.y2
-                        });
+                    // セグメント4: p4からendへ（buildSegmentsと同じ閾値を使用）
+                    const needsFinalYAdjustment = Math.abs(p4y - edgeInfo.y2) > 0.1;
+                    if (needsFinalYAdjustment) {
+                        if (secondVerticalX !== undefined) {
+                            // 2本目の垂直セグメントがある場合
+                            if (Math.abs(p4x - secondVerticalX) > 0.1) {
+                                allSegments.push({
+                                    edgeKey: edgeKey,
+                                    type: 'H',
+                                    x1: p4x,
+                                    x2: secondVerticalX,
+                                    y: p4y
+                                });
+                            }
+                            if (Math.abs(p4y - edgeInfo.y2) > 0.1) {
+                                allSegments.push({
+                                    edgeKey: edgeKey,
+                                    type: 'V',
+                                    x: secondVerticalX,
+                                    y1: p4y,
+                                    y2: edgeInfo.y2
+                                });
+                            }
+                            if (Math.abs(secondVerticalX - edgeInfo.x2) > 0.1) {
+                                allSegments.push({
+                                    edgeKey: edgeKey,
+                                    type: 'H',
+                                    x1: secondVerticalX,
+                                    x2: edgeInfo.x2,
+                                    y: edgeInfo.y2
+                                });
+                            }
+                        } else {
+                            const intermediateX = (p4x + edgeInfo.x2) / 2;
+                            if (Math.abs(p4x - intermediateX) > 0.1) {
+                                allSegments.push({
+                                    edgeKey: edgeKey,
+                                    type: 'H',
+                                    x1: p4x,
+                                    x2: intermediateX,
+                                    y: p4y
+                                });
+                            }
+                            if (Math.abs(p4y - edgeInfo.y2) > 0.1) {
+                                allSegments.push({
+                                    edgeKey: edgeKey,
+                                    type: 'V',
+                                    x: intermediateX,
+                                    y1: p4y,
+                                    y2: edgeInfo.y2
+                                });
+                            }
+                            if (Math.abs(intermediateX - edgeInfo.x2) > 0.1) {
+                                allSegments.push({
+                                    edgeKey: edgeKey,
+                                    type: 'H',
+                                    x1: intermediateX,
+                                    x2: edgeInfo.x2,
+                                    y: edgeInfo.y2
+                                });
+                            }
+                        }
                     } else {
-                        // 最終水平セグメント: (p4x, p4y) -> (x2, y2)
-                        allSegments.push({
-                            edgeKey: edgeKey,
-                            type: 'H',
-                            x1: p4x,
-                            x2: edgeInfo.x2,
-                            y: p4y
-                        });
+                        if (Math.abs(p4x - edgeInfo.x2) > 0.1) {
+                            allSegments.push({
+                                edgeKey: edgeKey,
+                                type: 'H',
+                                x1: p4x,
+                                x2: edgeInfo.x2,
+                                y: p4y
+                            });
+                        }
                     }
                 });
 
@@ -174,16 +247,24 @@ function getEdgeCrossingDetector() {
                                 crossings[hSeg.edgeKey] = [];
                             }
 
-                            if (window.DEBUG_CONNECTIONS) {
-                                console.log('[EdgeCrossing] Found crossing:', hSeg.edgeKey, 'crosses', vSeg.edgeKey,
-                                    'at (', intersection.x.toFixed(1), ',', intersection.y.toFixed(1), ')');
-                            }
+                            // 重複チェック: 既に同じ座標の交差点が存在しないか確認
+                            const isDuplicate = crossings[hSeg.edgeKey].some(existing =>
+                                Math.abs(existing.x - intersection.x) < 0.1 &&
+                                Math.abs(existing.y - intersection.y) < 0.1
+                            );
 
-                            crossings[hSeg.edgeKey].push({
-                                x: intersection.x,
-                                y: intersection.y,
-                                crossedEdge: vSeg.edgeKey
-                            });
+                            if (!isDuplicate) {
+                                if (window.DEBUG_CONNECTIONS) {
+                                    console.log('[EdgeCrossing] Found crossing:', hSeg.edgeKey, 'crosses', vSeg.edgeKey,
+                                        'at (', intersection.x.toFixed(1), ',', intersection.y.toFixed(1), ')');
+                                }
+
+                                crossings[hSeg.edgeKey].push({
+                                    x: intersection.x,
+                                    y: intersection.y,
+                                    crossedEdge: vSeg.edgeKey
+                                });
+                            }
                         }
                     });
                 });
