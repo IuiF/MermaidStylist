@@ -11,6 +11,9 @@ function getPathGenerator() {
             VERTICAL: 'V'
         };
 
+        // カーブ適用可能な最小セグメント長
+        const MIN_SEGMENT_LENGTH = 16; // cornerRadius(8) * 2
+
         // セグメントを作成するヘルパー関数
         function createSegment(type, from, to) {
             return {
