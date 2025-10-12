@@ -279,14 +279,27 @@ function getConnectionRenderer() {
 
             // Phase 1: ラベル描画
             function renderAllLabels(connections, svgLayer) {
-                connections.forEach(conn => {
+                // 表示されるエッジのみをフィルタリング
+                const visibleConnections = connections.filter(conn => {
                     const fromElement = svgHelpers.getNodeElement(conn.from);
                     const toElement = svgHelpers.getNodeElement(conn.to);
-                    if (areNodesVisible(fromElement, toElement)) {
-                        const labelGroup = createConnectionLabel(conn, toElement);
-                        if (labelGroup) {
-                            svgLayer.appendChild(labelGroup);
-                        }
+                    if (!areNodesVisible(fromElement, toElement)) {
+                        return false;
+                    }
+
+                    // collapseManagerのisEdgeVisibleを使用して折りたたみ状態を考慮
+                    if (window.collapseManager && !window.collapseManager.isEdgeVisible(conn)) {
+                        return false;
+                    }
+                    return true;
+                });
+
+                // 表示されるエッジのみでラベルを描画
+                visibleConnections.forEach(conn => {
+                    const toElement = svgHelpers.getNodeElement(conn.to);
+                    const labelGroup = createConnectionLabel(conn, toElement);
+                    if (labelGroup) {
+                        svgLayer.appendChild(labelGroup);
                     }
                 });
             }
