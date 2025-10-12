@@ -141,18 +141,77 @@ function getPathGenerator() {
             }).join('\\n');
         }
 
+        // ジャンプアーク（半円）を生成
+        function renderJumpArc(fromX, toX, y, arcHeight) {
+            const midX = (fromX + toX) / 2;
+            // 上向きの半円を描画
+            return \` L \${fromX} \${y} A \${arcHeight} \${arcHeight} 0 0 1 \${toX} \${y}\`;
+        }
+
+        // 水平セグメントに交差点がある場合、ジャンプアークを挿入
+        function renderHorizontalSegmentWithJumps(segment, crossings, arcHeight) {
+            if (!crossings || crossings.length === 0) {
+                return \` L \${segment.to.x} \${segment.to.y}\`;
+            }
+
+            let path = '';
+            let currentX = segment.from.x;
+            const y = segment.from.y;
+
+            // 交差点ごとにジャンプアークを挿入
+            crossings.forEach(crossing => {
+                // 交差点の前まで直線
+                const jumpStart = crossing.x - arcHeight;
+                const jumpEnd = crossing.x + arcHeight;
+
+                if (jumpStart > currentX) {
+                    path += \` L \${jumpStart} \${y}\`;
+                }
+
+                // ジャンプアーク
+                path += renderJumpArc(jumpStart, jumpEnd, y, arcHeight);
+                currentX = jumpEnd;
+            });
+
+            // 残りの直線
+            if (currentX < segment.to.x) {
+                path += \` L \${segment.to.x} \${segment.to.y}\`;
+            }
+
+            return path;
+        }
+
         // セグメントリストからSVGパスを生成
-        function renderSegments(segments, cornerRadius) {
+        function renderSegments(segments, cornerRadius, crossings) {
             if (!segments || segments.length === 0) {
                 return '';
             }
 
+            const arcHeight = 6; // ジャンプアークの高さ
             let path = \`M \${segments[0].from.x} \${segments[0].from.y}\`;
 
             for (let i = 0; i < segments.length; i++) {
                 const current = segments[i];
                 const next = segments[i + 1];
 
+                // 水平セグメントの交差点をチェック（カーブ適用の前に）
+                if (current.type === SegmentType.HORIZONTAL && crossings && crossings.length > 0) {
+                    const segmentCrossings = crossings.filter(c =>
+                        Math.abs(c.y - current.from.y) < 0.5 &&
+                        c.x >= Math.min(current.from.x, current.to.x) &&
+                        c.x <= Math.max(current.from.x, current.to.x)
+                    );
+
+                    if (segmentCrossings.length > 0) {
+                        if (window.DEBUG_CONNECTIONS) {
+                            console.log('[Path Generator] Segment has', segmentCrossings.length, 'crossings at y=', current.from.y);
+                        }
+                        path += renderHorizontalSegmentWithJumps(current, segmentCrossings, arcHeight);
+                        continue;
+                    }
+                }
+
+                // 通常のセグメント描画
                 if (next && canApplyCurve(current, next, cornerRadius)) {
                     path += renderCurvedTransition(current, next, cornerRadius);
                 } else if (next) {
@@ -211,14 +270,14 @@ function getPathGenerator() {
              * カーブ付きパスを生成
              * @param {Object} points - 制御点オブジェクト { p1, p2, p3, p4, end }
              * @param {number} cornerRadius - コーナー半径
+             * @param {Array} crossings - 交差点配列（オプション）
              * @returns {string} SVGパス文字列
              */
-            generateCurvedPath: function(points, cornerRadius) {
+            generateCurvedPath: function(points, cornerRadius, crossings) {
                 const segments = buildSegments(points);
 
-                if (window.DEBUG_CONNECTIONS) {
-                    console.log('[Path Generator] Building segments');
-                    console.log(debugSegments(segments));
+                if (window.DEBUG_CONNECTIONS && crossings) {
+                    console.log('[Path Generator] Crossings parameter:', crossings.length, 'crossings');
                 }
 
                 if (!validateSegments(segments)) {
@@ -226,10 +285,10 @@ function getPathGenerator() {
                     return '';
                 }
 
-                const path = renderSegments(segments, cornerRadius);
+                const path = renderSegments(segments, cornerRadius, crossings);
 
-                if (window.DEBUG_CONNECTIONS) {
-                    console.log('[Path Generator] Generated path:', path);
+                if (window.DEBUG_CONNECTIONS && crossings && crossings.length > 0) {
+                    console.log('[Path Generator] Applied', crossings.length, 'jump arcs');
                 }
 
                 return path;

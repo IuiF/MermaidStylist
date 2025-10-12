@@ -1,8 +1,9 @@
 function getConnectionRenderer() {
     const connectionLabels = require('./labels').getConnectionLabels();
     const verticalSegmentCalculator = require('./vertical-segment-calculator').getVerticalSegmentCalculator();
+    const edgeCrossingDetector = require('./edge-crossing-detector').getEdgeCrossingDetector();
 
-    return connectionLabels + verticalSegmentCalculator + `
+    return connectionLabels + verticalSegmentCalculator + edgeCrossingDetector + `
         // 矢印描画関数
         function createArrow(x1, y1, x2, y2, conn) {
             const angle = Math.atan2(y2 - y1, x2 - x1);
@@ -86,7 +87,8 @@ function getConnectionRenderer() {
                 fromNodeLeft,
                 finalVerticalX,
                 yAdjustment,
-                secondVerticalX
+                secondVerticalX,
+                crossings
             } = pathParams;
 
             const cornerRadius = CONNECTION_CONSTANTS.CORNER_RADIUS;
@@ -127,7 +129,7 @@ function getConnectionRenderer() {
                 points.secondVerticalX = secondVerticalX;
             }
 
-            return pathGenerator.generateCurvedPath(points, cornerRadius);
+            return pathGenerator.generateCurvedPath(points, cornerRadius, crossings);
         }
 
         // 点線スタイルを適用
@@ -389,13 +391,19 @@ function getConnectionRenderer() {
                     nodeDepthMap
                 );
 
-                return {
+                const layoutData = {
                     edgeInfos: edgeInfos,
                     parentFinalVerticalSegmentX: parentFinalVerticalSegmentX,
                     edgeToFinalVerticalX: edgeToFinalVerticalX,
                     edgeToYAdjustment: edgeToYAdjustment,
                     edgeToSecondVerticalX: edgeToSecondVerticalX
                 };
+
+                // エッジ交差を検出
+                const edgeCrossings = edgeCrossingDetector.generateCrossingInfo(edgeInfos, layoutData);
+                layoutData.edgeCrossings = edgeCrossings;
+
+                return layoutData;
             }
 
             // 1:1水平エッジを描画
@@ -414,7 +422,7 @@ function getConnectionRenderer() {
             }
 
             // 通常のカーブエッジを描画
-            function renderCurvedEdge(conn, x1, y1, x2, y2, parentFinalVerticalSegmentX, edgeToFinalVerticalX, edgeToYAdjustment, edgeToSecondVerticalX, svgLayer, labelBounds) {
+            function renderCurvedEdge(conn, x1, y1, x2, y2, parentFinalVerticalSegmentX, edgeToFinalVerticalX, edgeToYAdjustment, edgeToSecondVerticalX, edgeCrossings, svgLayer, labelBounds) {
                 const fromElement = svgHelpers.getNodeElement(conn.from);
                 const verticalSegmentX = parentFinalVerticalSegmentX[conn.from] || x1 + CONNECTION_CONSTANTS.DEFAULT_VERTICAL_OFFSET;
                 const fromPos = svgHelpers.getNodePosition(fromElement);
@@ -425,6 +433,7 @@ function getConnectionRenderer() {
                 const finalVerticalX = edgeToFinalVerticalX[edgeKey];
                 const yAdjustment = edgeToYAdjustment[edgeKey];
                 const secondVerticalX = edgeToSecondVerticalX[edgeKey];
+                const crossings = edgeCrossings[edgeKey] || [];
 
                 const pathData = createCurvedPath({
                     x1, y1, x2, y2,
@@ -436,7 +445,8 @@ function getConnectionRenderer() {
                     fromNodeLeft: fromPos.left,
                     finalVerticalX,
                     yAdjustment,
-                    secondVerticalX
+                    secondVerticalX,
+                    crossings
                 });
 
                 const path = svgHelpers.createPath(pathData, {
@@ -464,7 +474,7 @@ function getConnectionRenderer() {
                 if (is1to1Horizontal) {
                     render1to1HorizontalEdge(conn, x1, y1, x2, y2, svgLayer);
                 } else {
-                    renderCurvedEdge(conn, x1, y1, x2, y2, layoutData.parentFinalVerticalSegmentX, layoutData.edgeToFinalVerticalX, layoutData.edgeToYAdjustment, layoutData.edgeToSecondVerticalX, svgLayer, labelBounds);
+                    renderCurvedEdge(conn, x1, y1, x2, y2, layoutData.parentFinalVerticalSegmentX, layoutData.edgeToFinalVerticalX, layoutData.edgeToYAdjustment, layoutData.edgeToSecondVerticalX, layoutData.edgeCrossings, svgLayer, labelBounds);
                 }
             }
 
