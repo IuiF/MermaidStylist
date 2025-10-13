@@ -404,7 +404,7 @@ if (USE_NEW_LAYOUT) {
 - [x] 既存機能がすべて動作する
 - [x] V2システムがV1より高速（12%高速化達成）
 - [x] V2システムがデフォルトで有効
-- [x] コード行数が削減されている（470行削減）
+- [x] コード行数が削減されている（482行削減）
 - [ ] グローバル変数が削減されている（window.layoutLevelInfoは依然として使用中）
 
 ## 9. 進捗状況
@@ -464,6 +464,10 @@ if (USE_NEW_LAYOUT) {
    - build-webapp.jsからhorizontal-layout参照を削除
    - html.jsからhorizontal-layoutインポートを削除
 
+11. **重複コードの削減** (進行中)
+   - calculateNodeSpacingV2Collision関数を削除（12行削減）
+   - calculateNodeSpacingV2に統一
+
 ### 現在の実装状況
 
 1. **ノード配置**: V2システム実装完了、正常動作
@@ -509,9 +513,9 @@ if (USE_NEW_LAYOUT) {
    - orchestratorの完全統合
    - 既存システムからの段階的移行
 
-3. **コード削減と最適化**
-   - 重複コードの削除
-   - グローバル変数の削減
+3. **コード削減と最適化** (進行中)
+   - 重複コードの削除（calculateNodeSpacing統一完了）
+   - グローバル変数の削減（window.layoutLevelInfoは要大規模変更）
    - メモリ使用量の最適化
 
 #### 長期（オプション）
