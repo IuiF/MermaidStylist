@@ -68,7 +68,8 @@ function getRedrawHelpers() {
                     dashedNodes: dashedNodeSet
                 };
 
-                const nodePositions = v2LayoutEngine.calculateLayout(input);
+                const layoutResult = v2LayoutEngine.calculateLayout(input);
+                const nodePositions = layoutResult.nodePositions;
 
                 const nodePositionsObj = {};
                 nodePositions.forEach((pos, nodeId) => {
