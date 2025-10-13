@@ -23,12 +23,23 @@ function getTypes() {
             }
         }
 
+        class ArcParams {
+            constructor(centerX, centerY, radius, startAngle, endAngle) {
+                this.centerX = centerX;
+                this.centerY = centerY;
+                this.radius = radius;
+                this.startAngle = startAngle;
+                this.endAngle = endAngle;
+            }
+        }
+
         class Segment {
-            constructor(type, start, end, curveParams = null) {
-                this.type = type;
+            constructor(type, start, end, curveParams = null, arcParams = null) {
+                this.type = type;  // 'horizontal' | 'vertical' | 'curve' | 'arc'
                 this.start = start;
                 this.end = end;
                 this.curveParams = curveParams;
+                this.arcParams = arcParams;
             }
         }
 

@@ -9,6 +9,66 @@ function getEdgeRouter() {
             return from + '->' + to;
         }
 
+        /**
+         * ノードの階層（depth）を計算
+         * @param {Array} connections - 接続情報の配列
+         * @returns {Map} ノードIDをキーとした階層マップ
+         */
+        function calculateNodeDepths(connections) {
+            const nodeDepths = new Map();
+            const allNodeIds = new Set([...connections.map(c => c.from), ...connections.map(c => c.to)]);
+            const childNodeIds = new Set(connections.map(c => c.to));
+            const rootNodeIds = [...allNodeIds].filter(id => !childNodeIds.has(id));
+
+            const childrenMap = new Map();
+            connections.forEach(conn => {
+                if (!childrenMap.has(conn.from)) {
+                    childrenMap.set(conn.from, []);
+                }
+                childrenMap.get(conn.from).push(conn.to);
+            });
+
+            const queue = [];
+            rootNodeIds.forEach(rootId => {
+                nodeDepths.set(rootId, 0);
+                queue.push(rootId);
+            });
+
+            const maxIterations = allNodeIds.size * allNodeIds.size;
+            let processed = 0;
+
+            while (queue.length > 0 && processed < maxIterations) {
+                const currentId = queue.shift();
+                processed++;
+                const currentDepth = nodeDepths.get(currentId);
+                const children = childrenMap.get(currentId) || [];
+
+                for (const childId of children) {
+                    const newDepth = currentDepth + 1;
+                    const existingDepth = nodeDepths.get(childId);
+
+                    if (existingDepth === undefined || newDepth > existingDepth) {
+                        nodeDepths.set(childId, newDepth);
+                        queue.push(childId);
+                    }
+                }
+            }
+
+            return nodeDepths;
+        }
+
+        /**
+         * 接続の深さを計算（from→toのレベル差）
+         * @param {Object} conn - 接続情報
+         * @param {Map} nodeDepths - ノードの深さマップ
+         * @returns {number} 深さ（レベル差）
+         */
+        function calculateConnectionDepth(conn, nodeDepths) {
+            const fromDepth = nodeDepths.get(conn.from) || 0;
+            const toDepth = nodeDepths.get(conn.to) || 0;
+            return toDepth - fromDepth;
+        }
+
         function routeEdges(input) {
             const { nodePositions, connections, levelXPositions } = input;
 
