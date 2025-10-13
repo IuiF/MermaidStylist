@@ -524,8 +524,11 @@ if (USE_NEW_LAYOUT) {
 19. **エッジルーティング高度化 - フェーズ6** (完了)
    - layout-engine.jsへの統合確認（routeEdges呼び出し済み）
    - LayoutResultへのedgeRoutes格納確認（完了）
+   - 動作テスト完了（test-complex-ultimate.mmd）
+   - パフォーマンス測定完了（LCP: 255ms、CLS: 0.00）
+   - 検証: 44ルート、324セグメント、96arcセグメント生成
    - EDGE_ROUTING_MIGRATION.md完遂
-   - 全6フェーズの実装完了
+   - 全6フェーズの実装・検証完了
    - 約60KB、10ファイル以上 → 830行の単一ファイルに統合（85%削減）
 
 ### 現在の実装状況
