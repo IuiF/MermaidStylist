@@ -131,23 +131,8 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
         // Import render orchestrator
         ${getRenderOrchestrator()}
 
-        // Import V2 layout engine (new system)
+        // Import V2 layout engine
         ${getLayoutEngine()}
-
-        // V2レイアウトシステム切り替えフラグ
-        window.USE_V2_LAYOUT = true;
-
-        // V2レイアウトシステム切り替え関数
-        window.toggleV2Layout = function() {
-            window.USE_V2_LAYOUT = !window.USE_V2_LAYOUT;
-            console.log('[Layout] V2 Layout System:', window.USE_V2_LAYOUT ? 'ENABLED' : 'DISABLED');
-
-            // レイアウトを再計算
-            const nodePositions = redrawHelpers.recalculateLayout(currentLayout);
-            createCSSLines(allConnections, nodePositions);
-
-            return window.USE_V2_LAYOUT;
-        };
 
         // スタイルを適用
         function applyNodeStyle(element, nodeId, nodeClasses) {
