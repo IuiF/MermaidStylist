@@ -30,7 +30,7 @@ function getConnectionUtils() {
                     queue.push(rootId);
                 });
 
-                // BFSで階層を計算（複数回訪問を許可し、より深い階層を採用）
+                // BFSで階層を計算（複数回訪問を許可し、より浅い階層を採用）
                 let processed = 0;
                 const maxIterations = allNodeIds.size * allNodeIds.size;
 
@@ -44,8 +44,8 @@ function getConnectionUtils() {
                         const newDepth = currentDepth + 1;
                         const existingDepth = nodeDepths[childId];
 
-                        // より深い階層が見つかった場合、または未設定の場合は更新
-                        if (existingDepth === undefined || newDepth > existingDepth) {
+                        // より浅い階層が見つかった場合、または未設定の場合は更新
+                        if (existingDepth === undefined || newDepth < existingDepth) {
                             nodeDepths[childId] = newDepth;
                             queue.push(childId);
                         }

@@ -375,7 +375,7 @@ function getEdgeRouter() {
                     const newDepth = currentDepth + 1;
                     const existingDepth = nodeDepths.get(childId);
 
-                    if (existingDepth === undefined || newDepth > existingDepth) {
+                    if (existingDepth === undefined || newDepth < existingDepth) {
                         nodeDepths.set(childId, newDepth);
                         queue.push(childId);
                     }
