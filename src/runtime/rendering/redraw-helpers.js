@@ -34,7 +34,50 @@ function getRedrawHelpers() {
              * @returns {Object} ノード位置データ
              */
             recalculateLayout: function(layoutMode) {
-                if (layoutMode === 'vertical') {
+                if (window.USE_V2_LAYOUT && layoutMode === 'horizontal') {
+                    console.log('[Redraw] Using V2 layout system');
+
+                    const nodeWidths = new Map();
+                    allNodes.forEach(node => {
+                        const element = document.getElementById(node.id);
+                        if (element) {
+                            const width = parseInt(element.getAttribute('data-width')) || 0;
+                            nodeWidths.set(node.id, width);
+                        }
+                    });
+
+                    const dashedNodeSet = new Set();
+                    dashedNodes.forEach(node => {
+                        dashedNodeSet.add(node.id);
+                    });
+
+                    const treeStructure = analyzeTreeStructure(allNodes, connections, dashedNodes);
+
+                    const input = {
+                        nodes: allNodes,
+                        connections: allConnections,
+                        treeStructure: treeStructure,
+                        nodeWidths: nodeWidths,
+                        dashedNodes: dashedNodeSet
+                    };
+
+                    const nodePositions = v2LayoutEngine.calculateLayout(input);
+
+                    const nodePositionsObj = {};
+                    nodePositions.forEach((pos, nodeId) => {
+                        nodePositionsObj[nodeId] = pos;
+                    });
+
+                    Object.keys(nodePositionsObj).forEach(nodeId => {
+                        const element = document.getElementById(nodeId);
+                        if (element) {
+                            const pos = nodePositionsObj[nodeId];
+                            element.setAttribute('transform', 'translate(' + pos.x + ',' + pos.y + ')');
+                        }
+                    });
+
+                    return nodePositionsObj;
+                } else if (layoutMode === 'vertical') {
                     return verticalLayout(
                         allNodes,
                         connections,

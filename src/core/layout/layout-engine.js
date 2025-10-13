@@ -1,52 +1,46 @@
-const { LayoutResult, LayoutMetadata } = require('./types');
-const { placeNodes } = require('./node-placer');
-const { routeEdges } = require('./edge-router');
-const { resolveCollisions } = require('./collision-resolver');
+function getLayoutEngine() {
+    const nodePlacer = require('./node-placer').getNodePlacer();
+    const collisionResolver = require('./collision-resolver').getCollisionResolver();
 
-function calculateLayout(input) {
-    const { nodes, connections, treeStructure, nodeWidths, dashedNodes = new Set() } = input;
+    return nodePlacer + collisionResolver + `
+        const v2LayoutEngine = {
+            calculateLayout: function(input) {
+                console.log('[V2 Layout Engine] Starting layout calculation');
 
-    const placementResult = placeNodes({
-        nodes,
-        connections,
-        treeStructure,
-        nodeWidths
-    });
+                const { nodes, connections, treeStructure, nodeWidths, dashedNodes = new Set() } = input;
 
-    let nodePositions = placementResult.nodePositions;
-    const levelXPositions = placementResult.levelXPositions;
-    const levelMaxWidths = placementResult.levelMaxWidths;
+                const placementResult = placeNodesV2({
+                    nodes,
+                    connections,
+                    treeStructure,
+                    nodeWidths
+                });
 
-    nodePositions = resolveCollisions({
-        nodePositions,
-        connections,
-        treeStructure,
-        dashedNodes
-    });
+                let nodePositions = placementResult.nodePositions;
+                const levelXPositions = placementResult.levelXPositions;
+                const levelMaxWidths = placementResult.levelMaxWidths;
 
-    const edgeRoutes = routeEdges({
-        nodePositions,
-        connections,
-        levelXPositions
-    });
+                nodePositions = resolveCollisionsV2({
+                    nodePositions,
+                    connections,
+                    treeStructure,
+                    dashedNodes
+                });
 
-    const labelPositions = calculateLabelPositions(edgeRoutes, nodePositions, connections);
+                window.layoutLevelInfo = {
+                    levelXPositions: levelXPositions,
+                    levelMaxWidths: levelMaxWidths,
+                    levelCount: treeStructure.levels.length
+                };
 
-    const metadata = new LayoutMetadata(
-        levelXPositions,
-        levelMaxWidths,
-        treeStructure.levels.length
-    );
+                console.log('[V2 Layout Engine] Layout calculation complete');
 
-    return new LayoutResult(nodePositions, edgeRoutes, labelPositions, metadata);
-}
-
-function calculateLabelPositions(edgeRoutes, nodePositions, connections) {
-    const labelPositions = new Map();
-
-    return labelPositions;
+                return nodePositions;
+            }
+        };
+    `;
 }
 
 module.exports = {
-    calculateLayout
+    getLayoutEngine
 };
