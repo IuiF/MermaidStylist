@@ -430,13 +430,42 @@ function getConnectionRenderer() {
 
             // 通常のカーブエッジを描画
             function renderCurvedEdge(conn, x1, y1, x2, y2, parentFinalVerticalSegmentX, edgeToFinalVerticalX, edgeToYAdjustment, edgeToSecondVerticalX, edgeCrossings, svgLayer, labelBounds) {
+                const edgeKey = connectionUtils.createEdgeKey(conn.from, conn.to);
+
+                // V2のedgeRoutesが利用可能な場合はそれを使用
+                if (window.currentLayoutResult && window.currentLayoutResult.edgeRoutes) {
+                    console.log('[renderCurvedEdge] V2 edgeRoutes available');
+                    const edgeRoutes = window.currentLayoutResult.edgeRoutes;
+                    const edgeRoute = edgeRoutes.get(edgeKey);
+                    console.log('[renderCurvedEdge] edgeRoute for', edgeKey, ':', edgeRoute ? 'found' : 'not found');
+                    console.log('[renderCurvedEdge] generateSVGPath type:', typeof generateSVGPath);
+
+                    if (edgeRoute && typeof generateSVGPath === 'function') {
+                        console.log('[renderCurvedEdge] Using V2 generateSVGPath for', edgeKey);
+                        const pathData = generateSVGPath(edgeRoute, CONNECTION_CONSTANTS.CORNER_RADIUS);
+
+                        const path = svgHelpers.createPath(pathData, {
+                            class: conn.isDashed ? 'connection-line dashed-edge' : 'connection-line',
+                            'data-from': conn.from, 'data-to': conn.to,
+                            fill: 'none'
+                        });
+
+                        applyDashedStyle(path, conn);
+
+                        svgLayer.appendChild(path);
+                        svgLayer.appendChild(createHorizontalArrow(x2, y2, conn));
+                        return;
+                    }
+                }
+
+                console.log('[renderCurvedEdge] Falling back to existing system for', edgeKey);
+                // 既存システムへのフォールバック
                 const fromElement = svgHelpers.getNodeElement(conn.from);
                 const verticalSegmentX = parentFinalVerticalSegmentX[conn.from] || x1 + CONNECTION_CONSTANTS.DEFAULT_VERTICAL_OFFSET;
                 const fromPos = svgHelpers.getNodePosition(fromElement);
                 const nodeBounds = getAllNodeBounds(conn.from, conn.to);
                 const filteredBounds = filterNodeBoundsForDashedEdge(nodeBounds, conn);
 
-                const edgeKey = connectionUtils.createEdgeKey(conn.from, conn.to);
                 const finalVerticalX = edgeToFinalVerticalX[edgeKey];
                 const yAdjustment = edgeToYAdjustment[edgeKey];
                 const secondVerticalX = edgeToSecondVerticalX[edgeKey];

@@ -146,20 +146,20 @@ function getPathGenerator() {
             return segments.map((seg, i) => {
                 const dir = getSegmentDirection(seg);
                 const len = getSegmentLength(seg).toFixed(1);
-                return \`[\${i}] \${seg.type} \${dir} len=\${len} from=(\${seg.from.x.toFixed(1)},\${seg.from.y.toFixed(1)}) to=(\${seg.to.x.toFixed(1)},\${seg.to.y.toFixed(1)})\`;
+                return '[' + i + '] ' + seg.type + ' ' + dir + ' len=' + len + ' from=(' + seg.from.x.toFixed(1) + ',' + seg.from.y.toFixed(1) + ') to=(' + seg.to.x.toFixed(1) + ',' + seg.to.y.toFixed(1) + ')';
             }).join('\\n');
         }
 
         // ジャンプアーク（半円）を生成
         function renderJumpArc(toX, y, arcHeight) {
             // 上向きの半円を描画（現在位置からtoXへ）
-            return \` A \${arcHeight} \${arcHeight} 0 0 1 \${toX} \${y}\`;
+            return ' A ' + arcHeight + ' ' + arcHeight + ' 0 0 1 ' + toX + ' ' + y;
         }
 
         // 水平セグメントに交差点がある場合、ジャンプアークを挿入
         function renderHorizontalSegmentWithJumps(segment, crossings, arcHeight) {
             if (!crossings || crossings.length === 0) {
-                return \` L \${segment.to.x} \${segment.to.y}\`;
+                return ' L ' + segment.to.x + ' ' + segment.to.y;
             }
 
             let path = '';
@@ -173,7 +173,7 @@ function getPathGenerator() {
                 const jumpEnd = crossing.x + arcHeight;
 
                 if (jumpStart > currentX) {
-                    path += \` L \${jumpStart} \${y}\`;
+                    path += ' L ' + jumpStart + ' ' + y;
                 }
 
                 // ジャンプアーク（jumpStartからjumpEndへ）
@@ -183,7 +183,7 @@ function getPathGenerator() {
 
             // 残りの直線
             if (currentX < segment.to.x) {
-                path += \` L \${segment.to.x} \${segment.to.y}\`;
+                path += ' L ' + segment.to.x + ' ' + segment.to.y;
             }
 
             return path;
@@ -197,7 +197,7 @@ function getPathGenerator() {
 
             const arcHeight = PATH_GENERATOR_CONSTANTS.JUMP_ARC_HEIGHT;
             const crossingYTolerance = PATH_GENERATOR_CONSTANTS.CROSSING_Y_TOLERANCE;
-            let path = \`M \${segments[0].from.x} \${segments[0].from.y}\`;
+            let path = 'M ' + segments[0].from.x + ' ' + segments[0].from.y;
 
             if (window.DEBUG_CONNECTIONS && crossings && crossings.length > 0) {
                 console.log('[Path Generator] renderSegments called with', crossings.length, 'crossings');
@@ -233,9 +233,9 @@ function getPathGenerator() {
                 if (next && canApplyCurve(current, next, cornerRadius)) {
                     path += renderCurvedTransition(current, next, cornerRadius);
                 } else if (next) {
-                    path += \` L \${current.to.x} \${current.to.y}\`;
+                    path += ' L ' + current.to.x + ' ' + current.to.y;
                 } else {
-                    path += \` L \${current.to.x} \${current.to.y}\`;
+                    path += ' L ' + current.to.x + ' ' + current.to.y;
                 }
             }
 
@@ -264,20 +264,20 @@ function getPathGenerator() {
 
             if (seg1.type === SegmentType.HORIZONTAL) {
                 const beforeCornerX = dir1 === 'right' ? corner.x - r : corner.x + r;
-                path += \` L \${beforeCornerX} \${corner.y}\`;
+                path += ' L ' + beforeCornerX + ' ' + corner.y;
             } else {
                 const beforeCornerY = dir1 === 'down' ? corner.y - r : corner.y + r;
-                path += \` L \${corner.x} \${beforeCornerY}\`;
+                path += ' L ' + corner.x + ' ' + beforeCornerY;
             }
 
-            path += \` Q \${corner.x} \${corner.y}\`;
+            path += ' Q ' + corner.x + ' ' + corner.y;
 
             if (seg2.type === SegmentType.HORIZONTAL) {
                 const afterCornerX = dir2 === 'right' ? corner.x + r : corner.x - r;
-                path += \` \${afterCornerX} \${corner.y}\`;
+                path += ' ' + afterCornerX + ' ' + corner.y;
             } else {
                 const afterCornerY = dir2 === 'down' ? corner.y + r : corner.y - r;
-                path += \` \${corner.x} \${afterCornerY}\`;
+                path += ' ' + corner.x + ' ' + afterCornerY;
             }
 
             return path;

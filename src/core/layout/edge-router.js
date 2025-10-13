@@ -670,11 +670,6 @@ function getEdgeRouter() {
             // ノード深さを計算
             const nodeDepths = calculateNodeDepths(connections);
 
-            // 親ごとの垂直セグメントX座標を計算
-            const verticalSegmentXByParent = calculateVerticalSegmentX(
-                nodePositions, connections, nodeDepths, levelXPositions, levelMaxWidths
-            );
-
             // ノード境界情報を構築
             const nodeBounds = [];
             nodePositions.forEach((pos, nodeId) => {
@@ -687,6 +682,80 @@ function getEdgeRouter() {
                 });
             });
 
+            // 第1段階：初回の垂直セグメント計算（衝突回避エッジなし）
+            let verticalSegmentXByParent = calculateVerticalSegmentX(
+                nodePositions, connections, nodeDepths, levelXPositions, levelMaxWidths
+            );
+
+            // 最終セグメントY調整が必要なエッジを検出
+            const edgeToYAdjustment = new Map();
+            connections.forEach(conn => {
+                const fromPos = nodePositions.get(conn.from);
+                const toPos = nodePositions.get(conn.to);
+                if (!fromPos || !toPos) return;
+
+                const y1 = fromPos.y + fromPos.height / 2;
+                const y2 = toPos.y + toPos.height / 2;
+                if (y1 === y2) return; // 水平エッジはスキップ
+
+                const x2 = toPos.x;
+                let verticalSegmentX = verticalSegmentXByParent.get(conn.from);
+                if (verticalSegmentX === undefined) {
+                    verticalSegmentX = fromPos.x + fromPos.width + EDGE_CONSTANTS.DEFAULT_VERTICAL_OFFSET;
+                }
+
+                // 最終セグメントY座標調整チェック
+                const filteredBoundsFinal = nodeBounds.filter(n => {
+                    if (n.id === conn.to) {
+                        return verticalSegmentX < n.left;
+                    }
+                    return true;
+                });
+                const adjustedY2 = _adjustHorizontalSegmentY(verticalSegmentX, y2, x2, filteredBoundsFinal);
+                if (adjustedY2 !== null) {
+                    const edgeKey = createEdgeKey(conn.from, conn.to);
+                    edgeToYAdjustment.set(edgeKey, {
+                        originalY: y2,
+                        adjustedY: adjustedY2,
+                        needsAdjustment: true
+                    });
+                }
+            });
+
+            // 衝突回避が必要なエッジを抽出
+            const collisionEdges = [];
+            edgeToYAdjustment.forEach((yAdjustment, edgeKey) => {
+                if (!yAdjustment.needsAdjustment) return;
+
+                const parts = edgeKey.split('->');
+                const fromId = parts[0];
+                const toId = parts[1];
+
+                const fromPos = nodePositions.get(fromId);
+                const toPos = nodePositions.get(toId);
+                if (!fromPos || !toPos) return;
+
+                let verticalSegmentX = verticalSegmentXByParent.get(fromId);
+                if (verticalSegmentX === undefined) {
+                    verticalSegmentX = fromPos.x + fromPos.width + EDGE_CONSTANTS.DEFAULT_VERTICAL_OFFSET;
+                }
+
+                const fromDepth = nodeDepths.get(fromId) || 0;
+                const toDepth = nodeDepths.get(toId) || 0;
+
+                collisionEdges.push({
+                    edgeKey: edgeKey,
+                    p4x: verticalSegmentX,
+                    endX: toPos.x,
+                    fromDepth: fromDepth,
+                    toDepth: toDepth
+                });
+            });
+
+            // 第2段階：2本目の垂直セグメントX座標を計算
+            const edgeToSecondVerticalX = _calculateSecondVerticalSegmentX(collisionEdges, nodeDepths);
+
+            // セグメント生成
             connections.forEach(conn => {
                 const fromPos = nodePositions.get(conn.from);
                 const toPos = nodePositions.get(conn.to);
@@ -700,18 +769,18 @@ function getEdgeRouter() {
                 const x2 = toPos.x;
                 let y2 = toPos.y + toPos.height / 2;
 
+                const edgeKey = createEdgeKey(conn.from, conn.to);
+
                 if (y1 === y2) {
-                    // 水平エッジ
+                    // 水平エッジ（1セグメント）
                     const segments = [
                         new Segment('horizontal', new Point(x1, y1), new Point(x2, y2))
                     ];
                     const arrowPoint = new Point(x2, y2);
-                    edgeRoutes.set(createEdgeKey(conn.from, conn.to), new EdgeRoute(segments, arrowPoint));
+                    edgeRoutes.set(edgeKey, new EdgeRoute(segments, arrowPoint));
                 } else {
                     // 垂直セグメントを含むエッジ
                     let verticalSegmentX = verticalSegmentXByParent.get(conn.from);
-
-                    // 垂直セグメントX座標が計算されていない場合はフォールバック
                     if (verticalSegmentX === undefined) {
                         verticalSegmentX = x1 + EDGE_CONSTANTS.DEFAULT_VERTICAL_OFFSET;
                     }
@@ -723,27 +792,52 @@ function getEdgeRouter() {
                         y1 = adjustedY1;
                     }
 
-                    // 最終セグメントY座標調整（ターゲットノードの扱いに注意）
-                    const filteredBoundsFinal = nodeBounds.filter(n => {
-                        if (n.id === conn.to) {
-                            // 終点がノード左端より前を通過する場合のみチェック
-                            return verticalSegmentX < n.left;
+                    // Y調整情報を取得
+                    const yAdjustment = edgeToYAdjustment.get(edgeKey);
+                    const needsSecondVertical = yAdjustment && yAdjustment.needsAdjustment;
+                    const secondVerticalX = edgeToSecondVerticalX.get(edgeKey);
+
+                    const segments = [];
+
+                    if (needsSecondVertical && secondVerticalX !== undefined) {
+                        // 5-7セグメントルーティング（H-V-H-V-H）
+                        const adjustedY2 = yAdjustment.adjustedY;
+
+                        // セグメント1: 初期水平線
+                        segments.push(new Segment('horizontal', new Point(x1, y1), new Point(verticalSegmentX, y1)));
+
+                        // セグメント2: 第1垂直線
+                        segments.push(new Segment('vertical', new Point(verticalSegmentX, y1), new Point(verticalSegmentX, adjustedY2)));
+
+                        // セグメント3: 中間水平線
+                        segments.push(new Segment('horizontal', new Point(verticalSegmentX, adjustedY2), new Point(secondVerticalX, adjustedY2)));
+
+                        // セグメント4: 第2垂直線
+                        segments.push(new Segment('vertical', new Point(secondVerticalX, adjustedY2), new Point(secondVerticalX, y2)));
+
+                        // セグメント5: 最終水平線
+                        segments.push(new Segment('horizontal', new Point(secondVerticalX, y2), new Point(x2, y2)));
+                    } else {
+                        // 3セグメントルーティング（H-V-H）
+                        // 最終セグメントY座標調整（ターゲットノードの扱いに注意）
+                        const filteredBoundsFinal = nodeBounds.filter(n => {
+                            if (n.id === conn.to) {
+                                return verticalSegmentX < n.left;
+                            }
+                            return true;
+                        });
+                        const adjustedY2 = _adjustHorizontalSegmentY(verticalSegmentX, y2, x2, filteredBoundsFinal);
+                        if (adjustedY2 !== null) {
+                            y2 = adjustedY2;
                         }
-                        return true;
-                    });
-                    const adjustedY2 = _adjustHorizontalSegmentY(verticalSegmentX, y2, x2, filteredBoundsFinal);
-                    if (adjustedY2 !== null) {
-                        y2 = adjustedY2;
+
+                        segments.push(new Segment('horizontal', new Point(x1, y1), new Point(verticalSegmentX, y1)));
+                        segments.push(new Segment('vertical', new Point(verticalSegmentX, y1), new Point(verticalSegmentX, y2)));
+                        segments.push(new Segment('horizontal', new Point(verticalSegmentX, y2), new Point(x2, y2)));
                     }
 
-                    const segments = [
-                        new Segment('horizontal', new Point(x1, y1), new Point(verticalSegmentX, y1)),
-                        new Segment('vertical', new Point(verticalSegmentX, y1), new Point(verticalSegmentX, y2)),
-                        new Segment('horizontal', new Point(verticalSegmentX, y2), new Point(x2, y2))
-                    ];
-
                     const arrowPoint = new Point(x2, y2);
-                    edgeRoutes.set(createEdgeKey(conn.from, conn.to), new EdgeRoute(segments, arrowPoint));
+                    edgeRoutes.set(edgeKey, new EdgeRoute(segments, arrowPoint));
                 }
             });
 
@@ -854,22 +948,22 @@ function getEdgeRouter() {
             // seg1の終点手前までの直線
             if (seg1.type === 'horizontal') {
                 const beforeCornerX = dir1 === 'right' ? corner.x - r : corner.x + r;
-                path += \` L \${beforeCornerX} \${corner.y}\`;
+                path += ' L ' + beforeCornerX + ' ' + corner.y;
             } else {
                 const beforeCornerY = dir1 === 'down' ? corner.y - r : corner.y + r;
-                path += \` L \${corner.x} \${beforeCornerY}\`;
+                path += ' L ' + corner.x + ' ' + beforeCornerY;
             }
 
             // Qコマンドでカーブを描画
-            path += \` Q \${corner.x} \${corner.y}\`;
+            path += ' Q ' + corner.x + ' ' + corner.y;
 
             // seg2の開始点（コーナーの先）
             if (seg2.type === 'horizontal') {
                 const afterCornerX = dir2 === 'right' ? corner.x + r : corner.x - r;
-                path += \` \${afterCornerX} \${corner.y}\`;
+                path += ' ' + afterCornerX + ' ' + corner.y;
             } else {
                 const afterCornerY = dir2 === 'down' ? corner.y + r : corner.y - r;
-                path += \` \${corner.x} \${afterCornerY}\`;
+                path += ' ' + corner.x + ' ' + afterCornerY;
             }
 
             return path;
@@ -881,10 +975,10 @@ function getEdgeRouter() {
          * @param {Point} endPoint - 終点
          * @returns {string} SVGパスコマンド
          */
-        function renderJumpArc(arcParams, endPoint) {
+        function renderJumpArcV2(arcParams, endPoint) {
             // A rx ry x-axis-rotation large-arc-flag sweep-flag x y
             // ジャンプアークは上向きの半円（sweep-flag=1）
-            return \` A \${arcParams.radius} \${arcParams.radius} 0 0 1 \${endPoint.x} \${endPoint.y}\`;
+            return ' A ' + arcParams.radius + ' ' + arcParams.radius + ' 0 0 1 ' + endPoint.x + ' ' + endPoint.y;
         }
 
         /**
@@ -902,7 +996,7 @@ function getEdgeRouter() {
             const segments = edgeRoute.segments;
 
             // Mコマンドで開始
-            let path = \`M \${segments[0].start.x} \${segments[0].start.y}\`;
+            let path = 'M ' + segments[0].start.x + ' ' + segments[0].start.y;
 
             for (let i = 0; i < segments.length; i++) {
                 const current = segments[i];
@@ -910,14 +1004,14 @@ function getEdgeRouter() {
 
                 // arcセグメントの場合はAコマンドを生成
                 if (current.type === 'arc' && current.arcParams) {
-                    path += renderJumpArc(current.arcParams, current.end);
+                    path += renderJumpArcV2(current.arcParams, current.end);
                     continue;
                 }
 
                 // curveセグメントの場合はQコマンドを生成（将来用）
                 if (current.type === 'curve' && current.curveParams) {
                     const cp1 = current.curveParams.controlPoint1;
-                    path += \` Q \${cp1.x} \${cp1.y} \${current.end.x} \${current.end.y}\`;
+                    path += ' Q ' + cp1.x + ' ' + cp1.y + ' ' + current.end.x + ' ' + current.end.y;
                     continue;
                 }
 
@@ -926,7 +1020,7 @@ function getEdgeRouter() {
                     path += renderCurvedTransition(current, next, r);
                 } else {
                     // 通常の直線
-                    path += \` L \${current.end.x} \${current.end.y}\`;
+                    path += ' L ' + current.end.x + ' ' + current.end.y;
                 }
             }
 
