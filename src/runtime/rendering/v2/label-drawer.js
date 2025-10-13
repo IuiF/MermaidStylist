@@ -1,5 +1,21 @@
 function getLabelDrawer() {
     return `
+        const LABEL_DRAWER_CONSTANTS = {
+            PADDING: 4,
+            VERTICAL_SPACING: 10,
+            OFFSET_Y: 2,
+            FONT_SIZE: 11,
+            FONT_FAMILY: 'Arial, sans-serif',
+            BORDER_RADIUS: 3,
+            INFO_PANEL_TOP: '80px',
+            INFO_PANEL_RIGHT: '20px',
+            INFO_PANEL_PADDING: '15px',
+            INFO_PANEL_BORDER_RADIUS: '8px',
+            INFO_PANEL_MAX_WIDTH: '400px',
+            INFO_PANEL_FONT_SIZE: '13px',
+            INFO_PANEL_LINE_HEIGHT: '1.6'
+        };
+
         let labelOffsets = {};
 
         /**
@@ -40,14 +56,14 @@ function getLabelDrawer() {
         function createLabelElement(conn, toElement) {
             const svgLayer = svgHelpers.getEdgeLayer();
             const tempText = svgHelpers.createText(conn.label, {
-                'font-size': '11',
-                'font-family': 'Arial, sans-serif'
+                'font-size': LABEL_DRAWER_CONSTANTS.FONT_SIZE.toString(),
+                'font-family': LABEL_DRAWER_CONSTANTS.FONT_FAMILY
             });
             svgLayer.appendChild(tempText);
             const textBBox = tempText.getBBox();
             svgLayer.removeChild(tempText);
 
-            const labelPadding = 4;
+            const labelPadding = LABEL_DRAWER_CONSTANTS.PADDING;
             const labelWidth = textBBox.width + labelPadding * 2;
             const labelHeight = textBBox.height + labelPadding * 2;
 
@@ -68,27 +84,27 @@ function getLabelDrawer() {
                 'data-from': conn.from
             });
 
-            const labelVerticalSpacing = 10;
+            const labelVerticalSpacing = LABEL_DRAWER_CONSTANTS.VERTICAL_SPACING;
 
             const labelRect = svgHelpers.createRect({
                 x: toLeft,
-                y: toTop - labelHeight - 2 - (offset * (labelHeight + labelVerticalSpacing)),
+                y: toTop - labelHeight - LABEL_DRAWER_CONSTANTS.OFFSET_Y - (offset * (labelHeight + labelVerticalSpacing)),
                 width: labelWidth,
                 height: labelHeight,
                 fill: '#fff',
                 stroke: '#999',
                 'stroke-width': '1',
-                rx: '3',
-                ry: '3'
+                rx: LABEL_DRAWER_CONSTANTS.BORDER_RADIUS.toString(),
+                ry: LABEL_DRAWER_CONSTANTS.BORDER_RADIUS.toString()
             });
 
             const labelText = svgHelpers.createText(conn.label, {
                 x: toLeft + labelPadding,
-                y: toTop - labelHeight / 2 - 2 - (offset * (labelHeight + labelVerticalSpacing)),
+                y: toTop - labelHeight / 2 - LABEL_DRAWER_CONSTANTS.OFFSET_Y - (offset * (labelHeight + labelVerticalSpacing)),
                 'dominant-baseline': 'central',
                 fill: '#333',
-                'font-size': '11',
-                'font-family': 'Arial, sans-serif'
+                'font-size': LABEL_DRAWER_CONSTANTS.FONT_SIZE.toString(),
+                'font-family': LABEL_DRAWER_CONSTANTS.FONT_FAMILY
             });
 
             labelGroup.appendChild(labelRect);
@@ -120,17 +136,17 @@ function getLabelDrawer() {
             const panel = document.createElement('div');
             panel.id = 'edge-info-panel';
             panel.style.position = 'fixed';
-            panel.style.top = '80px';
-            panel.style.right = '20px';
+            panel.style.top = LABEL_DRAWER_CONSTANTS.INFO_PANEL_TOP;
+            panel.style.right = LABEL_DRAWER_CONSTANTS.INFO_PANEL_RIGHT;
             panel.style.backgroundColor = '#fff';
             panel.style.border = '2px solid #333';
-            panel.style.borderRadius = '8px';
-            panel.style.padding = '15px';
+            panel.style.borderRadius = LABEL_DRAWER_CONSTANTS.INFO_PANEL_BORDER_RADIUS;
+            panel.style.padding = LABEL_DRAWER_CONSTANTS.INFO_PANEL_PADDING;
             panel.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
             panel.style.zIndex = '10000';
-            panel.style.maxWidth = '400px';
-            panel.style.fontSize = '13px';
-            panel.style.lineHeight = '1.6';
+            panel.style.maxWidth = LABEL_DRAWER_CONSTANTS.INFO_PANEL_MAX_WIDTH;
+            panel.style.fontSize = LABEL_DRAWER_CONSTANTS.INFO_PANEL_FONT_SIZE;
+            panel.style.lineHeight = LABEL_DRAWER_CONSTANTS.INFO_PANEL_LINE_HEIGHT;
 
             const closeBtn = document.createElement('button');
             closeBtn.textContent = '×';
