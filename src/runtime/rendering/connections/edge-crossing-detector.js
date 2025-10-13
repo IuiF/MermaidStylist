@@ -3,6 +3,13 @@ function getEdgeCrossingDetector() {
         // エッジ交差検出モジュール
         // 水平セグメントが垂直セグメントと交差する点を検出する
 
+        const EDGE_CROSSING_CONSTANTS = {
+            ENDPOINT_EPSILON: 1.0,           // 端点判定の閾値
+            MIN_SEGMENT_LENGTH: 16,          // 最小セグメント長
+            COORDINATE_EPSILON: 0.1,         // 座標判定の閾値
+            DUPLICATE_EPSILON: 0.1           // 重複チェックの閾値
+        };
+
         const edgeCrossingDetector = {
             /**
              * 水平線分と垂直線分の交差判定
@@ -16,7 +23,7 @@ function getEdgeCrossingDetector() {
                 const vMinY = Math.min(vSeg.y1, vSeg.y2);
                 const vMaxY = Math.max(vSeg.y1, vSeg.y2);
 
-                const epsilon = 1.0; // 端点判定の閾値
+                const epsilon = EDGE_CROSSING_CONSTANTS.ENDPOINT_EPSILON;
 
                 // 水平線のY座標が垂直線のY範囲内かチェック
                 if (hSeg.y < vMinY || hSeg.y > vMaxY) {
@@ -110,10 +117,10 @@ function getEdgeCrossingDetector() {
                     });
 
                     // セグメント3: p3からp4への移動
-                    const MIN_SEGMENT_LENGTH = 16;
-                    const needsFinalVertical = Math.abs(p3y - p4y) > MIN_SEGMENT_LENGTH;
+                    const minSegmentLength = EDGE_CROSSING_CONSTANTS.MIN_SEGMENT_LENGTH;
+                    const needsFinalVertical = Math.abs(p3y - p4y) > minSegmentLength;
                     if (needsFinalVertical) {
-                        if (Math.abs(p3x - p4x) > MIN_SEGMENT_LENGTH) {
+                        if (Math.abs(p3x - p4x) > minSegmentLength) {
                             allSegments.push({
                                 edgeKey: edgeKey,
                                 type: 'H',
@@ -137,7 +144,7 @@ function getEdgeCrossingDetector() {
                                 y2: p4y
                             });
                         }
-                    } else if (Math.abs(p3x - p4x) > MIN_SEGMENT_LENGTH) {
+                    } else if (Math.abs(p3x - p4x) > minSegmentLength) {
                         allSegments.push({
                             edgeKey: edgeKey,
                             type: 'H',
@@ -148,11 +155,12 @@ function getEdgeCrossingDetector() {
                     }
 
                     // セグメント4: p4からendへ（buildSegmentsと同じ閾値を使用）
-                    const needsFinalYAdjustment = Math.abs(p4y - edgeInfo.y2) > 0.1;
+                    const epsilon = EDGE_CROSSING_CONSTANTS.COORDINATE_EPSILON;
+                    const needsFinalYAdjustment = Math.abs(p4y - edgeInfo.y2) > epsilon;
                     if (needsFinalYAdjustment) {
                         if (secondVerticalX !== undefined) {
                             // 2本目の垂直セグメントがある場合
-                            if (Math.abs(p4x - secondVerticalX) > 0.1) {
+                            if (Math.abs(p4x - secondVerticalX) > epsilon) {
                                 allSegments.push({
                                     edgeKey: edgeKey,
                                     type: 'H',
@@ -161,7 +169,7 @@ function getEdgeCrossingDetector() {
                                     y: p4y
                                 });
                             }
-                            if (Math.abs(p4y - edgeInfo.y2) > 0.1) {
+                            if (Math.abs(p4y - edgeInfo.y2) > epsilon) {
                                 allSegments.push({
                                     edgeKey: edgeKey,
                                     type: 'V',
@@ -170,7 +178,7 @@ function getEdgeCrossingDetector() {
                                     y2: edgeInfo.y2
                                 });
                             }
-                            if (Math.abs(secondVerticalX - edgeInfo.x2) > 0.1) {
+                            if (Math.abs(secondVerticalX - edgeInfo.x2) > epsilon) {
                                 allSegments.push({
                                     edgeKey: edgeKey,
                                     type: 'H',
@@ -181,7 +189,7 @@ function getEdgeCrossingDetector() {
                             }
                         } else {
                             const intermediateX = (p4x + edgeInfo.x2) / 2;
-                            if (Math.abs(p4x - intermediateX) > 0.1) {
+                            if (Math.abs(p4x - intermediateX) > epsilon) {
                                 allSegments.push({
                                     edgeKey: edgeKey,
                                     type: 'H',
@@ -190,7 +198,7 @@ function getEdgeCrossingDetector() {
                                     y: p4y
                                 });
                             }
-                            if (Math.abs(p4y - edgeInfo.y2) > 0.1) {
+                            if (Math.abs(p4y - edgeInfo.y2) > epsilon) {
                                 allSegments.push({
                                     edgeKey: edgeKey,
                                     type: 'V',
@@ -199,7 +207,7 @@ function getEdgeCrossingDetector() {
                                     y2: edgeInfo.y2
                                 });
                             }
-                            if (Math.abs(intermediateX - edgeInfo.x2) > 0.1) {
+                            if (Math.abs(intermediateX - edgeInfo.x2) > epsilon) {
                                 allSegments.push({
                                     edgeKey: edgeKey,
                                     type: 'H',
@@ -210,7 +218,7 @@ function getEdgeCrossingDetector() {
                             }
                         }
                     } else {
-                        if (Math.abs(p4x - edgeInfo.x2) > 0.1) {
+                        if (Math.abs(p4x - edgeInfo.x2) > epsilon) {
                             allSegments.push({
                                 edgeKey: edgeKey,
                                 type: 'H',
@@ -248,9 +256,10 @@ function getEdgeCrossingDetector() {
                             }
 
                             // 重複チェック: 既に同じ座標の交差点が存在しないか確認
+                            const duplicateEpsilon = EDGE_CROSSING_CONSTANTS.DUPLICATE_EPSILON;
                             const isDuplicate = crossings[hSeg.edgeKey].some(existing =>
-                                Math.abs(existing.x - intersection.x) < 0.1 &&
-                                Math.abs(existing.y - intersection.y) < 0.1
+                                Math.abs(existing.x - intersection.x) < duplicateEpsilon &&
+                                Math.abs(existing.y - intersection.y) < duplicateEpsilon
                             );
 
                             if (!isDuplicate) {

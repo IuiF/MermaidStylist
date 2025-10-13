@@ -2,6 +2,10 @@ function getCollisionUtils() {
     return `
         // 衝突検出と回避計算モジュール
 
+        const COLLISION_UTILS_CONSTANTS = {
+            SECOND_VERTICAL_DISTANCE_RATIO: 0.6    // 2本目の垂直セグメント配置距離の係数
+        };
+
         const collisionUtils = {
             /**
              * 2つの矩形範囲が重なるかチェック
@@ -164,7 +168,7 @@ function getCollisionUtils() {
 
                     const edgeKey = info.conn.from + '->' + info.conn.to;
                     if (edgeToYAdjustment[edgeKey] && edgeToYAdjustment[edgeKey].needsAdjustment) {
-                        const verticalSegmentX = parentFinalVerticalSegmentX[info.conn.from] || info.x1 + 50;
+                        const verticalSegmentX = parentFinalVerticalSegmentX[info.conn.from] || info.x1 + CONNECTION_CONSTANTS.DEFAULT_VERTICAL_OFFSET;
                         const finalVerticalX = edgeToFinalVerticalX[edgeKey];
                         const p4x = finalVerticalX !== undefined ? finalVerticalX : verticalSegmentX;
 
@@ -212,7 +216,8 @@ function getCollisionUtils() {
                     const requiredSpace = minSpacing * depthCollisionCount;
 
                     // baseDistanceがrequiredSpaceより小さい場合は、baseDistanceを使用
-                    const actualSpace = Math.min(baseDistance * 0.6, requiredSpace);
+                    const distanceRatio = COLLISION_UTILS_CONSTANTS.SECOND_VERTICAL_DISTANCE_RATIO;
+                    const actualSpace = Math.min(baseDistance * distanceRatio, requiredSpace);
 
                     // 2本目の垂直セグメントX座標
                     const secondVerticalX = edge.endX - actualSpace;

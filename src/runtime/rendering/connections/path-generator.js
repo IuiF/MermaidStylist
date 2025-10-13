@@ -5,14 +5,18 @@ function getPathGenerator() {
         // 制御点からセグメントリストを構築し、SVGパスを生成します。
         // Y調整が必要なエッジでも滑らかなカーブを適用します。
 
+        const PATH_GENERATOR_CONSTANTS = {
+            MIN_SEGMENT_LENGTH: 16,       // カーブ適用可能な最小セグメント長 (cornerRadius * 2)
+            COORDINATE_EPSILON: 0.1,      // 座標判定の閾値
+            CROSSING_Y_TOLERANCE: 0.5,    // 交差点Y座標の許容範囲
+            JUMP_ARC_HEIGHT: 6            // ジャンプアークの高さ
+        };
+
         // セグメントタイプの定義
         const SegmentType = {
             HORIZONTAL: 'H',
             VERTICAL: 'V'
         };
-
-        // カーブ適用可能な最小セグメント長
-        const MIN_SEGMENT_LENGTH = 16; // cornerRadius(8) * 2
 
         // セグメントを作成するヘルパー関数
         function createSegment(type, from, to) {
@@ -51,8 +55,11 @@ function getPathGenerator() {
             const { p1, p2, p3, p4, end } = points;
             const segments = [];
 
-            const hasInitialYAdjustment = Math.abs(p2.y - p1.y) > MIN_SEGMENT_LENGTH;
-            const needsFinalYAdjustment = Math.abs(p4.y - end.y) > 0.1;
+            const minSegmentLength = PATH_GENERATOR_CONSTANTS.MIN_SEGMENT_LENGTH;
+            const epsilon = PATH_GENERATOR_CONSTANTS.COORDINATE_EPSILON;
+
+            const hasInitialYAdjustment = Math.abs(p2.y - p1.y) > minSegmentLength;
+            const needsFinalYAdjustment = Math.abs(p4.y - end.y) > epsilon;
 
             // セグメント1: p1から垂直セグメントX位置への水平線
             if (hasInitialYAdjustment) {
@@ -67,15 +74,15 @@ function getPathGenerator() {
             segments.push(createSegment(SegmentType.VERTICAL, verticalStart, p3));
 
             // セグメント3: p3からp4への移動
-            const needsFinalVertical = Math.abs(p3.y - p4.y) > MIN_SEGMENT_LENGTH;
+            const needsFinalVertical = Math.abs(p3.y - p4.y) > minSegmentLength;
             if (needsFinalVertical) {
-                if (Math.abs(p3.x - p4.x) > MIN_SEGMENT_LENGTH) {
+                if (Math.abs(p3.x - p4.x) > minSegmentLength) {
                     segments.push(createSegment(SegmentType.HORIZONTAL, p3, { x: p4.x, y: p3.y }));
                     segments.push(createSegment(SegmentType.VERTICAL, { x: p4.x, y: p3.y }, p4));
                 } else {
                     segments.push(createSegment(SegmentType.VERTICAL, p3, p4));
                 }
-            } else if (Math.abs(p3.x - p4.x) > MIN_SEGMENT_LENGTH) {
+            } else if (Math.abs(p3.x - p4.x) > minSegmentLength) {
                 segments.push(createSegment(SegmentType.HORIZONTAL, p3, { x: p4.x, y: p4.y }));
             }
 
@@ -83,29 +90,29 @@ function getPathGenerator() {
             if (needsFinalYAdjustment) {
                 const { secondVerticalX } = points;
                 if (secondVerticalX !== undefined) {
-                    if (Math.abs(p4.x - secondVerticalX) > 0.1) {
+                    if (Math.abs(p4.x - secondVerticalX) > epsilon) {
                         segments.push(createSegment(SegmentType.HORIZONTAL, { x: p4.x, y: p4.y }, { x: secondVerticalX, y: p4.y }));
                     }
-                    if (Math.abs(p4.y - end.y) > 0.1) {
+                    if (Math.abs(p4.y - end.y) > epsilon) {
                         segments.push(createSegment(SegmentType.VERTICAL, { x: secondVerticalX, y: p4.y }, { x: secondVerticalX, y: end.y }));
                     }
-                    if (Math.abs(secondVerticalX - end.x) > 0.1) {
+                    if (Math.abs(secondVerticalX - end.x) > epsilon) {
                         segments.push(createSegment(SegmentType.HORIZONTAL, { x: secondVerticalX, y: end.y }, end));
                     }
                 } else {
                     const intermediateX = (p4.x + end.x) / 2;
-                    if (Math.abs(p4.x - intermediateX) > 0.1) {
+                    if (Math.abs(p4.x - intermediateX) > epsilon) {
                         segments.push(createSegment(SegmentType.HORIZONTAL, { x: p4.x, y: p4.y }, { x: intermediateX, y: p4.y }));
                     }
-                    if (Math.abs(p4.y - end.y) > 0.1) {
+                    if (Math.abs(p4.y - end.y) > epsilon) {
                         segments.push(createSegment(SegmentType.VERTICAL, { x: intermediateX, y: p4.y }, { x: intermediateX, y: end.y }));
                     }
-                    if (Math.abs(intermediateX - end.x) > 0.1) {
+                    if (Math.abs(intermediateX - end.x) > epsilon) {
                         segments.push(createSegment(SegmentType.HORIZONTAL, { x: intermediateX, y: end.y }, end));
                     }
                 }
             } else {
-                if (Math.abs(p4.x - end.x) > 0.1) {
+                if (Math.abs(p4.x - end.x) > epsilon) {
                     segments.push(createSegment(SegmentType.HORIZONTAL, { x: p4.x, y: p4.y }, end));
                 }
             }
@@ -119,12 +126,14 @@ function getPathGenerator() {
                 return false;
             }
 
+            const epsilon = PATH_GENERATOR_CONSTANTS.COORDINATE_EPSILON;
+
             for (let i = 0; i < segments.length - 1; i++) {
                 const current = segments[i];
                 const next = segments[i + 1];
 
-                if (Math.abs(current.to.x - next.from.x) > 0.1 ||
-                    Math.abs(current.to.y - next.from.y) > 0.1) {
+                if (Math.abs(current.to.x - next.from.x) > epsilon ||
+                    Math.abs(current.to.y - next.from.y) > epsilon) {
                     console.error('[validateSegments] Discontinuity at index', i);
                     return false;
                 }
@@ -186,7 +195,8 @@ function getPathGenerator() {
                 return '';
             }
 
-            const arcHeight = 6; // ジャンプアークの高さ
+            const arcHeight = PATH_GENERATOR_CONSTANTS.JUMP_ARC_HEIGHT;
+            const crossingYTolerance = PATH_GENERATOR_CONSTANTS.CROSSING_Y_TOLERANCE;
             let path = \`M \${segments[0].from.x} \${segments[0].from.y}\`;
 
             if (window.DEBUG_CONNECTIONS && crossings && crossings.length > 0) {
@@ -203,7 +213,7 @@ function getPathGenerator() {
                 // 水平セグメントの交差点をチェック（カーブ適用の前に）
                 if (current.type === SegmentType.HORIZONTAL && crossings && crossings.length > 0) {
                     const segmentCrossings = crossings.filter(c =>
-                        Math.abs(c.y - current.from.y) < 0.5 &&
+                        Math.abs(c.y - current.from.y) < crossingYTolerance &&
                         c.x >= Math.min(current.from.x, current.to.x) &&
                         c.x <= Math.max(current.from.x, current.to.x)
                     );

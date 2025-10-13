@@ -2,6 +2,11 @@ function getEdgeSpacingCalculator() {
     return `
         // エッジ間隔調整モジュール（ノード層間のエッジX座標配置）
 
+        const EDGE_SPACING_CONSTANTS = {
+            COLLISION_OFFSET_RATIO: 0.3,    // 衝突回避オフセット推定の係数
+            LANE_CENTER_OFFSET: 0.5         // レーン内での中央配置オフセット
+        };
+
         const edgeSpacingCalculator = {
             /**
              * 各depthを通過する全エッジ数をカウント（長距離エッジと衝突回避エッジを含む）
@@ -77,7 +82,7 @@ function getEdgeSpacingCalculator() {
                 const yRange = yMax - yMin;
 
                 // Y範囲に関わらず一定のminSpacingを使用（レイアウト計算との整合性を保つ）
-                const minSpacing = 15;
+                const minSpacing = CONNECTION_CONSTANTS.EDGE_SPACING;
 
                 // layout-utils.jsと同じロジック: max(親ノード数, エッジ数)を使用
                 const effectiveLaneCount = Math.max(totalParentsInDepth, totalEdgesPassingThrough);
@@ -85,8 +90,9 @@ function getEdgeSpacingCalculator() {
                 // 必要な幅は、通過する全エッジ数に基づいて計算
                 const requiredWidth = minSpacing * (effectiveLaneCount + 1);
 
-                // 衝突回避オフセットの平均的な値を見込む（係数を0.3に削減）
-                const estimatedCollisionOffset = requiredWidth * 0.3;
+                // 衝突回避オフセットの平均的な値を見込む
+                const offsetRatio = EDGE_SPACING_CONSTANTS.COLLISION_OFFSET_RATIO;
+                const estimatedCollisionOffset = requiredWidth * offsetRatio;
 
                 // effectiveLaneCountで等分してレーン間隔を計算
                 const laneSpacing = Math.max(minSpacing, rawAvailableWidth / (effectiveLaneCount + 1));
@@ -103,8 +109,9 @@ function getEdgeSpacingCalculator() {
                 }
 
                 // 各親に等間隔でX座標を割り当て（中央基準で左から右へ配置）
+                const centerOffset = EDGE_SPACING_CONSTANTS.LANE_CENTER_OFFSET;
                 parents.forEach((parent, index) => {
-                    let x = startX + (index + 0.5) * laneSpacing;
+                    let x = startX + (index + centerOffset) * laneSpacing;
 
                     // 垂直セグメントX座標は親ノードの右端(x1) + minOffsetより右側にある必要がある
                     const minX = parent.x1 + minOffset;
@@ -114,7 +121,7 @@ function getEdgeSpacingCalculator() {
 
                     parentVerticalSegmentX[parent.parentId] = x;
                     if (window.DEBUG_CONNECTIONS && (parent.parentId === 'A1' || parent.parentId === 'A2' || parent.parentId === 'E6')) {
-                        console.log('[EdgeSpacingCalculator] Assigning', parent.parentId, 'index:', index, 'calculated:', (startX + (index + 0.5) * laneSpacing).toFixed(1), 'minX:', minX.toFixed(1), 'final x:', x.toFixed(1));
+                        console.log('[EdgeSpacingCalculator] Assigning', parent.parentId, 'index:', index, 'calculated:', (startX + (index + centerOffset) * laneSpacing).toFixed(1), 'minX:', minX.toFixed(1), 'final x:', x.toFixed(1));
                     }
                 });
 

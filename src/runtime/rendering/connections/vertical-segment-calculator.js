@@ -1,6 +1,11 @@
 function getVerticalSegmentCalculator() {
     return `
         // 親ごとの垂直セグメントX座標を計算する統一モジュール
+
+        const VERTICAL_SEGMENT_CONSTANTS = {
+            CLUSTER_X_THRESHOLD: 200    // 親ノードクラスタリングのX座標閾値
+        };
+
         const verticalSegmentCalculator = {
             /**
              * 親ごとの垂直セグメントX座標を計算
@@ -90,8 +95,8 @@ function getVerticalSegmentCalculator() {
                 const clusters = [];
                 let currentCluster = [sorted[0]];
 
-                // X座標の差が大きい箇所で分割（閾値: 200px）
-                const clusterThreshold = 200;
+                // X座標の差が大きい箇所で分割
+                const clusterThreshold = VERTICAL_SEGMENT_CONSTANTS.CLUSTER_X_THRESHOLD;
 
                 for (let i = 1; i < sorted.length; i++) {
                     const gap = sorted[i].x1 - sorted[i - 1].x1;
