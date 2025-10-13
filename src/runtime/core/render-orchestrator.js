@@ -188,8 +188,6 @@ function getRenderOrchestrator() {
         function computeLayout() {
             const nodePositions = redrawHelpers.recalculateLayout('horizontal');
 
-            debugActualWidths(nodes);
-
             return nodePositions;
         }
 

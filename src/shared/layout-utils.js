@@ -50,10 +50,6 @@ function getLayoutUtils() {
             return nodeWidthMap;
         }
 
-        function debugActualWidths(nodes) {
-            // デバッグ用関数（現在は何もしない）
-        }
-
         function calculateConnectionLabelSpacing(connections, parentId) {
             const labelFont = LAYOUT_UTILS_CONSTANTS.LABEL_FONT;
             const minSpacing = LAYOUT_UTILS_CONSTANTS.MIN_SPACING;
