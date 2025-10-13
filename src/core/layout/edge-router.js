@@ -573,30 +573,112 @@ function getEdgeRouter() {
         }
 
         /**
-         * 親ごとの垂直セグメントX座標を計算（親別版）
-         * 異なる親には異なるX座標を割り当てて識別しやすくする
+         * 親ノードから子ノードへのマップを構築（パフォーマンス最適化用）
+         *
+         * @param {Array} connections - 接続配列
+         * @param {Map} nodePositions - ノード位置マップ
+         * @returns {Map} parentId -> [{childId, childX}] のマップ
+         */
+        function buildParentToChildrenMap(connections, nodePositions) {
+            const map = new Map();
+
+            connections.forEach(conn => {
+                const childPos = nodePositions.get(conn.to);
+                if (!childPos) return;
+
+                if (!map.has(conn.from)) {
+                    map.set(conn.from, []);
+                }
+
+                map.get(conn.from).push({
+                    childId: conn.to,
+                    childX: childPos.x
+                });
+            });
+
+            return map;
+        }
+
+        /**
+         * クラスタごとの境界とメタデータを計算
+         *
+         * 設計意図:
+         * - X座標が近い親ノードは同じクラスタとしてグループ化される
+         * - クラスタ内で異なるdepthの親が混在する場合、階層ベースの境界計算は不正確
+         * - そのため、実際の親-子関係に基づいて境界を計算する必要がある
+         *
+         * パフォーマンス:
+         * - O(cluster_size) の計算量（親-子マップを使用）
+         *
+         * @param {Array} cluster - クラスタ内の親ノード情報配列
+         * @param {Map} parentToChildren - 親ID -> 子ノード配列のマップ
+         * @returns {Object} { maxRight, minLeft, edgeCount }
+         */
+        function calculateClusterBounds(cluster, parentToChildren) {
+            // クラスタ内の親ノードの最大右端
+            const maxRight = Math.max(...cluster.map(p => p.x1));
+
+            // クラスタ内の親から実際に出ている全エッジの子ノード位置を収集
+            const childPositions = [];
+            let edgeCount = 0;
+
+            cluster.forEach(parent => {
+                const children = parentToChildren.get(parent.parentId);
+                if (children) {
+                    children.forEach(child => {
+                        childPositions.push(child.childX);
+                        edgeCount++;
+                    });
+                }
+            });
+
+            // 実際の子ノードX座標から最小左端を計算
+            // これにより、異なるdepthの親が混在する場合でも正確な利用可能幅が得られる
+            let minLeft;
+            if (childPositions.length > 0) {
+                minLeft = Math.min(...childPositions);
+            } else {
+                // エッジがない場合のフォールバック
+                minLeft = maxRight + EDGE_CONSTANTS.DEFAULT_VERTICAL_OFFSET * 2;
+            }
+
+            return {
+                maxRight: maxRight,
+                minLeft: minLeft,
+                edgeCount: edgeCount
+            };
+        }
+
+        /**
+         * 親ごとの垂直セグメントX座標を計算（クラスタベース版）
+         *
+         * アプローチ:
+         * 1. X座標が近い親ノードをクラスタリング（CLUSTER_X_THRESHOLD以内）
+         * 2. 各クラスタごとに独立して境界とエッジ数を計算
+         * 3. クラスタ内で親ノードを等間隔に配置
+         *
+         * なぜdepthベースではなくclusterベースなのか:
+         * - 異なるdepthの親ノードが同じX位置にいる場合、階層ベースの境界は不正確
+         * - 実際の親-子関係に基づいた計算により、正確な利用可能幅が得られる
+         * - 視覚的に近い親ノードが同じ配置ルールに従うため、一貫性が向上
+         *
          * @param {Map} nodePositions - ノード位置マップ
          * @param {Array} connections - 接続配列
          * @param {Map} nodeDepths - ノードの深さマップ
-         * @param {Array} levelXPositions - 階層のX座標配列
-         * @param {Array} levelMaxWidths - 階層の最大幅配列
+         * @param {Array} levelXPositions - 階層のX座標配列（未使用、後方互換性のため保持）
+         * @param {Array} levelMaxWidths - 階層の最大幅配列（未使用、後方互換性のため保持）
          * @returns {Map} parentId -> 垂直セグメントX座標のマップ
          */
         function calculateVerticalSegmentX(nodePositions, connections, nodeDepths, levelXPositions, levelMaxWidths) {
             const result = new Map();
 
-            // 深さ境界を計算
-            const { depthMaxParentRight, depthMinChildLeft } = calculateDepthBounds(
-                nodePositions, connections, nodeDepths, levelXPositions, levelMaxWidths
-            );
+            // パフォーマンス最適化：親-子マップを事前構築（O(connections)）
+            const parentToChildren = buildParentToChildrenMap(connections, nodePositions);
 
-            // 親をdepthごとにグループ化
+            // 親をdepthごとにグループ化（後で全depthをまとめる）
             const parentsByDepth = groupParentsByDepth(connections, nodeDepths);
 
-            // 各depthを通過する全エッジ数をカウント
-            const edgesPassingThroughDepth = countEdgesPassingThroughDepth(connections, nodeDepths);
-
-            // 全depthの親情報を収集（depthも含める）
+            // 全depthの親情報を収集
             const allParentInfos = [];
             parentsByDepth.forEach((parentIds, depth) => {
                 parentIds.forEach(parentId => {
@@ -612,46 +694,25 @@ function getEdgeRouter() {
             });
 
             // X座標でクラスタリング（全depthまとめて）
+            // これにより、視覚的に近い親ノードが同じグループになる
             const clusters = clusterParentsByXPosition(allParentInfos);
 
-            // 各クラスタごとに配置を計算
+            // 各クラスタごとに独立して配置を計算
             clusters.forEach(cluster => {
-                // クラスタ内の最大右端
-                const clusterMaxRight = Math.max(...cluster.map(p => p.x1));
+                // クラスタごとの境界とエッジ数を実際の親-子関係から計算
+                // O(cluster_size) の計算量
+                const bounds = calculateClusterBounds(cluster, parentToChildren);
 
-                // クラスタ内の親から出ている全エッジの子ノードの最小左端
-                const clusterChildXs = [];
-                cluster.forEach(p => {
-                    connections.forEach(conn => {
-                        if (conn.from === p.parentId) {
-                            const childPos = nodePositions.get(conn.to);
-                            if (childPos) {
-                                clusterChildXs.push(childPos.x);
-                            }
-                        }
-                    });
-                });
-
-                // 実際の子ノードX座標から最小左端を計算
-                let clusterMinLeft;
-                if (clusterChildXs.length > 0) {
-                    clusterMinLeft = Math.min(...clusterChildXs);
-                } else {
-                    clusterMinLeft = clusterMaxRight + 100; // フォールバック
-                }
-
-                // クラスタ内の全depthのエッジ数を合計
-                const clusterDepths = new Set(cluster.map(p => p.depth));
-                let totalEdges = 0;
-                clusterDepths.forEach(depth => {
-                    totalEdges += edgesPassingThroughDepth.get(depth) || 0;
-                });
-                if (totalEdges === 0) {
-                    totalEdges = cluster.length;
-                }
+                // エッジ数がない場合は親ノード数をフォールバックとして使用
+                const effectiveEdgeCount = bounds.edgeCount > 0 ? bounds.edgeCount : cluster.length;
 
                 // 等間隔配置を計算
-                const spacing = calculateEvenSpacing(cluster, totalEdges, clusterMaxRight, clusterMinLeft);
+                const spacing = calculateEvenSpacing(
+                    cluster,
+                    effectiveEdgeCount,
+                    bounds.maxRight,
+                    bounds.minLeft
+                );
 
                 // 各親に割り当て
                 spacing.forEach((x, parentId) => {
