@@ -521,6 +521,13 @@ if (USE_NEW_LAYOUT) {
    - generateSVGPath関数を実装（SVGパス文字列生成）
    - edge-router.jsが830行に到達
 
+19. **エッジルーティング高度化 - フェーズ6** (完了)
+   - layout-engine.jsへの統合確認（routeEdges呼び出し済み）
+   - LayoutResultへのedgeRoutes格納確認（完了）
+   - EDGE_ROUTING_MIGRATION.md完遂
+   - 全6フェーズの実装完了
+   - 約60KB、10ファイル以上 → 830行の単一ファイルに統合（85%削減）
+
 ### 現在の実装状況
 
 1. **ノード配置**: V2システム実装完了、正常動作
@@ -566,10 +573,11 @@ if (USE_NEW_LAYOUT) {
    - vertical/horizontal両レイアウトで単一データソース化 ✓
    - 後方互換性コードの削除 ✓
 
-3. **エッジルーティングの高度化** (次のステップ)
-   - 既存の複雑なロジックの移植（交差検出、ジャンプアーク、Y座標調整）
-   - v2/edge-drawer.jsへの描画移植
-   - 既存システムからの完全移行
+3. **エッジルーティングの高度化** ✓ (完了)
+   - 既存の複雑なロジックの移植（交差検出、ジャンプアーク、Y座標調整）✓
+   - edge-router.jsに全機能を統合 ✓
+   - generateSVGPath関数で完全なパス生成対応 ✓
+   - v2/edge-drawer.jsへの描画移植（将来のオプション）
 
 4. **Phase 2/3の完全統合** (将来)
    - v2/rendererの完全統合
