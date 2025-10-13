@@ -1045,10 +1045,8 @@ function getEdgeRouter() {
                         // 5-7セグメントルーティング（H-V-H-V-H）
                         const adjustedY2 = yAdjustment.adjustedY;
 
-                        // 最終水平線のY座標調整チェック（ターゲットノードを除外）
-                        const filteredBoundsFinal5Seg = nodeBounds.filter(n => n.id !== conn.to);
-                        const adjustedFinalY2 = _adjustHorizontalSegmentY(secondVerticalX, y2, x2, filteredBoundsFinal5Seg);
-                        const finalY2 = adjustedFinalY2 !== null ? adjustedFinalY2 : y2;
+                        // 2本目の垂直セグメントは常にターゲットのcenterYに戻る
+                        const finalY2 = y2;
 
                         // adjustedY2とfinalY2が同じ場合、5セグメントは不要（3セグメントにフォールバック）
                         const epsilon = 1.0;
@@ -1079,16 +1077,40 @@ function getEdgeRouter() {
                         // 最終セグメントY座標調整（ターゲットノードは除外）
                         const filteredBoundsFinal = nodeBounds.filter(n => n.id !== conn.to);
                         const adjustedY2 = _adjustHorizontalSegmentY(verticalSegmentX, y2, x2, filteredBoundsFinal);
-                        if (adjustedY2 !== null) {
-                            y2 = adjustedY2;
-                        }
 
-                        segments.push(new Segment('horizontal', new Point(x1, y1), new Point(verticalSegmentX, y1)));
-                        segments.push(new Segment('vertical', new Point(verticalSegmentX, y1), new Point(verticalSegmentX, y2)));
-                        segments.push(new Segment('horizontal', new Point(verticalSegmentX, y2), new Point(x2, y2)));
+                        const originalY2 = toPos.y + toPos.height / 2;
+
+                        // 最終水平セグメントがノードと衝突する場合、5セグメントルーティングに変換
+                        if (adjustedY2 !== null && Math.abs(adjustedY2 - originalY2) > 1.0) {
+                            // 2本目の垂直セグメントX座標を計算（垂直セグメントと終点の中間）
+                            const intermediateX = verticalSegmentX + (x2 - verticalSegmentX) * EDGE_CONSTANTS.SECOND_VERTICAL_DISTANCE_RATIO;
+
+                            // 最終水平セグメントのY座標を再チェック（2本目の垂直セグメント位置で）
+                            const filteredBoundsFinal5Seg = nodeBounds.filter(n => n.id !== conn.to);
+                            const adjustedFinalY2 = _adjustHorizontalSegmentY(intermediateX, originalY2, x2, filteredBoundsFinal5Seg);
+                            const finalY2 = adjustedFinalY2 !== null ? adjustedFinalY2 : originalY2;
+
+                            // 5セグメントルーティング（H-V-H-V-H）
+                            segments.push(new Segment('horizontal', new Point(x1, y1), new Point(verticalSegmentX, y1)));
+                            segments.push(new Segment('vertical', new Point(verticalSegmentX, y1), new Point(verticalSegmentX, adjustedY2)));
+                            segments.push(new Segment('horizontal', new Point(verticalSegmentX, adjustedY2), new Point(intermediateX, adjustedY2)));
+                            segments.push(new Segment('vertical', new Point(intermediateX, adjustedY2), new Point(intermediateX, finalY2)));
+                            segments.push(new Segment('horizontal', new Point(intermediateX, finalY2), new Point(x2, finalY2)));
+                        } else {
+                            // 通常の3セグメントルーティング
+                            if (adjustedY2 !== null) {
+                                y2 = adjustedY2;
+                            }
+
+                            segments.push(new Segment('horizontal', new Point(x1, y1), new Point(verticalSegmentX, y1)));
+                            segments.push(new Segment('vertical', new Point(verticalSegmentX, y1), new Point(verticalSegmentX, y2)));
+                            segments.push(new Segment('horizontal', new Point(verticalSegmentX, y2), new Point(x2, y2)));
+                        }
                     }
 
-                    const arrowPoint = new Point(x2, y2);
+                    // 矢印の位置は最終セグメントの終点
+                    const lastSegment = segments[segments.length - 1];
+                    const arrowPoint = new Point(lastSegment.end.x, lastSegment.end.y);
                     edgeRoutes.set(edgeKey, new EdgeRoute(segments, arrowPoint));
                 }
             });
