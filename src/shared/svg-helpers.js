@@ -1,8 +1,13 @@
 function getSVGHelpers() {
     return `
+        const SVG_HELPERS_CONSTANTS = {
+            SVG_NAMESPACE: 'http://www.w3.org/2000/svg',    // SVG名前空間URI
+            DEFAULT_FONT_SIZE: 12                            // デフォルトフォントサイズ
+        };
+
         const svgHelpers = {
             createElement: function(type, attributes = {}) {
-                const element = document.createElementNS('http://www.w3.org/2000/svg', type);
+                const element = document.createElementNS(SVG_HELPERS_CONSTANTS.SVG_NAMESPACE, type);
                 for (const [key, value] of Object.entries(attributes)) {
                     if (value !== null && value !== undefined) {
                         element.setAttribute(key, value);
@@ -69,7 +74,7 @@ function getSVGHelpers() {
             // HTMLタグをパースしてテキスト要素を作成
             createRichText: function(htmlContent, attributes = {}) {
                 const textElement = this.createElement('text', attributes);
-                const fontSize = parseFloat(attributes['font-size'] || 12);
+                const fontSize = parseFloat(attributes['font-size'] || SVG_HELPERS_CONSTANTS.DEFAULT_FONT_SIZE);
                 const lineHeight = fontSize * 1.2;
 
                 // <br>で分割
@@ -80,7 +85,7 @@ function getSVGHelpers() {
                 const startY = (attributes.y || 0) - (totalHeight / 2) + (lineHeight / 2);
 
                 lines.forEach((line, lineIndex) => {
-                    const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                    const tspan = document.createElementNS(SVG_HELPERS_CONSTANTS.SVG_NAMESPACE, 'tspan');
                     tspan.setAttribute('x', attributes.x || 0);
 
                     if (lineIndex === 0) {
@@ -110,7 +115,7 @@ function getSVGHelpers() {
                             isSmall = false;
                         } else if (part) {
                             if (isBold || isItalic || isSmall) {
-                                const styledTspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                                const styledTspan = document.createElementNS(SVG_HELPERS_CONSTANTS.SVG_NAMESPACE, 'tspan');
                                 if (isBold) styledTspan.style.fontWeight = 'bold';
                                 if (isItalic) styledTspan.style.fontStyle = 'italic';
                                 if (isSmall) styledTspan.style.fontSize = (fontSize * 0.8) + 'px';
@@ -130,7 +135,7 @@ function getSVGHelpers() {
             },
 
             // HTMLタグを含むテキストのサイズを計算
-            measureRichText: function(htmlContent, fontSize = 12) {
+            measureRichText: function(htmlContent, fontSize = SVG_HELPERS_CONSTANTS.DEFAULT_FONT_SIZE) {
                 // HTMLタグを除去してプレーンテキストを取得
                 const lines = htmlContent.split(/<br\\s*\\/?>/i);
                 let maxWidth = 0;
