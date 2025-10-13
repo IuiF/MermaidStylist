@@ -43,12 +43,6 @@ function getLayoutEngine() {
                     treeStructure.levels.length
                 );
 
-                window.layoutLevelInfo = {
-                    levelXPositions: levelXPositions,
-                    levelMaxWidths: levelMaxWidths,
-                    levelCount: treeStructure.levels.length
-                };
-
                 console.log('[V2 Layout Engine] Layout calculation complete');
 
                 const layoutResult = new LayoutResult(nodePositions, edgeRoutes, labelPositions, metadata);

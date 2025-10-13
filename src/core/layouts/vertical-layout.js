@@ -219,15 +219,18 @@ function getVerticalLayout() {
                 levelMaxHeights[levelIndex] = maxHeight;
             });
 
-            // 階層情報をグローバルに保存（エッジレンダラーで使用）
-            window.layoutLevelInfo = {
-                levelYPositions: levelYPositions,
-                levelMaxHeights: levelMaxHeights,
-                levelCount: treeStructure.levels.length,
-                isVertical: true
+            // LayoutResultと互換性のある構造で返す
+            return {
+                nodePositions: nodePositions,
+                edgeRoutes: new Map(),
+                labelPositions: new Map(),
+                metadata: {
+                    levelYPositions: levelYPositions,
+                    levelMaxHeights: levelMaxHeights,
+                    levelCount: treeStructure.levels.length,
+                    isVertical: true
+                }
             };
-
-            return nodePositions;
         }
     `;
 }

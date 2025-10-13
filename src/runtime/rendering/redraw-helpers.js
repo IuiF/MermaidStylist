@@ -35,12 +35,24 @@ function getRedrawHelpers() {
              */
             recalculateLayout: function(layoutMode) {
                 if (layoutMode === 'vertical') {
-                    return verticalLayout(
+                    const layoutResult = verticalLayout(
                         allNodes,
                         connections,
                         calculateAllNodeWidths,
                         (n, c) => analyzeTreeStructure(n, c, dashedNodes)
                     );
+
+                    // LayoutResultをグローバルに保存（後方互換性のため）
+                    window.currentLayoutResult = layoutResult;
+
+                    // nodePositionsを従来形式で返す
+                    const nodePositions = layoutResult.nodePositions;
+                    const nodePositionsObj = {};
+                    nodePositions.forEach((pos, nodeId) => {
+                        nodePositionsObj[nodeId] = pos;
+                    });
+
+                    return nodePositionsObj;
                 }
 
                 // horizontal layoutはV2システムを使用

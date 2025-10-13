@@ -348,12 +348,8 @@ function getConnectionRenderer() {
                 // LayoutResultのmetadataからlevelInfoを取得（後方互換性のため古い方法もサポート）
                 let levelInfo = {};
                 if (window.currentLayoutResult && window.currentLayoutResult.metadata) {
-                    const metadata = window.currentLayoutResult.metadata;
-                    levelInfo = {
-                        levelXPositions: metadata.levelXPositions,
-                        levelMaxWidths: metadata.levelMaxWidths,
-                        levelCount: metadata.levelCount
-                    };
+                    // metadataの全プロパティをlevelInfoにコピー（horizontal/vertical両対応）
+                    levelInfo = { ...window.currentLayoutResult.metadata };
                 } else {
                     levelInfo = window.layoutLevelInfo || {};
                 }
