@@ -345,14 +345,12 @@ function getConnectionRenderer() {
 
                 const parentYPositions = connectionUtils.calculateParentYPositions(edgeInfos);
 
-                // LayoutResultのmetadataからlevelInfoを取得（後方互換性のため古い方法もサポート）
-                let levelInfo = {};
-                if (window.currentLayoutResult && window.currentLayoutResult.metadata) {
-                    // metadataの全プロパティをlevelInfoにコピー（horizontal/vertical両対応）
-                    levelInfo = { ...window.currentLayoutResult.metadata };
-                } else {
-                    levelInfo = window.layoutLevelInfo || {};
+                // LayoutResultのmetadataからlevelInfoを取得
+                if (!window.currentLayoutResult || !window.currentLayoutResult.metadata) {
+                    console.error('[Renderer] LayoutResult not found');
+                    return { edgeInfos: [], parentFinalVerticalSegmentX: {}, edgeToFinalVerticalX: {}, edgeToYAdjustment: {}, edgeToSecondVerticalX: {}, edgeCrossings: {} };
                 }
+                const levelInfo = { ...window.currentLayoutResult.metadata };
 
                 const depthBounds = depthCalculator.calculateDepthBounds(edgeInfos, levelInfo);
 
