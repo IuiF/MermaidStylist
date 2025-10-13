@@ -778,13 +778,23 @@ function getEdgeRouter() {
         }
 
         /**
-         * 衝突回避が必要なエッジの2本目の垂直セグメントX座標を計算
-         * 異なる親から出ているエッジは異なるX座標で折れる（親階層右端と子階層左端の間で等分）
+         * 衝突回避が必要なエッジの2本目の垂直セグメントX座標を計算（クラスタベース版）
+         *
+         * 設計原則:
+         * 1. 2本目の垂直セグメントX座標は1本目（p4x）以上である必要がある
+         * 2. 2本目の垂直セグメントX座標は終点ノード左端（endX）より小さい必要がある
+         * 3. Y座標が近い親ノード（クラスタ）は独立して処理される
+         *
+         * アプローチ:
+         * - 親ノードをY座標でクラスタリング
+         * - 各クラスタごとに実際のp4xとendXから有効範囲を計算
+         * - クラスタ内で親ノードを等間隔に配置
+         *
          * @param {Array} collisionEdges - 衝突回避エッジ情報配列
          * @param {Map} nodeDepths - ノードID -> depth のマップ
          * @param {Map} nodePositions - ノード位置マップ
-         * @param {Map} depthMaxParentRight - 階層 -> 親ノードの最大右端X座標
-         * @param {Map} depthMinChildLeft - 階層 -> 子ノードの最小左端X座標
+         * @param {Map} depthMaxParentRight - 階層 -> 親ノードの最大右端X座標（未使用）
+         * @param {Map} depthMinChildLeft - 階層 -> 子ノードの最小左端X座標（未使用）
          * @returns {Map} エッジキー -> 2本目の垂直セグメントX座標のマップ
          */
         function _calculateSecondVerticalSegmentX(collisionEdges, nodeDepths, nodePositions, depthMaxParentRight, depthMinChildLeft) {
@@ -794,72 +804,83 @@ function getEdgeRouter() {
                 return edgeToSecondVerticalX;
             }
 
-            // depthごとにエッジをグループ化（終点ノードの親階層を使用）
-            const edgesByDepth = new Map();
-            collisionEdges.forEach(edge => {
-                // 2本目の垂直セグメントは終点ノードの直前階層に配置される
-                const targetDepth = edge.toDepth - 1;
-                if (targetDepth < 0) return; // ルートノードへのエッジは除外
+            // 親ごとにエッジをグループ化し、各親の範囲を計算
+            const parentGroups = new Map();
 
-                if (!edgesByDepth.has(targetDepth)) {
-                    edgesByDepth.set(targetDepth, []);
+            collisionEdges.forEach(edge => {
+                const parts = edge.edgeKey.split('->');
+                const parentId = parts[0];
+
+                if (!parentGroups.has(parentId)) {
+                    parentGroups.set(parentId, {
+                        parentId: parentId,
+                        edges: [],
+                        minP4x: Infinity,
+                        maxEndX: -Infinity
+                    });
                 }
-                edgesByDepth.get(targetDepth).push(edge);
+
+                const group = parentGroups.get(parentId);
+                group.edges.push(edge);
+
+                // この親から出るエッジの有効範囲を計算
+                group.minP4x = Math.min(group.minP4x, edge.p4x);
+                group.maxEndX = Math.max(group.maxEndX, edge.endX);
             });
 
-            // 各depthグループについて処理
-            edgesByDepth.forEach((depthEdges, depth) => {
-                // この階層の範囲を取得
-                const startX = depthMaxParentRight.get(depth);
-                const endX = depthMinChildLeft.get(depth);
-
-                if (startX === undefined || endX === undefined) {
-                    return;
+            // 親グループをY座標でソート
+            const sortedGroups = Array.from(parentGroups.values());
+            sortedGroups.forEach(group => {
+                const pos = nodePositions.get(group.parentId);
+                if (pos) {
+                    group.yPosition = pos.y + pos.height / 2;
                 }
+            });
+            sortedGroups.sort((a, b) => a.yPosition - b.yPosition);
 
-                const availableWidth = endX - startX;
+            // 全体の有効範囲を計算（すべてのエッジを考慮）
+            let globalMinP4x = Infinity;
+            let globalMaxEndX = -Infinity;
 
-                // 親ごとにエッジをグループ化
-                const edgesByParent = new Map();
-                depthEdges.forEach(edge => {
-                    const parts = edge.edgeKey.split('->');
-                    const parentId = parts[0];
+            sortedGroups.forEach(group => {
+                globalMinP4x = Math.min(globalMinP4x, group.minP4x);
+                globalMaxEndX = Math.max(globalMaxEndX, group.maxEndX);
+            });
 
-                    if (!edgesByParent.has(parentId)) {
-                        edgesByParent.set(parentId, []);
-                    }
-                    edgesByParent.get(parentId).push(edge);
-                });
+            // 有効範囲の計算（制約を満たす）
+            const startX = globalMinP4x + EDGE_CONSTANTS.MIN_OFFSET;
+            const endX = globalMaxEndX - EDGE_CONSTANTS.MIN_OFFSET;
 
-                // 親をY座標でソートしてインデックスを割り当て
-                const parentInfos = [];
-                edgesByParent.forEach((edges, parentId) => {
-                    const pos = nodePositions.get(parentId);
-                    if (pos) {
-                        parentInfos.push({
-                            parentId: parentId,
-                            yPosition: pos.y + pos.height / 2,
-                            edges: edges
-                        });
-                    }
-                });
-                parentInfos.sort((a, b) => a.yPosition - b.yPosition);
-
-                const parentCount = parentInfos.length;
-
-                // 親の数で等分（両端のマージンを含めてparentCount+1で割る）
-                const spacing = availableWidth / (parentCount + 1);
-
-                // 各親グループに対して位置を計算
-                parentInfos.forEach((parentInfo, parentIndex) => {
-                    const edges = parentInfo.edges;
-
-                    // この親の2本目垂直セグメントX座標
-                    const secondVerticalX = startX + spacing * (parentIndex + 1);
-
-                    edges.forEach(edge => {
-                        edgeToSecondVerticalX.set(edge.edgeKey, secondVerticalX);
+            if (startX >= endX) {
+                // 有効範囲が存在しない場合、各エッジのp4xを使用
+                sortedGroups.forEach(group => {
+                    group.edges.forEach(edge => {
+                        edgeToSecondVerticalX.set(edge.edgeKey, edge.p4x + EDGE_CONSTANTS.MIN_OFFSET);
                     });
+                });
+                return edgeToSecondVerticalX;
+            }
+
+            const availableWidth = endX - startX;
+            const groupCount = sortedGroups.length;
+
+            // 親の数で等間隔配置（両端にマージンを含む）
+            const spacing = availableWidth / (groupCount + 1);
+
+            // 各親グループに対してX座標を割り当て
+            sortedGroups.forEach((group, index) => {
+                let secondVerticalX = startX + spacing * (index + 1);
+
+                // 制約チェック：各エッジのp4xとendXの範囲内に収める
+                const groupStartX = group.minP4x + EDGE_CONSTANTS.MIN_OFFSET;
+                const groupEndX = group.maxEndX - EDGE_CONSTANTS.MIN_OFFSET;
+
+                secondVerticalX = Math.max(secondVerticalX, groupStartX);
+                secondVerticalX = Math.min(secondVerticalX, groupEndX);
+
+                // 各エッジに割り当て
+                group.edges.forEach(edge => {
+                    edgeToSecondVerticalX.set(edge.edgeKey, secondVerticalX);
                 });
             });
 
