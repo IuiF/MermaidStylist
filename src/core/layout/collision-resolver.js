@@ -11,11 +11,16 @@ function getCollisionResolver() {
         };
 
         function calculateNodeSpacingV2Collision(nodeId, connections) {
-            const childConnections = connections.filter(conn => conn.from === nodeId);
-            if (childConnections.length > 0) {
-                return COLLISION_CONSTANTS_V2.BASE_SPACING;
-            }
-            return COLLISION_CONSTANTS_V2.BASE_SPACING / 2;
+            const incomingEdges = connections.filter(conn => conn.to === nodeId);
+            const labelsCount = incomingEdges.filter(conn => conn.label).length;
+            if (labelsCount === 0) return COLLISION_CONSTANTS_V2.BASE_SPACING;
+
+            const actualLabelHeight = 20;
+            const labelVerticalSpacing = 10;
+            const topMargin = 5;
+            const totalLabelHeight = actualLabelHeight + topMargin +
+                                      (labelsCount - 1) * (actualLabelHeight + labelVerticalSpacing);
+            return COLLISION_CONSTANTS_V2.BASE_SPACING + totalLabelHeight;
         }
 
         function resolveDashedNodeEdgeCollisionsV2(nodePositions, connections, treeStructure, dashedNodes) {

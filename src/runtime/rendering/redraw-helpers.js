@@ -55,7 +55,7 @@ function getRedrawHelpers() {
 
                     const input = {
                         nodes: allNodes,
-                        connections: allConnections,
+                        connections: connections,
                         treeStructure: treeStructure,
                         nodeWidths: nodeWidths,
                         dashedNodes: dashedNodeSet

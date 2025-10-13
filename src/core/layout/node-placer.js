@@ -9,11 +9,16 @@ function getNodePlacer() {
         };
 
         function calculateNodeSpacingV2(nodeId, connections) {
-            const childConnections = connections.filter(conn => conn.from === nodeId);
-            if (childConnections.length > 0) {
-                return LAYOUT_CONSTANTS.BASE_SPACING;
-            }
-            return LAYOUT_CONSTANTS.BASE_SPACING / 2;
+            const incomingEdges = connections.filter(conn => conn.to === nodeId);
+            const labelsCount = incomingEdges.filter(conn => conn.label).length;
+            if (labelsCount === 0) return LAYOUT_CONSTANTS.BASE_SPACING;
+
+            const actualLabelHeight = 20;
+            const labelVerticalSpacing = 10;
+            const topMargin = 5;
+            const totalLabelHeight = actualLabelHeight + topMargin +
+                                      (labelsCount - 1) * (actualLabelHeight + labelVerticalSpacing);
+            return LAYOUT_CONSTANTS.BASE_SPACING + totalLabelHeight;
         }
 
         function placeNodesV2(input) {
