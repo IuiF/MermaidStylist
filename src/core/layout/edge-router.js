@@ -9,7 +9,8 @@ function getEdgeRouter() {
             COLLISION_PADDING_NODE: 5,
             COLLISION_PADDING_LABEL: 3,
             ENDPOINT_EPSILON: 1.0,
-            JUMP_ARC_RADIUS: 8
+            JUMP_ARC_RADIUS: 8,
+            SECOND_VERTICAL_DISTANCE_RATIO: 0.6
         };
 
         function createEdgeKey(from, to) {
@@ -242,6 +243,68 @@ function getEdgeRouter() {
             }
 
             return adjustedY;
+        }
+
+        /**
+         * 垂直線と交差するオブジェクトを検出
+         * @param {number} x - 垂直線のX座標
+         * @param {number} y1 - 開始Y座標
+         * @param {number} y2 - 終了Y座標
+         * @param {Array} objects - オブジェクトの配列
+         * @param {number} padding - パディング
+         * @returns {Array} 交差するオブジェクトの配列
+         */
+        function _findVerticalLineIntersections(x, y1, y2, objects, padding) {
+            const yMin = Math.min(y1, y2);
+            const yMax = Math.max(y1, y2);
+            const lineRect = {
+                left: x - padding,
+                right: x + padding,
+                top: yMin - padding,
+                bottom: yMax + padding
+            };
+
+            return objects.filter(obj => _checkRectOverlap(lineRect, obj));
+        }
+
+        /**
+         * ノードを避けるためのX座標オフセットを計算
+         * @param {number} x - X座標
+         * @param {number} y1 - 開始Y座標
+         * @param {number} y2 - 終了Y座標
+         * @param {Array} nodeBounds - ノードのバウンディングボックス配列
+         * @returns {number} オフセット値
+         */
+        function _calculateNodeAvoidanceOffset(x, y1, y2, nodeBounds) {
+            const padding = EDGE_CONSTANTS.COLLISION_PADDING_NODE;
+            const intersections = _findVerticalLineIntersections(x, y1, y2, nodeBounds, padding);
+
+            if (intersections.length === 0) return 0;
+
+            const maxRight = Math.max(...intersections.map(obj => obj.right));
+            const offset = maxRight + padding - x;
+
+            return offset;
+        }
+
+        /**
+         * ラベルを避けるためのX座標オフセットを計算
+         * @param {number} x - X座標
+         * @param {number} y1 - 開始Y座標
+         * @param {number} y2 - 終了Y座標
+         * @param {Array} labelBounds - ラベルのバウンディングボックス配列
+         * @returns {number} オフセット値
+         */
+        function _calculateLabelAvoidanceOffset(x, y1, y2, labelBounds) {
+            const padding = EDGE_CONSTANTS.COLLISION_PADDING_LABEL;
+            const intersections = _findVerticalLineIntersections(x, y1, y2, labelBounds, padding);
+
+            if (intersections.length === 0) return 0;
+
+            const maxRight = Math.max(...intersections.map(obj => obj.right));
+            const offset = maxRight + padding - x;
+
+            return offset;
         }
 
         /**
@@ -550,6 +613,53 @@ function getEdgeRouter() {
             });
 
             return result;
+        }
+
+        /**
+         * 衝突回避が必要なエッジの2本目の垂直セグメントX座標を計算
+         * @param {Array} collisionEdges - 衝突回避エッジ情報配列
+         * @param {Map} nodeDepths - ノードID -> depth のマップ
+         * @returns {Map} エッジキー -> 2本目の垂直セグメントX座標のマップ
+         */
+        function _calculateSecondVerticalSegmentX(collisionEdges, nodeDepths) {
+            const edgeToSecondVerticalX = new Map();
+
+            if (collisionEdges.length === 0) {
+                return edgeToSecondVerticalX;
+            }
+
+            // 各階層を通過する衝突回避エッジの本数をカウント
+            const collisionEdgesPassingThroughDepth = new Map();
+            collisionEdges.forEach(edge => {
+                for (let d = edge.fromDepth; d < edge.toDepth; d++) {
+                    collisionEdgesPassingThroughDepth.set(d, (collisionEdgesPassingThroughDepth.get(d) || 0) + 1);
+                }
+            });
+
+            // 各衝突回避エッジについて、2本目の垂直セグメントX座標を計算
+            collisionEdges.forEach(edge => {
+                // p4xからendXまでの距離を基準にオフセットを計算
+                const baseDistance = edge.endX - edge.p4x;
+
+                // この階層を通過する衝突回避エッジの本数に基づいて、スペースを確保
+                const depthCollisionCount = collisionEdgesPassingThroughDepth.get(edge.fromDepth) || 1;
+
+                // 2本目の垂直セグメントは、p4xとendXの中間付近に配置
+                // ただし、衝突回避エッジが複数ある場合は、スペースを確保する
+                const minSpacing = EDGE_CONSTANTS.EDGE_SPACING;
+                const requiredSpace = minSpacing * depthCollisionCount;
+
+                // baseDistanceがrequiredSpaceより小さい場合は、baseDistanceを使用
+                const distanceRatio = EDGE_CONSTANTS.SECOND_VERTICAL_DISTANCE_RATIO;
+                const actualSpace = Math.min(baseDistance * distanceRatio, requiredSpace);
+
+                // 2本目の垂直セグメントX座標
+                const secondVerticalX = edge.endX - actualSpace;
+
+                edgeToSecondVerticalX.set(edge.edgeKey, secondVerticalX);
+            });
+
+            return edgeToSecondVerticalX;
         }
 
         function routeEdges(input) {
