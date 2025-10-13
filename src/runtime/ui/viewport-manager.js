@@ -1,5 +1,11 @@
 function getViewportManager() {
     return `
+        const VIEWPORT_CONSTANTS = {
+            WHEEL_RESET_TIMEOUT: 500,      // ホイール履歴リセットまでの時間(ms)
+            WHEEL_HISTORY_DURATION: 300,   // ホイール履歴保持期間(ms)
+            CONTENT_MARGIN: 50              // コンテンツ表示のマージン(px)
+        };
+
         const viewportManager = {
             scale: 1.0,
             translateX: 0,
@@ -82,8 +88,8 @@ function getViewportManager() {
             handleWheelPan: function(e) {
                 const now = Date.now();
 
-                // 500ms以上間隔が空いたらリセット
-                if (now - this.lastWheelTime > 500) {
+                // タイムアウト後はリセット
+                if (now - this.lastWheelTime > VIEWPORT_CONSTANTS.WHEEL_RESET_TIMEOUT) {
                     this.diagonalUnlocked = false;
                     this.wheelHistory = [];
                     this.lastValidDeltaX = 0;
@@ -99,7 +105,7 @@ function getViewportManager() {
                 });
 
                 // 古い履歴を削除
-                this.wheelHistory = this.wheelHistory.filter(h => now - h.time < 300);
+                this.wheelHistory = this.wheelHistory.filter(h => now - h.time < VIEWPORT_CONSTANTS.WHEEL_HISTORY_DURATION);
 
                 let deltaX = e.deltaX;
                 let deltaY = e.deltaY;
@@ -273,7 +279,7 @@ function getViewportManager() {
                 if (!isFinite(this.contentBounds.minX) || !isFinite(this.contentBounds.minY)) return;
 
                 // 最も左と最も上の位置が枠内に収まるように配置（スケール1.0固定）
-                const margin = 50;
+                const margin = VIEWPORT_CONSTANTS.CONTENT_MARGIN;
                 this.translateX = margin - this.contentBounds.minX;
                 this.translateY = margin - this.contentBounds.minY;
                 this.scale = 1.0;
@@ -351,7 +357,7 @@ function getViewportManager() {
                 if (!isFinite(this.contentBounds.minX) || !isFinite(this.contentBounds.minY)) return;
 
                 // 最も左と最も上の位置が枠内に収まるように配置
-                const margin = 50;
+                const margin = VIEWPORT_CONSTANTS.CONTENT_MARGIN;
                 this.translateX = margin - this.contentBounds.minX;
                 this.translateY = margin - this.contentBounds.minY;
                 this.scale = 1.0;
@@ -382,7 +388,7 @@ function getViewportManager() {
                 const contentHeight = this.contentBounds.maxY - this.contentBounds.minY;
 
                 // マージン
-                const margin = 50;
+                const margin = VIEWPORT_CONSTANTS.CONTENT_MARGIN;
 
                 // 全体が収まるスケールを計算（拡大はしない）
                 const scaleX = (containerWidth - margin * 2) / contentWidth;
