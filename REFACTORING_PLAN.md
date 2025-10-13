@@ -397,7 +397,7 @@ if (USE_NEW_LAYOUT) {
 ## 8. 成功基準
 
 - [x] test-complex-ultimate.mmdが正しく表示される
-- [ ] B2→E3問題が解決している（要確認）
+- [x] B2→E3問題が解決している（複数階層スキップエッジが正常描画）
 - [x] すべての衝突回避が機能している
 - [x] 折りたたみ・展開が動作する（V2システムで正常動作）
 - [x] ハイライト機能が動作する（V2システムで正常動作）
@@ -405,7 +405,7 @@ if (USE_NEW_LAYOUT) {
 - [x] V2システムがV1より高速（12%高速化達成）
 - [x] V2システムがデフォルトで有効
 - [x] コード行数が削減されている（482行削減）
-- [ ] グローバル変数が削減されている（window.layoutLevelInfoは依然として使用中）
+- [x] グローバル変数が削減されている（window.layoutLevelInfo→window.currentLayoutResultに統一完了）
 
 ## 9. 進捗状況
 
@@ -474,6 +474,13 @@ if (USE_NEW_LAYOUT) {
    - layout-engineがLayoutResultを返却
    - edgeRoutes、labelPositions、metadataを含む完全な構造
 
+13. **グローバル変数の削減** (完了)
+   - window.layoutLevelInfoをwindow.currentLayoutResultに統一
+   - vertical-layout.jsをLayoutResult互換構造に変更
+   - redraw-helpers.jsで両レイアウトモードのLayoutResultを保存
+   - renderer.jsからwindow.layoutLevelInfo後方互換性コードを削除
+   - 単一のデータソース(window.currentLayoutResult.metadata)に統一
+
 ### 現在の実装状況
 
 1. **ノード配置**: V2システム実装完了、正常動作
@@ -514,19 +521,24 @@ if (USE_NEW_LAYOUT) {
    - layout-engineがLayoutResultを返却 ✓
    - 基本的なエッジルーティング実装 ✓
 
-2. **エッジルーティングの高度化** (次のステップ)
+2. **グローバル変数の削減** ✓ (完了)
+   - window.layoutLevelInfoをwindow.currentLayoutResultに統一 ✓
+   - vertical/horizontal両レイアウトで単一データソース化 ✓
+   - 後方互換性コードの削除 ✓
+
+3. **エッジルーティングの高度化** (次のステップ)
    - 既存の複雑なロジックの移植（交差検出、ジャンプアーク、Y座標調整）
    - v2/edge-drawer.jsへの描画移植
    - 既存システムからの完全移行
 
-3. **Phase 2/3の完全統合** (将来)
+4. **Phase 2/3の完全統合** (将来)
    - v2/rendererの完全統合
    - orchestratorの完全統合
    - 既存システムからの段階的移行
 
-4. **コード削減と最適化** (進行中)
+5. **コード削減と最適化** (一部完了)
    - 重複コードの削除 ✓ (calculateNodeSpacing統一完了)
-   - グローバル変数の削減（window.layoutLevelInfoは要大規模変更）
+   - グローバル変数の削減 ✓ (window.layoutLevelInfo統一完了)
    - メモリ使用量の最適化
 
 #### 長期（オプション）
