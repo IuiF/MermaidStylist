@@ -8,7 +8,8 @@ function getNodePlacer() {
             MIN_LEVEL_SPACING: 200,
             LABEL_HEIGHT: 20,
             LABEL_VERTICAL_SPACING: 10,
-            LABEL_TOP_MARGIN: 5
+            LABEL_TOP_MARGIN: 5,
+            DEFAULT_NODE_HEIGHT: 50
         };
 
         function calculateNodeSpacingV2(nodeId, connections) {
@@ -54,7 +55,7 @@ function getNodePlacer() {
                 level.forEach(node => {
                     const width = nodeWidths.get(node.id) || 0;
                     const element = document.getElementById(node.id);
-                    const height = element ? parseInt(element.getAttribute('data-height')) || 50 : 50;
+                    const height = element ? parseInt(element.getAttribute('data-height')) || LAYOUT_CONSTANTS.DEFAULT_NODE_HEIGHT : LAYOUT_CONSTANTS.DEFAULT_NODE_HEIGHT;
 
                     const parents = connections.filter(conn => conn.to === node.id).map(conn => conn.from);
 
