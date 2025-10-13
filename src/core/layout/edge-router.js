@@ -7,11 +7,170 @@ function getEdgeRouter() {
             EDGE_SPACING: 30,
             CLUSTER_X_THRESHOLD: 200,
             COLLISION_PADDING_NODE: 5,
-            COLLISION_PADDING_LABEL: 3
+            COLLISION_PADDING_LABEL: 3,
+            ENDPOINT_EPSILON: 1.0,
+            JUMP_ARC_RADIUS: 8
         };
 
         function createEdgeKey(from, to) {
             return from + '->' + to;
+        }
+
+        /**
+         * 水平線分と垂直線分の交差判定
+         * @param {Object} hSeg - 水平セグメント
+         * @param {Object} vSeg - 垂直セグメント
+         * @returns {Object|null} 交差点 {x, y} または null
+         */
+        function checkSegmentIntersection(hSeg, vSeg) {
+            const hMinX = Math.min(hSeg.start.x, hSeg.end.x);
+            const hMaxX = Math.max(hSeg.start.x, hSeg.end.x);
+            const hY = hSeg.start.y;
+
+            const vX = vSeg.start.x;
+            const vMinY = Math.min(vSeg.start.y, vSeg.end.y);
+            const vMaxY = Math.max(vSeg.start.y, vSeg.end.y);
+
+            const epsilon = EDGE_CONSTANTS.ENDPOINT_EPSILON;
+
+            // 水平線のY座標が垂直線のY範囲内かチェック
+            if (hY < vMinY || hY > vMaxY) {
+                return null;
+            }
+
+            // 垂直線のX座標が水平線のX範囲内かチェック
+            if (vX < hMinX || vX > hMaxX) {
+                return null;
+            }
+
+            // 交差点がセグメントの端点に近い場合は除外
+            const isNearHorizontalEndpoint =
+                Math.abs(vX - hSeg.start.x) < epsilon ||
+                Math.abs(vX - hSeg.end.x) < epsilon;
+
+            const isNearVerticalEndpoint =
+                Math.abs(hY - vSeg.start.y) < epsilon ||
+                Math.abs(hY - vSeg.end.y) < epsilon;
+
+            if (isNearHorizontalEndpoint || isNearVerticalEndpoint) {
+                return null;
+            }
+
+            return new Point(vX, hY);
+        }
+
+        /**
+         * エッジルート間の交差を検出
+         * @param {Map} edgeRoutes - エッジルートマップ
+         * @returns {Map} エッジキー -> 交差点配列のマップ
+         */
+        function detectEdgeCrossings(edgeRoutes) {
+            const crossings = new Map();
+
+            // 全エッジの組み合わせをチェック
+            const edgeKeys = Array.from(edgeRoutes.keys());
+
+            for (let i = 0; i < edgeKeys.length; i++) {
+                const key1 = edgeKeys[i];
+                const route1 = edgeRoutes.get(key1);
+
+                for (let j = 0; j < route1.segments.length; j++) {
+                    const seg1 = route1.segments[j];
+                    if (seg1.type !== 'horizontal') continue;
+
+                    for (let k = 0; k < edgeKeys.length; k++) {
+                        if (i === k) continue; // 同じエッジは除外
+
+                        const key2 = edgeKeys[k];
+                        const route2 = edgeRoutes.get(key2);
+
+                        for (let l = 0; l < route2.segments.length; l++) {
+                            const seg2 = route2.segments[l];
+                            if (seg2.type !== 'vertical') continue;
+
+                            const intersection = checkSegmentIntersection(seg1, seg2);
+                            if (intersection) {
+                                if (!crossings.has(key1)) {
+                                    crossings.set(key1, []);
+                                }
+
+                                // 重複チェック
+                                const existing = crossings.get(key1);
+                                const isDuplicate = existing.some(p =>
+                                    Math.abs(p.x - intersection.x) < 0.1 &&
+                                    Math.abs(p.y - intersection.y) < 0.1
+                                );
+
+                                if (!isDuplicate) {
+                                    existing.push(intersection);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 交差点をX座標順にソート
+            crossings.forEach((points, key) => {
+                points.sort((a, b) => a.x - b.x);
+            });
+
+            return crossings;
+        }
+
+        /**
+         * 水平セグメントを交差点で分割してジャンプアークを挿入
+         * @param {Segment} segment - 水平セグメント
+         * @param {Array} crossings - 交差点配列
+         * @returns {Array} 分割されたセグメント配列
+         */
+        function splitSegmentWithJumpArcs(segment, crossings) {
+            if (crossings.length === 0) {
+                return [segment];
+            }
+
+            const result = [];
+            const radius = EDGE_CONSTANTS.JUMP_ARC_RADIUS;
+            let currentX = segment.start.x;
+            const y = segment.start.y;
+            const endX = segment.end.x;
+
+            crossings.forEach(crossing => {
+                // 交差点までの水平線
+                if (currentX < crossing.x - radius) {
+                    result.push(new Segment('horizontal',
+                        new Point(currentX, y),
+                        new Point(crossing.x - radius, y)
+                    ));
+                }
+
+                // ジャンプアーク
+                const arcParams = new ArcParams(
+                    crossing.x,
+                    y,
+                    radius,
+                    Math.PI,
+                    0
+                );
+                result.push(new Segment('arc',
+                    new Point(crossing.x - radius, y),
+                    new Point(crossing.x + radius, y),
+                    null,
+                    arcParams
+                ));
+
+                currentX = crossing.x + radius;
+            });
+
+            // 最後のセグメント
+            if (currentX < endX) {
+                result.push(new Segment('horizontal',
+                    new Point(currentX, y),
+                    new Point(endX, y)
+                ));
+            }
+
+            return result;
         }
 
         /**
@@ -478,7 +637,190 @@ function getEdgeRouter() {
                 }
             });
 
+            // エッジ交差を検出
+            const crossings = detectEdgeCrossings(edgeRoutes);
+
+            // 交差があるエッジのセグメントを分割してジャンプアークを挿入
+            if (crossings.size > 0) {
+                crossings.forEach((crossingPoints, edgeKey) => {
+                    const route = edgeRoutes.get(edgeKey);
+                    if (!route) return;
+
+                    const newSegments = [];
+
+                    route.segments.forEach(segment => {
+                        if (segment.type === 'horizontal') {
+                            // この水平セグメントにかかる交差点をフィルタ
+                            const segmentCrossings = crossingPoints.filter(p => {
+                                const minX = Math.min(segment.start.x, segment.end.x);
+                                const maxX = Math.max(segment.start.x, segment.end.x);
+                                return p.x >= minX && p.x <= maxX && Math.abs(p.y - segment.start.y) < 0.1;
+                            });
+
+                            // セグメントを分割
+                            const splitSegments = splitSegmentWithJumpArcs(segment, segmentCrossings);
+                            newSegments.push(...splitSegments);
+                        } else {
+                            // 垂直セグメントはそのまま
+                            newSegments.push(segment);
+                        }
+                    });
+
+                    // ルートを更新
+                    edgeRoutes.set(edgeKey, new EdgeRoute(newSegments, route.arrowPoint));
+                });
+            }
+
             return edgeRoutes;
+        }
+
+        /**
+         * セグメントの長さを計算
+         * @param {Segment} segment - セグメント
+         * @returns {number} セグメントの長さ
+         */
+        function getSegmentLength(segment) {
+            if (segment.type === 'horizontal' || segment.type === 'arc') {
+                return Math.abs(segment.end.x - segment.start.x);
+            } else if (segment.type === 'vertical') {
+                return Math.abs(segment.end.y - segment.start.y);
+            }
+            return 0;
+        }
+
+        /**
+         * セグメントの方向を判定
+         * @param {Segment} segment - セグメント
+         * @returns {string} 方向（'right', 'left', 'up', 'down'）
+         */
+        function getSegmentDirection(segment) {
+            if (segment.type === 'horizontal' || segment.type === 'arc') {
+                return segment.end.x > segment.start.x ? 'right' : 'left';
+            } else if (segment.type === 'vertical') {
+                return segment.end.y > segment.start.y ? 'down' : 'up';
+            }
+            return 'right';
+        }
+
+        /**
+         * 2つのセグメント間でカーブを適用可能か判定
+         * @param {Segment} seg1 - 最初のセグメント
+         * @param {Segment} seg2 - 次のセグメント
+         * @param {number} r - コーナー半径
+         * @returns {boolean} カーブ適用可能かどうか
+         */
+        function canApplyCurve(seg1, seg2, r) {
+            // 同じタイプのセグメント間ではカーブ不可
+            if (seg1.type === seg2.type) {
+                return false;
+            }
+
+            // arcまたはcurveセグメントがある場合は不可
+            if (seg1.type === 'arc' || seg1.type === 'curve' || seg2.type === 'arc' || seg2.type === 'curve') {
+                return false;
+            }
+
+            // 両方のセグメントが十分な長さを持つ場合のみカーブ適用
+            const seg1Length = getSegmentLength(seg1);
+            const seg2Length = getSegmentLength(seg2);
+
+            return seg1Length > r * 2 && seg2Length > r * 2;
+        }
+
+        /**
+         * カーブ付き遷移のSVGパスコマンドを生成
+         * @param {Segment} seg1 - 最初のセグメント
+         * @param {Segment} seg2 - 次のセグメント
+         * @param {number} r - コーナー半径
+         * @returns {string} SVGパスコマンド
+         */
+        function renderCurvedTransition(seg1, seg2, r) {
+            const corner = seg1.end;
+            let path = '';
+
+            const dir1 = getSegmentDirection(seg1);
+            const dir2 = getSegmentDirection(seg2);
+
+            // seg1の終点手前までの直線
+            if (seg1.type === 'horizontal') {
+                const beforeCornerX = dir1 === 'right' ? corner.x - r : corner.x + r;
+                path += \` L \${beforeCornerX} \${corner.y}\`;
+            } else {
+                const beforeCornerY = dir1 === 'down' ? corner.y - r : corner.y + r;
+                path += \` L \${corner.x} \${beforeCornerY}\`;
+            }
+
+            // Qコマンドでカーブを描画
+            path += \` Q \${corner.x} \${corner.y}\`;
+
+            // seg2の開始点（コーナーの先）
+            if (seg2.type === 'horizontal') {
+                const afterCornerX = dir2 === 'right' ? corner.x + r : corner.x - r;
+                path += \` \${afterCornerX} \${corner.y}\`;
+            } else {
+                const afterCornerY = dir2 === 'down' ? corner.y + r : corner.y - r;
+                path += \` \${corner.x} \${afterCornerY}\`;
+            }
+
+            return path;
+        }
+
+        /**
+         * ジャンプアーク（半円）のSVGパスコマンドを生成
+         * @param {ArcParams} arcParams - アークパラメータ
+         * @param {Point} endPoint - 終点
+         * @returns {string} SVGパスコマンド
+         */
+        function renderJumpArc(arcParams, endPoint) {
+            // A rx ry x-axis-rotation large-arc-flag sweep-flag x y
+            // ジャンプアークは上向きの半円（sweep-flag=1）
+            return \` A \${arcParams.radius} \${arcParams.radius} 0 0 1 \${endPoint.x} \${endPoint.y}\`;
+        }
+
+        /**
+         * EdgeRouteからSVGパス文字列を生成
+         * @param {EdgeRoute} edgeRoute - エッジルート
+         * @param {number} cornerRadius - コーナー半径（カーブ用）
+         * @returns {string} SVGパス文字列
+         */
+        function generateSVGPath(edgeRoute, cornerRadius) {
+            if (!edgeRoute || !edgeRoute.segments || edgeRoute.segments.length === 0) {
+                return '';
+            }
+
+            const r = cornerRadius !== undefined ? cornerRadius : EDGE_CONSTANTS.CORNER_RADIUS;
+            const segments = edgeRoute.segments;
+
+            // Mコマンドで開始
+            let path = \`M \${segments[0].start.x} \${segments[0].start.y}\`;
+
+            for (let i = 0; i < segments.length; i++) {
+                const current = segments[i];
+                const next = segments[i + 1];
+
+                // arcセグメントの場合はAコマンドを生成
+                if (current.type === 'arc' && current.arcParams) {
+                    path += renderJumpArc(current.arcParams, current.end);
+                    continue;
+                }
+
+                // curveセグメントの場合はQコマンドを生成（将来用）
+                if (current.type === 'curve' && current.curveParams) {
+                    const cp1 = current.curveParams.controlPoint1;
+                    path += \` Q \${cp1.x} \${cp1.y} \${current.end.x} \${current.end.y}\`;
+                    continue;
+                }
+
+                // 次のセグメントとカーブ適用可能かチェック
+                if (next && canApplyCurve(current, next, r)) {
+                    path += renderCurvedTransition(current, next, r);
+                } else {
+                    // 通常の直線
+                    path += \` L \${current.end.x} \${current.end.y}\`;
+                }
+            }
+
+            return path;
         }
     `;
 }

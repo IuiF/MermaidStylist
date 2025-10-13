@@ -498,6 +498,29 @@ if (USE_NEW_LAYOUT) {
    - routeEdges関数で新しい垂直セグメント計算を使用
    - 動作確認完了（test-complex-ultimate.mmdで検証）
 
+16. **エッジルーティング高度化 - フェーズ3** (完了)
+   - _checkRectOverlap関数を実装（矩形重複判定）
+   - _checkEdgePathIntersectsNodes関数を実装（パスとノードの衝突判定）
+   - _adjustHorizontalSegmentY関数を実装（Y座標調整）
+   - routeEdgesに初期セグメントY調整を統合
+   - routeEdgesに最終セグメントY調整を統合
+
+17. **エッジルーティング高度化 - フェーズ4** (完了)
+   - checkSegmentIntersection関数を実装（水平・垂直セグメント交差検出）
+   - detectEdgeCrossings関数を実装（全エッジの交差検出）
+   - splitSegmentWithJumpArcs関数を実装（セグメント分割とジャンプアーク挿入）
+   - ENDPOINT_EPSILON定数を追加（エンドポイント除外処理）
+   - routeEdgesに交差検出とジャンプアーク挿入を統合
+
+18. **エッジルーティング高度化 - フェーズ5** (完了)
+   - getSegmentLength関数を実装（セグメント長計算）
+   - getSegmentDirection関数を実装（セグメント方向判定）
+   - canApplyCurve関数を実装（カーブ適用判定）
+   - renderCurvedTransition関数を実装（カーブパス生成）
+   - renderJumpArc関数を実装（ジャンプアーク描画）
+   - generateSVGPath関数を実装（SVGパス文字列生成）
+   - edge-router.jsが830行に到達
+
 ### 現在の実装状況
 
 1. **ノード配置**: V2システム実装完了、正常動作

@@ -7,9 +7,11 @@
 ## 現状分析
 
 ### 現在のV2 edge-router.js
-- 基本的な3セグメント（水平-垂直-水平）ルーティング
-- 1:1水平エッジの検出
-- 約58行
+- 垂直セグメントX座標の動的計算（クラスタリングベース）
+- Y座標調整（ノード衝突回避）
+- エッジ交差検出とジャンプアーク生成
+- SVGパス生成（カーブとアーク対応）
+- 約830行
 
 ### 既存システム（connections/renderer.js + 関連モジュール）
 - 約60KB、10ファイル以上
@@ -66,24 +68,28 @@ renderer.js (メイン)
   - clusterParentsByXPosition（クラスタリングロジック）
   - routeEdges関数での使用
 
-### フェーズ3: Y座標調整（1-2日）
-- [ ] path-y-adjuster.jsの移植
+### フェーズ3: Y座標調整（1-2日）✓ 完了
+- [x] path-y-adjuster.jsの移植
   - 初期セグメントY調整
   - 最終セグメントY調整（ノード衝突回避）
-- [ ] collision-utils.jsの移植
-  - 2本目の垂直セグメント計算
+- [x] collision-utils.jsの移植
+  - _checkRectOverlap（矩形重複判定）
+  - _checkEdgePathIntersectsNodes（パスとノードの衝突判定）
+  - _adjustHorizontalSegmentY（Y座標調整）
 
-### フェーズ4: エッジ交差検出（2-3日）
-- [ ] edge-crossing-detector.jsの移植
-  - 交差検出アルゴリズム
-  - ジャンプアーク座標計算
-  - セグメント分割ロジック
+### フェーズ4: エッジ交差検出（2-3日）✓ 完了
+- [x] edge-crossing-detector.jsの移植
+  - checkSegmentIntersection（交差検出アルゴリズム）
+  - detectEdgeCrossings（全エッジの交差検出）
+  - splitSegmentWithJumpArcs（セグメント分割ロジック）
+  - エンドポイント除外処理（ENDPOINT_EPSILON）
 
-### フェーズ5: パス生成（1-2日）
-- [ ] path-generator.jsの移植
-  - カーブパス生成
-  - ジャンプアーク描画
-  - SVGパス文字列生成
+### フェーズ5: パス生成（1-2日）✓ 完了
+- [x] path-generator.jsの移植
+  - generateSVGPath（SVGパス文字列生成）
+  - renderCurvedTransition（カーブパス生成）
+  - renderJumpArc（ジャンプアーク描画）
+  - canApplyCurve（カーブ適用判定）
 
 ### フェーズ6: 統合とテスト（2-3日）
 - [ ] layout-engine.jsへの統合
@@ -116,8 +122,14 @@ renderer.js (メイン)
 ## 現在の状態
 
 - **開始日**: 2025-10-13
-- **現在のフェーズ**: フェーズ3準備中
+- **現在のフェーズ**: フェーズ6（統合とテスト）
 - **完了したフェーズ**:
   - フェーズ1 - 基盤整備 ✓
   - フェーズ2 - 垂直セグメント計算 ✓
-- **次のアクション**: フェーズ3（Y座標調整）またはフェーズ4（エッジ交差検出）の実装判断
+  - フェーズ3 - Y座標調整 ✓
+  - フェーズ4 - エッジ交差検出 ✓
+  - フェーズ5 - パス生成 ✓
+- **次のアクション**: フェーズ6（統合とテスト）
+  - layout-engine.jsは既に統合済み（edgeRoutesを返している）
+  - LayoutResultへのedgeRoutes格納は既に完了
+  - 残りはテストとバグ修正
