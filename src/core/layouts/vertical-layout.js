@@ -1,17 +1,29 @@
 function getVerticalLayout() {
     return `
+        const VERTICAL_LAYOUT_CONSTANTS = {
+            MIN_CONTAINER_WIDTH: 800,
+            LEFT_MARGIN: 50,
+            TOP_MARGIN: 50,
+            BASE_SPACING: 60,
+            EDGE_CLEARANCE: 80,
+            MIN_LEVEL_SPACING: 120,
+            MAX_ITERATIONS: 10,
+            COLLISION_MARGIN: 20,
+            CONTAINER_RIGHT_PADDING: 100
+        };
+
         function verticalLayout(nodes, connections, calculateAllNodeWidths, analyzeTreeStructure) {
             const container = document.getElementById('treeContainer');
-            let containerWidth = Math.max(800, container.clientWidth || 800);
+            let containerWidth = Math.max(VERTICAL_LAYOUT_CONSTANTS.MIN_CONTAINER_WIDTH, container.clientWidth || VERTICAL_LAYOUT_CONSTANTS.MIN_CONTAINER_WIDTH);
 
             const nodeWidthMap = calculateAllNodeWidths(nodes);
             const treeStructure = analyzeTreeStructure(nodes, connections);
             const nodePositions = new Map();
 
-            const leftMargin = 50;
-            const baseSpacing = 60; // 基本スペース
-            const edgeClearance = 80; // エッジとノード間のクリアランス
-            const minLevelSpacing = 120; // 階層間の最小距離
+            const leftMargin = VERTICAL_LAYOUT_CONSTANTS.LEFT_MARGIN;
+            const baseSpacing = VERTICAL_LAYOUT_CONSTANTS.BASE_SPACING;
+            const edgeClearance = VERTICAL_LAYOUT_CONSTANTS.EDGE_CLEARANCE;
+            const minLevelSpacing = VERTICAL_LAYOUT_CONSTANTS.MIN_LEVEL_SPACING;
 
             // 各階層間の必要な距離を動的に計算
             const levelHeights = [];
@@ -22,7 +34,7 @@ function getVerticalLayout() {
             }
 
             // 各階層のY座標を計算
-            const levelYPositions = [50];
+            const levelYPositions = [VERTICAL_LAYOUT_CONSTANTS.TOP_MARGIN];
             for (let i = 1; i < treeStructure.levels.length; i++) {
                 const height = Math.max(levelHeights[i - 1] || minLevelSpacing, minLevelSpacing);
                 levelYPositions[i] = levelYPositions[i - 1] + height + edgeClearance;
@@ -130,8 +142,8 @@ function getVerticalLayout() {
 
             // エッジとノードの衝突を検知して回避
             function resolveEdgeNodeCollisions() {
-                const maxIterations = 10;
-                const collisionMargin = 20;
+                const maxIterations = VERTICAL_LAYOUT_CONSTANTS.MAX_ITERATIONS;
+                const collisionMargin = VERTICAL_LAYOUT_CONSTANTS.COLLISION_MARGIN;
 
                 for (let iteration = 0; iteration < maxIterations; iteration++) {
                     let hasCollision = false;
@@ -187,8 +199,9 @@ function getVerticalLayout() {
             // resolveEdgeNodeCollisions(); // 一旦無効化
 
             const maxX = Math.max(...Array.from(nodePositions.values()).map(pos => pos.x + pos.width));
-            if (maxX + 100 > containerWidth) {
-                containerWidth = maxX + 100;
+            const requiredWidth = maxX + VERTICAL_LAYOUT_CONSTANTS.CONTAINER_RIGHT_PADDING;
+            if (requiredWidth > containerWidth) {
+                containerWidth = requiredWidth;
                 container.style.width = containerWidth + 'px';
             }
 
