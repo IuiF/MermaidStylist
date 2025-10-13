@@ -22,6 +22,17 @@ function getCollisionResolver() {
             const maxIterations = COLLISION_CONSTANTS_V2.MAX_ITERATIONS;
             const collisionMargin = COLLISION_CONSTANTS_V2.COLLISION_MARGIN;
 
+            // ノードIDからレベルインデックスへのマップを事前構築
+            const nodeToLevel = new Map();
+            treeStructure.levels.forEach((level, idx) => {
+                level.forEach(node => {
+                    nodeToLevel.set(node.id, idx);
+                });
+            });
+
+            // 実線エッジのみをフィルタリング
+            const solidConnections = connections.filter(conn => !conn.isDashed);
+
             for (let iteration = 0; iteration < maxIterations; iteration++) {
                 let hasCollision = false;
 
@@ -32,21 +43,21 @@ function getCollisionResolver() {
                         const nodePos = nodePositions.get(node.id);
                         if (!nodePos) return;
 
-                        connections.forEach(conn => {
-                            if (conn.isDashed) return;
+                        const nodeTop = nodePos.y - collisionMargin;
+                        const nodeBottom = nodePos.y + nodePos.height + collisionMargin;
+                        const nodeLeft = nodePos.x - collisionMargin;
+                        const nodeRight = nodePos.x + nodePos.width + collisionMargin;
 
+                        solidConnections.forEach(conn => {
                             const fromPos = nodePositions.get(conn.from);
                             const toPos = nodePositions.get(conn.to);
 
                             if (!fromPos || !toPos) return;
 
-                            let fromLevel = -1, toLevel = -1;
-                            treeStructure.levels.forEach((lvl, idx) => {
-                                if (lvl.some(n => n.id === conn.from)) fromLevel = idx;
-                                if (lvl.some(n => n.id === conn.to)) toLevel = idx;
-                            });
+                            const fromLevel = nodeToLevel.get(conn.from);
+                            const toLevel = nodeToLevel.get(conn.to);
 
-                            if (fromLevel === -1 || toLevel === -1 || fromLevel >= levelIndex || toLevel <= levelIndex) return;
+                            if (fromLevel === undefined || toLevel === undefined || fromLevel >= levelIndex || toLevel <= levelIndex) return;
 
                             const levelSpan = toLevel - fromLevel;
                             if (levelSpan >= 3) return;
@@ -54,18 +65,15 @@ function getCollisionResolver() {
                             const edgeMinY = Math.min(fromPos.y, toPos.y);
                             const edgeMaxY = Math.max(fromPos.y + fromPos.height, toPos.y + toPos.height);
 
+                            const yOverlap = nodeTop < edgeMaxY && nodeBottom > edgeMinY;
+                            if (!yOverlap) return;
+
                             const verticalLineMinX = fromPos.x + fromPos.width;
                             const verticalLineMaxX = toPos.x;
 
-                            const nodeTop = nodePos.y - collisionMargin;
-                            const nodeBottom = nodePos.y + nodePos.height + collisionMargin;
-                            const yOverlap = nodeTop < edgeMaxY && nodeBottom > edgeMinY;
-
-                            const nodeLeft = nodePos.x - collisionMargin;
-                            const nodeRight = nodePos.x + nodePos.width + collisionMargin;
                             const xOverlap = !(verticalLineMaxX < nodeLeft || verticalLineMinX > nodeRight);
 
-                            if (yOverlap && xOverlap) {
+                            if (xOverlap) {
                                 const shiftAmount = edgeMaxY - nodeTop + COLLISION_CONSTANTS_V2.BASE_SPACING;
                                 nodePos.y += shiftAmount;
                                 hasCollision = true;
@@ -112,25 +120,19 @@ function getCollisionResolver() {
             const labelVerticalSpacing = COLLISION_CONSTANTS_V2.LABEL_VERTICAL_SPACING;
             const labelTopMargin = COLLISION_CONSTANTS_V2.LABEL_TOP_MARGIN;
 
+            // ラベル付き実線エッジのみをフィルタリング
+            const labeledConnections = connections.filter(conn => conn.label && !conn.isDashed);
+
+            // ラベルがない場合は早期リターン
+            if (labeledConnections.length === 0) return;
+
             for (let iteration = 0; iteration < maxIterations; iteration++) {
                 let hasCollision = false;
-
-                const labelCountByTarget = {};
-                connections.forEach(conn => {
-                    if (conn.label && !conn.isDashed) {
-                        if (!labelCountByTarget[conn.to]) {
-                            labelCountByTarget[conn.to] = 0;
-                        }
-                        labelCountByTarget[conn.to]++;
-                    }
-                });
 
                 const predictedLabelBounds = [];
                 const labelOffsets = {};
 
-                connections.forEach(conn => {
-                    if (!conn.label || conn.isDashed) return;
-
+                labeledConnections.forEach(conn => {
                     const toPos = nodePositions.get(conn.to);
                     if (!toPos) return;
 
@@ -146,7 +148,6 @@ function getCollisionResolver() {
                     const labelHeight = estimatedLabelHeight;
 
                     predictedLabelBounds.push({
-                        from: conn.from,
                         to: conn.to,
                         left: labelLeft,
                         top: labelTop,
@@ -160,23 +161,26 @@ function getCollisionResolver() {
                         const nodePos = nodePositions.get(node.id);
                         if (!nodePos) return;
 
-                        const nodeLeft = nodePos.x;
-                        const nodeTop = nodePos.y;
-                        const nodeRight = nodePos.x + nodePos.width;
-                        const nodeBottom = nodePos.y + nodePos.height;
+                        const nodeLeft = nodePos.x - collisionMargin;
+                        const nodeTop = nodePos.y - collisionMargin;
+                        const nodeRight = nodePos.x + nodePos.width + collisionMargin;
+                        const nodeBottom = nodePos.y + nodePos.height + collisionMargin;
 
-                        predictedLabelBounds.forEach(label => {
-                            if (label.to === node.id) return;
+                        for (let i = 0; i < predictedLabelBounds.length; i++) {
+                            const label = predictedLabelBounds[i];
 
-                            const xOverlap = !(nodeRight + collisionMargin < label.left || nodeLeft - collisionMargin > label.right);
-                            const yOverlap = !(nodeBottom + collisionMargin < label.top || nodeTop - collisionMargin > label.bottom);
+                            if (label.to === node.id) continue;
 
-                            if (xOverlap && yOverlap) {
-                                const shiftAmount = label.bottom + collisionMargin - nodeTop + COLLISION_CONSTANTS_V2.BASE_SPACING;
-                                nodePos.y += shiftAmount;
-                                hasCollision = true;
-                            }
-                        });
+                            const xOverlap = !(nodeRight < label.left || nodeLeft > label.right);
+                            if (!xOverlap) continue;
+
+                            const yOverlap = !(nodeBottom < label.top || nodeTop > label.bottom);
+                            if (!yOverlap) continue;
+
+                            const shiftAmount = label.bottom + collisionMargin - nodePos.y + COLLISION_CONSTANTS_V2.BASE_SPACING;
+                            nodePos.y += shiftAmount;
+                            hasCollision = true;
+                        }
                     });
                 });
 
