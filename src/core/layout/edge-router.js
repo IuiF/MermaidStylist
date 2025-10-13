@@ -5,11 +5,84 @@ function getEdgeRouter() {
             CORNER_RADIUS: 10,
             MIN_OFFSET: 20,
             EDGE_SPACING: 30,
-            CLUSTER_X_THRESHOLD: 200
+            CLUSTER_X_THRESHOLD: 200,
+            COLLISION_PADDING_NODE: 5,
+            COLLISION_PADDING_LABEL: 3
         };
 
         function createEdgeKey(from, to) {
             return from + '->' + to;
+        }
+
+        /**
+         * 2つの矩形範囲が重なるかチェック（ローカル）
+         * @param {Object} rect1 - 矩形1
+         * @param {Object} rect2 - 矩形2
+         * @returns {boolean} 重なっているかどうか
+         */
+        function _checkRectOverlap(rect1, rect2) {
+            const xOverlap = !(rect1.right < rect2.left || rect1.left > rect2.right);
+            const yOverlap = !(rect1.bottom < rect2.top || rect1.top > rect2.bottom);
+            return xOverlap && yOverlap;
+        }
+
+        /**
+         * エッジの経路全体でノードとの衝突をチェック（ローカル）
+         * @param {number} x1 - 開始X座標
+         * @param {number} y1 - 開始Y座標
+         * @param {number} x2 - 終了X座標
+         * @param {number} y2 - 終了Y座標
+         * @param {Array} nodeBounds - ノードのバウンディングボックス配列
+         * @returns {Array} 衝突するノードの配列
+         */
+        function _checkEdgePathIntersectsNodes(x1, y1, x2, y2, nodeBounds) {
+            const padding = EDGE_CONSTANTS.COLLISION_PADDING_NODE;
+            const pathRect = {
+                left: Math.min(x1, x2) - padding,
+                right: Math.max(x1, x2) + padding,
+                top: Math.min(y1, y2) - padding,
+                bottom: Math.max(y1, y2) + padding
+            };
+
+            return nodeBounds.filter(node => _checkRectOverlap(pathRect, node));
+        }
+
+        /**
+         * 水平セグメントがノードと衝突する場合にY座標を調整（ローカル）
+         * @param {number} x1 - 水平線開始X座標
+         * @param {number} y - 水平線Y座標
+         * @param {number} x2 - 水平線終了X座標
+         * @param {Array} nodeBounds - ノードのバウンディングボックス配列
+         * @returns {number|null} 調整後のY座標（調整不要の場合はnull）
+         */
+        function _adjustHorizontalSegmentY(x1, y, x2, nodeBounds) {
+            if (!nodeBounds || nodeBounds.length === 0) {
+                return null;
+            }
+
+            const pathIntersectingNodes = _checkEdgePathIntersectsNodes(x1, y, x2, y, nodeBounds);
+
+            if (pathIntersectingNodes.length === 0) {
+                return null;
+            }
+
+            const nodePadding = EDGE_CONSTANTS.COLLISION_PADDING_NODE;
+
+            // すべての衝突ノードの中で最も上と最も下を見つける
+            const topMost = Math.min(...pathIntersectingNodes.map(n => n.top));
+            const bottomMost = Math.max(...pathIntersectingNodes.map(n => n.bottom));
+
+            // 水平線のY座標を調整（ノードを避ける）
+            let adjustedY;
+            if (y < topMost) {
+                adjustedY = topMost - nodePadding;
+            } else if (y >= topMost && y <= bottomMost) {
+                adjustedY = bottomMost + nodePadding;
+            } else {
+                return null;
+            }
+
+            return adjustedY;
         }
 
         /**
@@ -333,6 +406,18 @@ function getEdgeRouter() {
                 nodePositions, connections, nodeDepths, levelXPositions, levelMaxWidths
             );
 
+            // ノード境界情報を構築
+            const nodeBounds = [];
+            nodePositions.forEach((pos, nodeId) => {
+                nodeBounds.push({
+                    id: nodeId,
+                    left: pos.x,
+                    right: pos.x + pos.width,
+                    top: pos.y,
+                    bottom: pos.y + pos.height
+                });
+            });
+
             connections.forEach(conn => {
                 const fromPos = nodePositions.get(conn.from);
                 const toPos = nodePositions.get(conn.to);
@@ -342,9 +427,9 @@ function getEdgeRouter() {
                 }
 
                 const x1 = fromPos.x + fromPos.width;
-                const y1 = fromPos.y + fromPos.height / 2;
+                let y1 = fromPos.y + fromPos.height / 2;
                 const x2 = toPos.x;
-                const y2 = toPos.y + toPos.height / 2;
+                let y2 = toPos.y + toPos.height / 2;
 
                 if (y1 === y2) {
                     // 水平エッジ
@@ -360,6 +445,26 @@ function getEdgeRouter() {
                     // 垂直セグメントX座標が計算されていない場合はフォールバック
                     if (verticalSegmentX === undefined) {
                         verticalSegmentX = x1 + EDGE_CONSTANTS.DEFAULT_VERTICAL_OFFSET;
+                    }
+
+                    // 初期セグメントY座標調整（ソースノードを除外）
+                    const filteredBoundsInitial = nodeBounds.filter(n => n.id !== conn.from);
+                    const adjustedY1 = _adjustHorizontalSegmentY(fromPos.x, y1, verticalSegmentX, filteredBoundsInitial);
+                    if (adjustedY1 !== null) {
+                        y1 = adjustedY1;
+                    }
+
+                    // 最終セグメントY座標調整（ターゲットノードの扱いに注意）
+                    const filteredBoundsFinal = nodeBounds.filter(n => {
+                        if (n.id === conn.to) {
+                            // 終点がノード左端より前を通過する場合のみチェック
+                            return verticalSegmentX < n.left;
+                        }
+                        return true;
+                    });
+                    const adjustedY2 = _adjustHorizontalSegmentY(verticalSegmentX, y2, x2, filteredBoundsFinal);
+                    if (adjustedY2 !== null) {
+                        y2 = adjustedY2;
                     }
 
                     const segments = [
