@@ -1,5 +1,21 @@
 function getLayoutUtils() {
     return `
+        const LAYOUT_UTILS_CONSTANTS = {
+            NODE_PADDING: 24,
+            NODE_FONT: '12px Arial, sans-serif',
+            LABEL_FONT: '11px Arial, sans-serif',
+            BASE_SPACING: 60,
+            MIN_SPACING: 60,
+            LABEL_PADDING: 30,
+            LABEL_HEIGHT: 20,
+            LABEL_VERTICAL_SPACING: 10,
+            LABEL_TOP_MARGIN: 5,
+            LEVEL_BASE_SPACING: 100,
+            LEVEL_EDGE_INCREMENT: 3,
+            LEVEL_MIN_SPACING: 80,
+            LEVEL_MAX_SPACING: 280
+        };
+
         function measureTextWidth(text, font) {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
@@ -8,9 +24,9 @@ function getLayoutUtils() {
         }
 
         function calculateAllNodeWidths(nodes) {
-            const padding = 24;
+            const padding = LAYOUT_UTILS_CONSTANTS.NODE_PADDING;
             const nodeWidthMap = new Map();
-            const font = '12px Arial, sans-serif';
+            const font = LAYOUT_UTILS_CONSTANTS.NODE_FONT;
 
             nodes.forEach(node => {
                 const element = document.getElementById(node.id);
@@ -39,9 +55,9 @@ function getLayoutUtils() {
         }
 
         function calculateConnectionLabelSpacing(connections, parentId) {
-            const labelFont = '11px Arial, sans-serif';
-            const minSpacing = 60;
-            const labelPadding = 30;
+            const labelFont = LAYOUT_UTILS_CONSTANTS.LABEL_FONT;
+            const minSpacing = LAYOUT_UTILS_CONSTANTS.MIN_SPACING;
+            const labelPadding = LAYOUT_UTILS_CONSTANTS.LABEL_PADDING;
 
             let maxLabelWidth = 0;
 
@@ -72,20 +88,20 @@ function getLayoutUtils() {
 
         // ノード間のエッジラベル数を計算してスペーシングを決定
         function calculateNodeSpacing(nodeId, connections, isVertical = true) {
-            const baseSpacing = 60;
+            const baseSpacing = LAYOUT_UTILS_CONSTANTS.BASE_SPACING;
             const incomingEdges = connections.filter(conn => conn.to === nodeId);
             const labelsCount = incomingEdges.filter(conn => conn.label).length;
             if (labelsCount === 0) return baseSpacing;
 
-            const actualLabelHeight = 20;
-            const labelVerticalSpacing = 10;
+            const actualLabelHeight = LAYOUT_UTILS_CONSTANTS.LABEL_HEIGHT;
+            const labelVerticalSpacing = LAYOUT_UTILS_CONSTANTS.LABEL_VERTICAL_SPACING;
 
             if (isVertical) {
                 // 垂直レイアウト: ラベルは縦に積み重なる
                 return baseSpacing + (labelsCount > 0 ? labelsCount * (actualLabelHeight + labelVerticalSpacing) : 0);
             } else {
                 // 水平レイアウト: 全ラベルの積み重ね高さを考慮
-                const topMargin = 5;
+                const topMargin = LAYOUT_UTILS_CONSTANTS.LABEL_TOP_MARGIN;
                 const totalLabelHeight = actualLabelHeight + topMargin +
                                           (labelsCount - 1) * (actualLabelHeight + labelVerticalSpacing);
                 return baseSpacing + totalLabelHeight;
@@ -130,10 +146,10 @@ function getLayoutUtils() {
                 }
             });
 
-            const baseSpacing = 100;
-            const edgeIncrement = 3;
-            const minSpacing = 80;
-            const maxSpacing = 280;
+            const baseSpacing = LAYOUT_UTILS_CONSTANTS.LEVEL_BASE_SPACING;
+            const edgeIncrement = LAYOUT_UTILS_CONSTANTS.LEVEL_EDGE_INCREMENT;
+            const minSpacing = LAYOUT_UTILS_CONSTANTS.LEVEL_MIN_SPACING;
+            const maxSpacing = LAYOUT_UTILS_CONSTANTS.LEVEL_MAX_SPACING;
 
             // エッジレンダラーと同じロジック: max(親ノード数, エッジ数)を使用
             const effectiveLaneCount = Math.max(passingParentNodes.size, passingEdgeCount);
