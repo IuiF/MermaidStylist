@@ -452,6 +452,12 @@ if (USE_NEW_LAYOUT) {
    - 複数テストケースで動作検証
    - V1/V2視覚的比較実施
 
+9. **V1システムの完全削除** (完了)
+   - window.USE_V2_LAYOUTフラグを削除
+   - window.toggleV2Layout()関数を削除
+   - redraw-helpers.jsをV2専用に簡略化
+   - html.jsから切り替え機能を削除
+
 ### 現在の実装状況
 
 1. **ノード配置**: V2システム実装完了、正常動作
@@ -475,11 +481,16 @@ if (USE_NEW_LAYOUT) {
    - V1/V2の視覚的比較検証完了 ✓
    - V2は点線ノード配置がより保守的だが機能的に問題なし
 
-3. **エッジルーティングの高度化** (中期タスクへ移行)
-   - edge-router.jsの完全実装
-   - 既存のvertical-segment-calculator等の機能移植
-   - ジャンプアーク、カーブ処理の完全サポート
-   - 現在は既存エッジ描画システムと正常連携中
+3. **V1システムの完全削除** ✓ (完了)
+   - window.USE_V2_LAYOUTフラグを削除 ✓
+   - window.toggleV2Layout()関数を削除 ✓
+   - redraw-helpers.jsをV2専用に簡略化 ✓
+   - html.jsから切り替え機能を削除 ✓
+
+4. **未使用V1ファイルの削除** (次のステップ)
+   - horizontal-layout.jsの削除検討
+   - V1レイアウト関連の未使用コード特定
+   - 依存関係の確認と整理
 
 #### 中期（推奨）
 1. **エッジルーティングの完全移植**
@@ -506,18 +517,20 @@ if (USE_NEW_LAYOUT) {
 ### 現在のアーキテクチャの状態
 
 ```
-[既存システム]
-├─ horizontal-layout.js (配置計算) ← V2で置き換え済み
-├─ connections/renderer.js (エッジ描画) ← V2でも使用中
-└─ collapse-manager.js (折りたたみ) ← V2でも使用中
-
-[V2システム]
-├─ layout/
+[水平レイアウト]
+├─ V2システム (layout/) ✓ 完全実装、デフォルト有効
 │   ├─ node-placer.js ✓ (実装完了、動作確認済み)
 │   ├─ collision-resolver.js ✓ (実装完了、動作確認済み)
 │   └─ layout-engine.js ✓ (実装完了、動作確認済み)
-├─ rendering/v2/ (基本構造のみ、未統合)
-└─ interaction/ (基本構造のみ、未統合)
+└─ V1システム削除済み (window.USE_V2_LAYOUTフラグ含む)
+
+[垂直レイアウト]
+└─ vertical-layout.js (既存システム継続使用)
+
+[エッジ描画・インタラクション]
+├─ connections/renderer.js (既存、V2レイアウトと互換)
+├─ collapse-manager.js (既存、V2レイアウトと互換)
+└─ rendering/v2/, interaction/ (基本構造のみ、未統合)
 
 [統合状態]
 ✓ V2レイアウト ← → 既存エッジ描画 (正常動作)

@@ -3,7 +3,6 @@ const { getLayoutUtils } = require('../../shared/layout-utils');
 const { getTreeStructureAnalyzer } = require('../../shared/tree-structure');
 const { getSVGHelpers } = require('../../shared/svg-helpers');
 const { getVerticalLayout } = require('../layouts/vertical-layout');
-const { getHorizontalLayout } = require('../layouts/horizontal-layout');
 const { getConnectionConstants } = require('../../runtime/rendering/connections/constants');
 const { getConnectionUtils } = require('../../runtime/rendering/connections/utils');
 const { getCollectors } = require('../../runtime/rendering/connections/collectors');
@@ -72,7 +71,6 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
 
         // Import layouts
         ${getVerticalLayout()}
-        ${getHorizontalLayout()}
 
         // Import connection constants
         ${getConnectionConstants()}
