@@ -2,7 +2,9 @@ function getEdgeRouter() {
     return `
         const EDGE_CONSTANTS = {
             DEFAULT_VERTICAL_OFFSET: 50,
-            CORNER_RADIUS: 10
+            CORNER_RADIUS: 10,
+            MIN_OFFSET: 20,
+            EDGE_SPACING: 30
         };
 
         function createEdgeKey(from, to) {
@@ -67,6 +69,81 @@ function getEdgeRouter() {
             const fromDepth = nodeDepths.get(conn.from) || 0;
             const toDepth = nodeDepths.get(conn.to) || 0;
             return toDepth - fromDepth;
+        }
+
+        /**
+         * 階層ごとの親の右端と子の左端を計算
+         * @param {Map} nodePositions - ノード位置マップ
+         * @param {Array} connections - 接続配列
+         * @param {Map} nodeDepths - ノードの深さマップ
+         * @param {Array} levelXPositions - 階層のX座標配列
+         * @param {Array} levelMaxWidths - 階層の最大幅配列
+         * @returns {Object} depthMaxParentRightとdepthMinChildLeftのオブジェクト
+         */
+        function calculateDepthBounds(nodePositions, connections, nodeDepths, levelXPositions, levelMaxWidths) {
+            const depthMaxParentRight = new Map();
+            const depthMinChildLeft = new Map();
+
+            connections.forEach(conn => {
+                const fromPos = nodePositions.get(conn.from);
+                const toPos = nodePositions.get(conn.to);
+                if (!fromPos || !toPos) return;
+
+                const fromDepth = nodeDepths.get(conn.from) || 0;
+                const x1 = fromPos.x + fromPos.width;
+                const x2 = toPos.x;
+
+                // 階層情報がある場合は使用
+                if (levelXPositions && levelXPositions[fromDepth] !== undefined &&
+                    levelMaxWidths && levelMaxWidths[fromDepth] !== undefined) {
+                    const levelMaxRight = levelXPositions[fromDepth] + levelMaxWidths[fromDepth];
+                    if (!depthMaxParentRight.has(fromDepth) || levelMaxRight > depthMaxParentRight.get(fromDepth)) {
+                        depthMaxParentRight.set(fromDepth, levelMaxRight);
+                    }
+                } else {
+                    if (!depthMaxParentRight.has(fromDepth) || x1 > depthMaxParentRight.get(fromDepth)) {
+                        depthMaxParentRight.set(fromDepth, x1);
+                    }
+                }
+
+                // 次の階層の左端
+                const nextDepth = fromDepth + 1;
+                if (levelXPositions && levelXPositions[nextDepth] !== undefined) {
+                    if (!depthMinChildLeft.has(fromDepth) || levelXPositions[nextDepth] < depthMinChildLeft.get(fromDepth)) {
+                        depthMinChildLeft.set(fromDepth, levelXPositions[nextDepth]);
+                    }
+                } else {
+                    if (!depthMinChildLeft.has(fromDepth) || x2 < depthMinChildLeft.get(fromDepth)) {
+                        depthMinChildLeft.set(fromDepth, x2);
+                    }
+                }
+            });
+
+            return { depthMaxParentRight, depthMinChildLeft };
+        }
+
+        /**
+         * 親ノードをdepthごとにグループ化
+         * @param {Array} connections - 接続配列
+         * @param {Map} nodeDepths - ノードの深さマップ
+         * @returns {Map} depth -> [parentId...]のマップ
+         */
+        function groupParentsByDepth(connections, nodeDepths) {
+            const parentsByDepth = new Map();
+            const seenParents = new Set();
+
+            connections.forEach(conn => {
+                if (seenParents.has(conn.from)) return;
+                seenParents.add(conn.from);
+
+                const depth = nodeDepths.get(conn.from) || 0;
+                if (!parentsByDepth.has(depth)) {
+                    parentsByDepth.set(depth, []);
+                }
+                parentsByDepth.get(depth).push(conn.from);
+            });
+
+            return parentsByDepth;
         }
 
         function routeEdges(input) {
