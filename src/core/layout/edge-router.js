@@ -596,48 +596,66 @@ function getEdgeRouter() {
             // 各depthを通過する全エッジ数をカウント
             const edgesPassingThroughDepth = countEdgesPassingThroughDepth(connections, nodeDepths);
 
-            // 各depthの親情報を構築
+            // 全depthの親情報を収集（depthも含める）
+            const allParentInfos = [];
             parentsByDepth.forEach((parentIds, depth) => {
-                const parentInfos = parentIds.map(parentId => {
+                parentIds.forEach(parentId => {
                     const pos = nodePositions.get(parentId);
-                    return {
+                    allParentInfos.push({
                         parentId: parentId,
                         yPosition: pos.y + pos.height / 2,
                         x1: pos.x + pos.width,
-                        x2: pos.x
-                    };
+                        x2: pos.x,
+                        depth: depth
+                    });
+                });
+            });
+
+            // X座標でクラスタリング（全depthまとめて）
+            const clusters = clusterParentsByXPosition(allParentInfos);
+
+            // 各クラスタごとに配置を計算
+            clusters.forEach(cluster => {
+                // クラスタ内の最大右端
+                const clusterMaxRight = Math.max(...cluster.map(p => p.x1));
+
+                // クラスタ内の親から出ている全エッジの子ノードの最小左端
+                const clusterChildXs = [];
+                cluster.forEach(p => {
+                    connections.forEach(conn => {
+                        if (conn.from === p.parentId) {
+                            const childPos = nodePositions.get(conn.to);
+                            if (childPos) {
+                                clusterChildXs.push(childPos.x);
+                            }
+                        }
+                    });
                 });
 
-                // X座標でクラスタリング
-                const clusters = clusterParentsByXPosition(parentInfos);
+                // 実際の子ノードX座標から最小左端を計算
+                let clusterMinLeft;
+                if (clusterChildXs.length > 0) {
+                    clusterMinLeft = Math.min(...clusterChildXs);
+                } else {
+                    clusterMinLeft = clusterMaxRight + 100; // フォールバック
+                }
 
-                // 各クラスタごとに配置を計算
-                clusters.forEach(cluster => {
-                    // クラスタ内の最大右端
-                    const clusterMaxRight = Math.max(...cluster.map(p => p.x1));
+                // クラスタ内の全depthのエッジ数を合計
+                const clusterDepths = new Set(cluster.map(p => p.depth));
+                let totalEdges = 0;
+                clusterDepths.forEach(depth => {
+                    totalEdges += edgesPassingThroughDepth.get(depth) || 0;
+                });
+                if (totalEdges === 0) {
+                    totalEdges = cluster.length;
+                }
 
-                    // クラスタ内の親から出ている全エッジの子ノードの最小左端
-                    const clusterChildXs = [];
-                    cluster.forEach(p => {
-                        connections.forEach(conn => {
-                            if (conn.from === p.parentId) {
-                                const childPos = nodePositions.get(conn.to);
-                                if (childPos) {
-                                    clusterChildXs.push(childPos.x);
-                                }
-                            }
-                        });
-                    });
-                    const clusterMinLeft = clusterChildXs.length > 0 ? Math.min(...clusterChildXs) : depthMinChildLeft.get(depth);
+                // 等間隔配置を計算
+                const spacing = calculateEvenSpacing(cluster, totalEdges, clusterMaxRight, clusterMinLeft);
 
-                    // 等間隔配置を計算
-                    const totalEdges = edgesPassingThroughDepth.get(depth) || cluster.length;
-                    const spacing = calculateEvenSpacing(cluster, totalEdges, clusterMaxRight, clusterMinLeft);
-
-                    // 各親に割り当て
-                    spacing.forEach((x, parentId) => {
-                        result.set(parentId, x);
-                    });
+                // 各親に割り当て
+                spacing.forEach((x, parentId) => {
+                    result.set(parentId, x);
                 });
             });
 
