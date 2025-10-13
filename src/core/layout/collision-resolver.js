@@ -10,18 +10,6 @@ function getCollisionResolver() {
             ESTIMATED_LABEL_WIDTH: 100
         };
 
-        function calculateNodeSpacingV2Collision(nodeId, connections) {
-            const incomingEdges = connections.filter(conn => conn.to === nodeId);
-            const labelsCount = incomingEdges.filter(conn => conn.label).length;
-            if (labelsCount === 0) return COLLISION_CONSTANTS_V2.BASE_SPACING;
-
-            const actualLabelHeight = 20;
-            const labelVerticalSpacing = 10;
-            const topMargin = 5;
-            const totalLabelHeight = actualLabelHeight + topMargin +
-                                      (labelsCount - 1) * (actualLabelHeight + labelVerticalSpacing);
-            return COLLISION_CONSTANTS_V2.BASE_SPACING + totalLabelHeight;
-        }
 
         function resolveDashedNodeEdgeCollisionsV2(nodePositions, connections, treeStructure, dashedNodes) {
             const maxIterations = COLLISION_CONSTANTS_V2.MAX_ITERATIONS;
@@ -104,7 +92,7 @@ function getCollisionResolver() {
 
                     const currentBottom = current.pos.y + current.pos.height;
                     const nextTop = next.pos.y;
-                    const nodeSpacing = calculateNodeSpacingV2Collision(next.node.id, connections);
+                    const nodeSpacing = calculateNodeSpacingV2(next.node.id, connections);
 
                     if (currentBottom + nodeSpacing > nextTop) {
                         const shiftAmount = currentBottom + nodeSpacing - nextTop;
