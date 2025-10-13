@@ -646,6 +646,66 @@ function getEdgeRouter() {
         }
 
         /**
+         * depth単位で衝突回避オフセットを集約
+         * 同じdepthの全親に最大オフセットを適用することで垂直セグメントを揃える
+         * @param {Map} nodePositions - ノード位置マップ
+         * @param {Array} connections - 接続配列
+         * @param {Map} nodeDepths - ノードの深さマップ
+         * @param {Map} baseVerticalSegmentX - 親ID -> 基本X座標のマップ
+         * @param {Array} nodeBounds - ノードバウンディングボックス配列
+         * @param {Array} labelBounds - ラベルバウンディングボックス配列
+         * @returns {Map} parentId -> 集約されたオフセット値のマップ
+         */
+        function _aggregateOffsetsByDepth(nodePositions, connections, nodeDepths, baseVerticalSegmentX, nodeBounds, labelBounds) {
+            const parentMaxOffset = new Map();
+
+            // 親をdepthごとにグループ化
+            const parentsByDepth = groupParentsByDepth(connections, nodeDepths);
+
+            // depthごとに最大オフセットを計算
+            parentsByDepth.forEach((parentIds, depth) => {
+                let depthMaxOffset = 0;
+
+                parentIds.forEach(parentId => {
+                    const baseVerticalX = baseVerticalSegmentX.get(parentId);
+                    if (baseVerticalX === undefined) return;
+
+                    let parentOffset = 0;
+
+                    // この親から出る全エッジについてオフセットを計算
+                    connections.forEach(conn => {
+                        if (conn.from !== parentId) return;
+
+                        const fromPos = nodePositions.get(conn.from);
+                        const toPos = nodePositions.get(conn.to);
+                        if (!fromPos || !toPos) return;
+
+                        const y1 = fromPos.y + fromPos.height / 2;
+                        const y2 = toPos.y + toPos.height / 2;
+
+                        // ノード回避オフセットを計算
+                        const nodeOffset = _calculateNodeAvoidanceOffset(baseVerticalX, y1, y2, nodeBounds);
+
+                        // ラベル回避オフセットを計算
+                        const labelOffset = _calculateLabelAvoidanceOffset(baseVerticalX + nodeOffset, y1, y2, labelBounds);
+
+                        const totalOffset = nodeOffset + labelOffset;
+                        parentOffset = Math.max(parentOffset, totalOffset);
+                    });
+
+                    depthMaxOffset = Math.max(depthMaxOffset, parentOffset);
+                });
+
+                // 同じdepthの全親に同じオフセットを適用
+                parentIds.forEach(parentId => {
+                    parentMaxOffset.set(parentId, depthMaxOffset);
+                });
+            });
+
+            return parentMaxOffset;
+        }
+
+        /**
          * 衝突回避が必要なエッジの2本目の垂直セグメントX座標を計算
          * @param {Array} collisionEdges - 衝突回避エッジ情報配列
          * @param {Map} nodeDepths - ノードID -> depth のマップ
@@ -693,7 +753,7 @@ function getEdgeRouter() {
         }
 
         function routeEdges(input) {
-            const { nodePositions, connections, levelXPositions, levelMaxWidths } = input;
+            const { nodePositions, connections, levelXPositions, levelMaxWidths, labelBounds } = input;
 
             const edgeRoutes = new Map();
 
@@ -712,10 +772,25 @@ function getEdgeRouter() {
                 });
             });
 
-            // 第1段階：初回の垂直セグメント計算（衝突回避エッジなし）
-            let verticalSegmentXByParent = calculateVerticalSegmentX(
+            // ラベル境界情報（inputから取得、なければ空配列）
+            const labelBoundsArray = labelBounds || [];
+
+            // 第1段階：基本垂直セグメント計算
+            const baseVerticalSegmentX = calculateVerticalSegmentX(
                 nodePositions, connections, nodeDepths, levelXPositions, levelMaxWidths
             );
+
+            // 第2段階：衝突回避オフセット集約（depth単位で統一）
+            const offsetsByParent = _aggregateOffsetsByDepth(
+                nodePositions, connections, nodeDepths, baseVerticalSegmentX, nodeBounds, labelBoundsArray
+            );
+
+            // 最終的な垂直セグメントX座標（基本 + オフセット）
+            const verticalSegmentXByParent = new Map();
+            baseVerticalSegmentX.forEach((baseX, parentId) => {
+                const offset = offsetsByParent.get(parentId) || 0;
+                verticalSegmentXByParent.set(parentId, baseX + offset);
+            });
 
             // 最終セグメントY調整が必要なエッジを検出
             const edgeToYAdjustment = new Map();
