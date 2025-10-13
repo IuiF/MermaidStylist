@@ -35,8 +35,6 @@ function buildEmbeddedCode() {
         .replace(/module\.exports = \{[^}]+\};?/g, '');
     const getVerticalLayout = fs.readFileSync('./src/core/layouts/vertical-layout.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
-    const getHorizontalLayout = fs.readFileSync('./src/core/layouts/horizontal-layout.js', 'utf8')
-        .replace(/module\.exports = \{[^}]+\};?/g, '');
     const getConnectionRenderer = fs.readFileSync('./src/runtime/rendering/connections/renderer.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
     const getShadowManager = fs.readFileSync('./src/runtime/rendering/effects/shadow-manager.js', 'utf8')
@@ -61,8 +59,7 @@ function buildEmbeddedCode() {
     code += getTreeStructureAnalyzer + '\n\n';
 
     code += '// レイアウト\n';
-    code += getVerticalLayout + '\n';
-    code += getHorizontalLayout + '\n\n';
+    code += getVerticalLayout + '\n\n';
 
     code += '// 機能\n';
     code += getConnectionRenderer + '\n';
