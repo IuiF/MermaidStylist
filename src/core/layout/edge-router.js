@@ -573,7 +573,8 @@ function getEdgeRouter() {
         }
 
         /**
-         * 親ごとの垂直セグメントX座標を計算
+         * 親ごとの垂直セグメントX座標を計算（統一版）
+         * 同じクラスタ内の全ての親に同じX座標を割り当てて線を重ねる
          * @param {Map} nodePositions - ノード位置マップ
          * @param {Array} connections - 接続配列
          * @param {Map} nodeDepths - ノードの深さマップ
@@ -588,9 +589,6 @@ function getEdgeRouter() {
             const { depthMaxParentRight, depthMinChildLeft } = calculateDepthBounds(
                 nodePositions, connections, nodeDepths, levelXPositions, levelMaxWidths
             );
-
-            // 通過エッジ数をカウント
-            const edgesPassingThrough = countEdgesPassingThroughDepth(connections, nodeDepths);
 
             // 親をdepthごとにグループ化
             const parentsByDepth = groupParentsByDepth(connections, nodeDepths);
@@ -629,15 +627,21 @@ function getEdgeRouter() {
                     });
                     const clusterMinLeft = clusterChildXs.length > 0 ? Math.min(...clusterChildXs) : depthMinChildLeft.get(depth);
 
-                    // 通過エッジ数
-                    const totalEdges = edgesPassingThrough.get(depth) || cluster.length;
+                    // 統一X座標を計算（クラスタ内の全親で共有）
+                    const unifiedX = (clusterMaxRight + clusterMinLeft) / 2;
 
-                    // 等間隔配置を計算
-                    const spacing = calculateEvenSpacing(cluster, totalEdges, clusterMaxRight, clusterMinLeft);
+                    // 最小オフセット制約を確認
+                    let finalX = unifiedX;
+                    cluster.forEach(p => {
+                        const minX = p.x1 + EDGE_CONSTANTS.MIN_OFFSET;
+                        if (finalX < minX) {
+                            finalX = minX;
+                        }
+                    });
 
-                    // 結果にマージ
-                    spacing.forEach((x, parentId) => {
-                        result.set(parentId, x);
+                    // クラスタ内の全ての親に同じX座標を割り当て
+                    cluster.forEach(p => {
+                        result.set(p.parentId, finalX);
                     });
                 });
             });
