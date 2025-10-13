@@ -135,7 +135,7 @@ function getJavaScriptContent(nodes, connections, styles = {}, classDefs = {}, d
         ${getLayoutEngine()}
 
         // V2レイアウトシステム切り替えフラグ
-        window.USE_V2_LAYOUT = false;
+        window.USE_V2_LAYOUT = true;
 
         // V2レイアウトシステム切り替え関数
         window.toggleV2Layout = function() {
