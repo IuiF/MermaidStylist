@@ -434,14 +434,10 @@ function getConnectionRenderer() {
 
                 // V2のedgeRoutesが利用可能な場合はそれを使用
                 if (window.currentLayoutResult && window.currentLayoutResult.edgeRoutes) {
-                    console.log('[renderCurvedEdge] V2 edgeRoutes available');
                     const edgeRoutes = window.currentLayoutResult.edgeRoutes;
                     const edgeRoute = edgeRoutes.get(edgeKey);
-                    console.log('[renderCurvedEdge] edgeRoute for', edgeKey, ':', edgeRoute ? 'found' : 'not found');
-                    console.log('[renderCurvedEdge] generateSVGPath type:', typeof generateSVGPath);
 
                     if (edgeRoute && typeof generateSVGPath === 'function') {
-                        console.log('[renderCurvedEdge] Using V2 generateSVGPath for', edgeKey);
                         const pathData = generateSVGPath(edgeRoute, CONNECTION_CONSTANTS.CORNER_RADIUS);
 
                         const path = svgHelpers.createPath(pathData, {
@@ -458,7 +454,6 @@ function getConnectionRenderer() {
                     }
                 }
 
-                console.log('[renderCurvedEdge] Falling back to existing system for', edgeKey);
                 // 既存システムへのフォールバック
                 const fromElement = svgHelpers.getNodeElement(conn.from);
                 const verticalSegmentX = parentFinalVerticalSegmentX[conn.from] || x1 + CONNECTION_CONSTANTS.DEFAULT_VERTICAL_OFFSET;
