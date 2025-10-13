@@ -464,9 +464,15 @@ if (USE_NEW_LAYOUT) {
    - build-webapp.jsからhorizontal-layout参照を削除
    - html.jsからhorizontal-layoutインポートを削除
 
-11. **重複コードの削減** (進行中)
+11. **重複コードの削減** (完了)
    - calculateNodeSpacingV2Collision関数を削除（12行削減）
    - calculateNodeSpacingV2に統一
+
+12. **LayoutResult構造の実装** (完了)
+   - types.jsをブラウザ形式に変換
+   - edge-router.jsをブラウザ形式に変換
+   - layout-engineがLayoutResultを返却
+   - edgeRoutes、labelPositions、metadataを含む完全な構造
 
 ### 現在の実装状況
 
@@ -479,7 +485,7 @@ if (USE_NEW_LAYOUT) {
 
 ### 次のステップ（優先度順）
 
-#### 短期（必須）
+#### 短期（必須）✓ 全て完了
 1. **パフォーマンス測定と最適化** ✓ (完了)
    - 新旧システムのパフォーマンス比較 ✓
    - ボトルネックの特定と改善 ✓
@@ -503,18 +509,23 @@ if (USE_NEW_LAYOUT) {
    - 依存関係の確認と整理 ✓
 
 #### 中期（推奨）
-1. **エッジルーティングの完全移植**
-   - edge-router.jsへの経路計算移植
+1. **LayoutResult構造の実装** ✓ (完了)
+   - types.jsとedge-router.jsをブラウザ形式に変換 ✓
+   - layout-engineがLayoutResultを返却 ✓
+   - 基本的なエッジルーティング実装 ✓
+
+2. **エッジルーティングの高度化** (次のステップ)
+   - 既存の複雑なロジックの移植（交差検出、ジャンプアーク、Y座標調整）
    - v2/edge-drawer.jsへの描画移植
    - 既存システムからの完全移行
 
-2. **Phase 2/3の完全統合**
+3. **Phase 2/3の完全統合** (将来)
    - v2/rendererの完全統合
    - orchestratorの完全統合
    - 既存システムからの段階的移行
 
-3. **コード削減と最適化** (進行中)
-   - 重複コードの削除（calculateNodeSpacing統一完了）
+4. **コード削減と最適化** (進行中)
+   - 重複コードの削除 ✓ (calculateNodeSpacing統一完了)
    - グローバル変数の削減（window.layoutLevelInfoは要大規模変更）
    - メモリ使用量の最適化
 
