@@ -828,55 +828,23 @@ function getEdgeRouter() {
                 group.maxEndX = Math.max(group.maxEndX, edge.endX);
             });
 
-            // 親グループをY座標でソート
-            const sortedGroups = Array.from(parentGroups.values());
-            sortedGroups.forEach(group => {
-                const pos = nodePositions.get(group.parentId);
-                if (pos) {
-                    group.yPosition = pos.y + pos.height / 2;
-                }
-            });
-            sortedGroups.sort((a, b) => a.yPosition - b.yPosition);
-
-            // 全体の有効範囲を計算（すべてのエッジを考慮）
-            let globalMinP4x = Infinity;
-            let globalMaxEndX = -Infinity;
-
-            sortedGroups.forEach(group => {
-                globalMinP4x = Math.min(globalMinP4x, group.minP4x);
-                globalMaxEndX = Math.max(globalMaxEndX, group.maxEndX);
-            });
-
-            // 有効範囲の計算（制約を満たす）
-            const startX = globalMinP4x + EDGE_CONSTANTS.MIN_OFFSET;
-            const endX = globalMaxEndX - EDGE_CONSTANTS.MIN_OFFSET;
-
-            if (startX >= endX) {
-                // 有効範囲が存在しない場合、各エッジのp4xを使用
-                sortedGroups.forEach(group => {
-                    group.edges.forEach(edge => {
-                        edgeToSecondVerticalX.set(edge.edgeKey, edge.p4x + EDGE_CONSTANTS.MIN_OFFSET);
-                    });
-                });
-                return edgeToSecondVerticalX;
-            }
-
-            const availableWidth = endX - startX;
-            const groupCount = sortedGroups.length;
-
-            // 親の数で等間隔配置（両端にマージンを含む）
-            const spacing = availableWidth / (groupCount + 1);
-
-            // 各親グループに対してX座標を割り当て
-            sortedGroups.forEach((group, index) => {
-                let secondVerticalX = startX + spacing * (index + 1);
-
-                // 制約チェック：各エッジのp4xとendXの範囲内に収める
+            // 各親グループに対して独立して2本目の垂直セグメントX座標を計算
+            parentGroups.forEach((group) => {
+                // このグループの有効範囲を計算
                 const groupStartX = group.minP4x + EDGE_CONSTANTS.MIN_OFFSET;
                 const groupEndX = group.maxEndX - EDGE_CONSTANTS.MIN_OFFSET;
 
-                secondVerticalX = Math.max(secondVerticalX, groupStartX);
-                secondVerticalX = Math.min(secondVerticalX, groupEndX);
+                if (groupStartX >= groupEndX) {
+                    // 有効範囲が存在しない場合、p4xを使用
+                    group.edges.forEach(edge => {
+                        edgeToSecondVerticalX.set(edge.edgeKey, edge.p4x + EDGE_CONSTANTS.MIN_OFFSET);
+                    });
+                    return;
+                }
+
+                // グループ専用の範囲で中央付近を計算
+                const availableWidth = groupEndX - groupStartX;
+                const secondVerticalX = groupStartX + availableWidth / 2;
 
                 // 各エッジに割り当て
                 group.edges.forEach(edge => {
