@@ -5,7 +5,10 @@ function getNodePlacer() {
             TOP_MARGIN: 50,
             BASE_SPACING: 60,
             EDGE_CLEARANCE: 80,
-            MIN_LEVEL_SPACING: 200
+            MIN_LEVEL_SPACING: 200,
+            LABEL_HEIGHT: 20,
+            LABEL_VERTICAL_SPACING: 10,
+            LABEL_TOP_MARGIN: 5
         };
 
         function calculateNodeSpacingV2(nodeId, connections) {
@@ -13,11 +16,8 @@ function getNodePlacer() {
             const labelsCount = incomingEdges.filter(conn => conn.label).length;
             if (labelsCount === 0) return LAYOUT_CONSTANTS.BASE_SPACING;
 
-            const actualLabelHeight = 20;
-            const labelVerticalSpacing = 10;
-            const topMargin = 5;
-            const totalLabelHeight = actualLabelHeight + topMargin +
-                                      (labelsCount - 1) * (actualLabelHeight + labelVerticalSpacing);
+            const totalLabelHeight = LAYOUT_CONSTANTS.LABEL_HEIGHT + LAYOUT_CONSTANTS.LABEL_TOP_MARGIN +
+                                      (labelsCount - 1) * (LAYOUT_CONSTANTS.LABEL_HEIGHT + LAYOUT_CONSTANTS.LABEL_VERTICAL_SPACING);
             return LAYOUT_CONSTANTS.BASE_SPACING + totalLabelHeight;
         }
 

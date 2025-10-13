@@ -2,6 +2,7 @@ function getCollisionResolver() {
     return `
         const COLLISION_CONSTANTS_V2 = {
             COLLISION_MARGIN: 20,
+            LABEL_COLLISION_MARGIN: 5,
             BASE_SPACING: 60,
             MAX_ITERATIONS: 5,
             ESTIMATED_LABEL_HEIGHT: 20,
@@ -108,7 +109,7 @@ function getCollisionResolver() {
 
         function resolveNodeLabelCollisionsV2(nodePositions, connections, treeStructure) {
             const maxIterations = COLLISION_CONSTANTS_V2.MAX_ITERATIONS;
-            const collisionMargin = 5;
+            const collisionMargin = COLLISION_CONSTANTS_V2.LABEL_COLLISION_MARGIN;
             const estimatedLabelHeight = COLLISION_CONSTANTS_V2.ESTIMATED_LABEL_HEIGHT;
             const labelVerticalSpacing = COLLISION_CONSTANTS_V2.LABEL_VERTICAL_SPACING;
             const labelTopMargin = COLLISION_CONSTANTS_V2.LABEL_TOP_MARGIN;
