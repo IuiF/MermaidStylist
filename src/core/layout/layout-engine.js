@@ -32,7 +32,8 @@ function getLayoutEngine() {
                 const edgeRoutes = routeEdges({
                     nodePositions,
                     connections,
-                    levelXPositions
+                    levelXPositions,
+                    levelMaxWidths
                 });
 
                 const labelPositions = new Map();
