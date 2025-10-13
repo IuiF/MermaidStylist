@@ -8,8 +8,8 @@ function getConnectionLabels() {
 
             const svgLayer = svgHelpers.getEdgeLayer();
             const tempText = svgHelpers.createText(conn.label, {
-                'font-size': '11',
-                'font-family': 'Arial, sans-serif'
+                'font-size': CONNECTION_CONSTANTS.LABEL_FONT_SIZE.toString(),
+                'font-family': CONNECTION_CONSTANTS.LABEL_FONT_FAMILY
             });
             svgLayer.appendChild(tempText);
             const textBBox = tempText.getBBox();
@@ -56,8 +56,8 @@ function getConnectionLabels() {
                 y: toTop - labelHeight / 2 - 2 - (offset * (labelHeight + labelVerticalSpacing)),
                 'dominant-baseline': 'central',
                 fill: '#333',
-                'font-size': '11',
-                'font-family': 'Arial, sans-serif'
+                'font-size': CONNECTION_CONSTANTS.LABEL_FONT_SIZE.toString(),
+                'font-family': CONNECTION_CONSTANTS.LABEL_FONT_FAMILY
             });
 
             labelGroup.appendChild(labelRect);

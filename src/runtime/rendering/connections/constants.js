@@ -9,6 +9,8 @@ function getConnectionConstants() {
             // ラベル関連
             LABEL_PADDING: 4,                // ラベル内の余白
             LABEL_VERTICAL_SPACING: 3,       // ラベル間の縦方向スペース
+            LABEL_FONT_SIZE: 11,             // ラベルのフォントサイズ
+            LABEL_FONT_FAMILY: 'Arial, sans-serif', // ラベルのフォント
 
             // 垂直セグメント配置
             MIN_OFFSET: 30,                  // ノード右端からの最小オフセット
