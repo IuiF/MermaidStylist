@@ -395,7 +395,8 @@ function getConnectionRenderer() {
                     edgeToYAdjustment,
                     edgeToFinalVerticalX,
                     parentFinalVerticalSegmentX,
-                    nodeDepthMap
+                    nodeDepthMap,
+                    parentYPositions
                 );
 
                 const layoutData = {

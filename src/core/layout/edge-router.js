@@ -711,46 +711,71 @@ function getEdgeRouter() {
 
         /**
          * 衝突回避が必要なエッジの2本目の垂直セグメントX座標を計算
+         * 異なる親から出ているエッジは異なるX座標で折れる（利用可能な幅を等分）
          * @param {Array} collisionEdges - 衝突回避エッジ情報配列
          * @param {Map} nodeDepths - ノードID -> depth のマップ
+         * @param {Map} nodePositions - ノード位置マップ
          * @returns {Map} エッジキー -> 2本目の垂直セグメントX座標のマップ
          */
-        function _calculateSecondVerticalSegmentX(collisionEdges, nodeDepths) {
+        function _calculateSecondVerticalSegmentX(collisionEdges, nodeDepths, nodePositions) {
             const edgeToSecondVerticalX = new Map();
 
             if (collisionEdges.length === 0) {
                 return edgeToSecondVerticalX;
             }
 
-            // 各階層を通過する衝突回避エッジの本数をカウント
-            const collisionEdgesPassingThroughDepth = new Map();
+            // 親ごとにエッジをグループ化
+            const edgesByParent = new Map();
             collisionEdges.forEach(edge => {
-                for (let d = edge.fromDepth; d < edge.toDepth; d++) {
-                    collisionEdgesPassingThroughDepth.set(d, (collisionEdgesPassingThroughDepth.get(d) || 0) + 1);
+                const parts = edge.edgeKey.split('->');
+                const parentId = parts[0];
+
+                if (!edgesByParent.has(parentId)) {
+                    edgesByParent.set(parentId, []);
                 }
+                edgesByParent.get(parentId).push(edge);
             });
 
-            // 各衝突回避エッジについて、2本目の垂直セグメントX座標を計算
-            collisionEdges.forEach(edge => {
-                // p4xからendXまでの距離を基準にオフセットを計算
-                const baseDistance = edge.endX - edge.p4x;
+            // 親をY座標でソートしてインデックスを割り当て
+            const parentInfos = [];
+            edgesByParent.forEach((edges, parentId) => {
+                const pos = nodePositions.get(parentId);
+                if (pos) {
+                    parentInfos.push({
+                        parentId: parentId,
+                        yPosition: pos.y + pos.height / 2,
+                        edges: edges
+                    });
+                }
+            });
+            parentInfos.sort((a, b) => a.yPosition - b.yPosition);
 
-                // この階層を通過する衝突回避エッジの本数に基づいて、スペースを確保
-                const depthCollisionCount = collisionEdgesPassingThroughDepth.get(edge.fromDepth) || 1;
+            const parentCount = parentInfos.length;
+            const distanceRatio = EDGE_CONSTANTS.SECOND_VERTICAL_DISTANCE_RATIO;
 
-                // 2本目の垂直セグメントは、p4xとendXの中間付近に配置
-                // ただし、衝突回避エッジが複数ある場合は、スペースを確保する
-                const minSpacing = EDGE_CONSTANTS.EDGE_SPACING;
-                const requiredSpace = minSpacing * depthCollisionCount;
+            // 各親グループに対して位置を計算
+            parentInfos.forEach((parentInfo, parentIndex) => {
+                const edges = parentInfo.edges;
 
-                // baseDistanceがrequiredSpaceより小さい場合は、baseDistanceを使用
-                const distanceRatio = EDGE_CONSTANTS.SECOND_VERTICAL_DISTANCE_RATIO;
-                const actualSpace = Math.min(baseDistance * distanceRatio, requiredSpace);
+                // この親グループの利用可能な距離を計算
+                const baseDistances = edges.map(edge => edge.endX - edge.p4x);
+                const avgBaseDistance = baseDistances.reduce((sum, d) => sum + d, 0) / baseDistances.length;
 
-                // 2本目の垂直セグメントX座標
-                const secondVerticalX = edge.endX - actualSpace;
+                // 利用可能な幅（距離比率を適用）
+                const availableWidth = avgBaseDistance * distanceRatio;
 
-                edgeToSecondVerticalX.set(edge.edgeKey, secondVerticalX);
+                // 親の数で等分（両端のマージンを含めてparentCount+1で割る）
+                const spacing = availableWidth / (parentCount + 1);
+
+                // 各親のオフセットを計算（1から始まるインデックス）
+                const parentOffset = spacing * (parentIndex + 1);
+
+                edges.forEach(edge => {
+                    // 各エッジに対して第2垂直セグメントX座標を計算
+                    const secondVerticalX = edge.endX - parentOffset;
+
+                    edgeToSecondVerticalX.set(edge.edgeKey, secondVerticalX);
+                });
             });
 
             return edgeToSecondVerticalX;
@@ -857,7 +882,7 @@ function getEdgeRouter() {
             });
 
             // 第2段階：2本目の垂直セグメントX座標を計算
-            const edgeToSecondVerticalX = _calculateSecondVerticalSegmentX(collisionEdges, nodeDepths);
+            const edgeToSecondVerticalX = _calculateSecondVerticalSegmentX(collisionEdges, nodeDepths, nodePositions);
 
             // セグメント生成
             connections.forEach(conn => {
