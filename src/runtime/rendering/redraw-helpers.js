@@ -7,7 +7,16 @@ function getRedrawHelpers() {
              * @param {Object} nodePositions - ノード位置データ
              */
             redrawConnectionsWithHighlights: function(connections, nodePositions) {
-                createCSSLines(connections, nodePositions);
+                // V2のLayoutResultが存在する場合はそれを使用
+                if (window.currentLayoutResult && window.currentLayoutResult.edgeRoutes) {
+                    if (typeof renderFromLayoutResult === 'function') {
+                        renderFromLayoutResult(window.currentLayoutResult, connections);
+                    } else {
+                        createCSSLines(connections, nodePositions);
+                    }
+                } else {
+                    createCSSLines(connections, nodePositions);
+                }
                 pathHighlighter.reapplyPathHighlight();
                 highlightManager.reapplyRelationHighlight();
             },
@@ -70,11 +79,11 @@ function getRedrawHelpers() {
                     dashedNodeSet.add(node.id);
                 });
 
-                const treeStructure = analyzeTreeStructure(allNodes, connections, dashedNodes);
+                const treeStructure = analyzeTreeStructure(allNodes, allConnections, dashedNodes);
 
                 const input = {
                     nodes: allNodes,
-                    connections: connections,
+                    connections: allConnections,
                     treeStructure: treeStructure,
                     nodeWidths: nodeWidths,
                     dashedNodes: dashedNodeSet
