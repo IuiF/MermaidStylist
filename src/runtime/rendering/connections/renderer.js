@@ -344,7 +344,20 @@ function getConnectionRenderer() {
                 edgeInfos.sort((a, b) => a.parentX - b.parentX);
 
                 const parentYPositions = connectionUtils.calculateParentYPositions(edgeInfos);
-                const levelInfo = window.layoutLevelInfo || {};
+
+                // LayoutResultのmetadataからlevelInfoを取得（後方互換性のため古い方法もサポート）
+                let levelInfo = {};
+                if (window.currentLayoutResult && window.currentLayoutResult.metadata) {
+                    const metadata = window.currentLayoutResult.metadata;
+                    levelInfo = {
+                        levelXPositions: metadata.levelXPositions,
+                        levelMaxWidths: metadata.levelMaxWidths,
+                        levelCount: metadata.levelCount
+                    };
+                } else {
+                    levelInfo = window.layoutLevelInfo || {};
+                }
+
                 const depthBounds = depthCalculator.calculateDepthBounds(edgeInfos, levelInfo);
 
                 // 垂直セグメント計算の共通オプション

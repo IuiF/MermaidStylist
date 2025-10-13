@@ -69,6 +69,10 @@ function getRedrawHelpers() {
                 };
 
                 const layoutResult = v2LayoutEngine.calculateLayout(input);
+
+                // LayoutResultをグローバルに保存（後方互換性のため）
+                window.currentLayoutResult = layoutResult;
+
                 const nodePositions = layoutResult.nodePositions;
 
                 const nodePositionsObj = {};
