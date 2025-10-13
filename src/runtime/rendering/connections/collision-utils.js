@@ -192,14 +192,17 @@ function getCollisionUtils() {
                     return edgeToSecondVerticalX;
                 }
 
-                // depthごとにエッジをグループ化
+                // depthごとにエッジをグループ化（終点ノードの親階層を使用）
                 const edgesByDepth = {};
                 collisionEdges.forEach(edge => {
-                    const depth = edge.fromDepth;
-                    if (!edgesByDepth[depth]) {
-                        edgesByDepth[depth] = [];
+                    // 2本目の垂直セグメントは終点ノードの直前階層に配置される
+                    const targetDepth = edge.toDepth - 1;
+                    if (targetDepth < 0) return; // ルートノードへのエッジは除外
+
+                    if (!edgesByDepth[targetDepth]) {
+                        edgesByDepth[targetDepth] = [];
                     }
-                    edgesByDepth[depth].push(edge);
+                    edgesByDepth[targetDepth].push(edge);
                 });
 
                 // 各depthグループについて処理

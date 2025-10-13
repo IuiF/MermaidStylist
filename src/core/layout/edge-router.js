@@ -726,14 +726,17 @@ function getEdgeRouter() {
                 return edgeToSecondVerticalX;
             }
 
-            // depthごとにエッジをグループ化
+            // depthごとにエッジをグループ化（終点ノードの親階層を使用）
             const edgesByDepth = new Map();
             collisionEdges.forEach(edge => {
-                const depth = edge.fromDepth;
-                if (!edgesByDepth.has(depth)) {
-                    edgesByDepth.set(depth, []);
+                // 2本目の垂直セグメントは終点ノードの直前階層に配置される
+                const targetDepth = edge.toDepth - 1;
+                if (targetDepth < 0) return; // ルートノードへのエッジは除外
+
+                if (!edgesByDepth.has(targetDepth)) {
+                    edgesByDepth.set(targetDepth, []);
                 }
-                edgesByDepth.get(depth).push(edge);
+                edgesByDepth.get(targetDepth).push(edge);
             });
 
             // 各depthグループについて処理
