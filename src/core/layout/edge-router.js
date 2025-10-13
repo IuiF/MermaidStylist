@@ -1085,10 +1085,8 @@ function getEdgeRouter() {
                             // 2本目の垂直セグメントX座標を計算（垂直セグメントと終点の中間）
                             const intermediateX = verticalSegmentX + (x2 - verticalSegmentX) * EDGE_CONSTANTS.SECOND_VERTICAL_DISTANCE_RATIO;
 
-                            // 最終水平セグメントのY座標を再チェック（2本目の垂直セグメント位置で）
-                            const filteredBoundsFinal5Seg = nodeBounds.filter(n => n.id !== conn.to);
-                            const adjustedFinalY2 = _adjustHorizontalSegmentY(intermediateX, originalY2, x2, filteredBoundsFinal5Seg);
-                            const finalY2 = adjustedFinalY2 !== null ? adjustedFinalY2 : originalY2;
+                            // 2本目の垂直セグメントは常にターゲットのcenterYに戻る
+                            const finalY2 = originalY2;
 
                             // 5セグメントルーティング（H-V-H-V-H）
                             segments.push(new Segment('horizontal', new Point(x1, y1), new Point(verticalSegmentX, y1)));
