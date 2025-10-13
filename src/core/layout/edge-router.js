@@ -1036,8 +1036,14 @@ function getEdgeRouter() {
                         // セグメント4: 第2垂直線
                         segments.push(new Segment('vertical', new Point(secondVerticalX, adjustedY2), new Point(secondVerticalX, y2)));
 
-                        // セグメント5: 最終水平線
-                        segments.push(new Segment('horizontal', new Point(secondVerticalX, y2), new Point(x2, y2)));
+                        // セグメント5: 最終水平線（ターゲットノードを除外してノード衝突チェック）
+                        const filteredBoundsFinal5Seg = nodeBounds.filter(n => n.id !== conn.to);
+                        const adjustedFinalY2 = _adjustHorizontalSegmentY(secondVerticalX, y2, x2, filteredBoundsFinal5Seg);
+                        const finalY2 = adjustedFinalY2 !== null ? adjustedFinalY2 : y2;
+
+                        // セグメント4のY座標を最終Y座標に合わせて再調整
+                        segments[segments.length - 1] = new Segment('vertical', new Point(secondVerticalX, adjustedY2), new Point(secondVerticalX, finalY2));
+                        segments.push(new Segment('horizontal', new Point(secondVerticalX, finalY2), new Point(x2, finalY2)));
                     } else {
                         // 3セグメントルーティング（H-V-H）
                         // 最終セグメントY座標調整（ターゲットノードは除外）
