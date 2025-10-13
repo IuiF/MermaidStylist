@@ -396,11 +396,55 @@ if (USE_NEW_LAYOUT) {
 
 ## 8. 成功基準
 
-- [ ] test-complex-ultimate.mmdが正しく表示される
-- [ ] B2→E3問題が解決している
-- [ ] すべての衝突回避が機能している
-- [ ] 折りたたみ・展開が動作する
-- [ ] ハイライト機能が動作する
-- [ ] 既存機能がすべて動作する
-- [ ] コード行数が削減されている
-- [ ] グローバル変数が削減されている
+- [x] test-complex-ultimate.mmdが正しく表示される
+- [ ] B2→E3問題が解決している（要確認）
+- [x] すべての衝突回避が機能している
+- [ ] 折りたたみ・展開が動作する（既存システムで動作、新システムでは未実装）
+- [ ] ハイライト機能が動作する（既存システムで動作、新システムでは未実装）
+- [x] 既存機能がすべて動作する
+- [ ] コード行数が削減されている（並行実装中）
+- [ ] グローバル変数が削減されている（window.layoutLevelInfoは依然として使用中）
+
+## 9. 進捗状況
+
+### 完了した項目
+
+1. **Phase 1: Layout Calculation** (完了)
+   - types.js: データ構造定義（基本実装完了）
+   - node-placer.js: ノード配置計算（horizontal-layout.jsから移植）
+   - collision-resolver.js: 衝突解決（3種類の衝突回避実装）
+   - layout-engine.js: メインエンジン統合
+
+2. **ブラウザ実行形式への変換** (完了)
+   - 全Phase 1コードを文字列生成形式に変換
+   - getNodePlacer(), getCollisionResolver(), getLayoutEngine()として実装
+
+3. **HTMLジェネレーターへの統合** (完了)
+   - html.jsに新システムを統合
+   - window.USE_V2_LAYOUTフラグで切り替え可能
+   - window.toggleV2Layout()関数で動的切り替え実装
+
+4. **redraw-helpersへの統合** (完了)
+   - recalculateLayout()にV2システム分岐を追加
+   - 新システムでのノード配置を実装
+
+5. **動作確認** (完了)
+   - test-complex-ultimate.mmdで正常動作確認
+   - 新旧システムの切り替え動作確認
+
+### 現在の制限事項
+
+1. **エッジ描画**: 既存システムを使用（新システムのedge-routerは未使用）
+2. **Phase 2 (Rendering)**: 作成済みだが未統合
+3. **Phase 3 (Interaction)**: 作成済みだが未統合
+4. **折りたたみ機能**: 既存システムに依存
+5. **ハイライト機能**: 既存システムに依存
+
+### 次のステップ
+
+1. edge-router.jsの実装完成とエッジ描画の移行
+2. Phase 2 (v2/renderer, edge-drawer等)の統合
+3. Phase 3 (orchestrator等)の統合
+4. 既存システムとの完全な機能パリティ達成
+5. パフォーマンステストと最適化
+6. 既存システムの段階的削除
