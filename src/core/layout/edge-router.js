@@ -225,7 +225,122 @@ function getEdgeRouter() {
         }
 
         /**
+         * ノードをY座標範囲で行にグループ化
+         * @param {Array} nodeBounds - ノードのバウンディングボックス配列
+         * @returns {Array} 行の配列 [{top, bottom, nodes}]
+         */
+        function _groupNodesIntoRows(nodeBounds) {
+            if (!nodeBounds || nodeBounds.length === 0) {
+                return [];
+            }
+
+            // Y座標でソート
+            const sorted = [...nodeBounds].sort((a, b) => a.top - b.top);
+
+            const rows = [];
+            let currentRow = {
+                top: sorted[0].top,
+                bottom: sorted[0].bottom,
+                nodes: [sorted[0]]
+            };
+
+            for (let i = 1; i < sorted.length; i++) {
+                const node = sorted[i];
+
+                // 現在の行と重なっているか確認
+                if (node.top <= currentRow.bottom) {
+                    // 重なっている→同じ行に追加
+                    currentRow.nodes.push(node);
+                    currentRow.bottom = Math.max(currentRow.bottom, node.bottom);
+                } else {
+                    // 重なっていない→新しい行を開始
+                    rows.push(currentRow);
+                    currentRow = {
+                        top: node.top,
+                        bottom: node.bottom,
+                        nodes: [node]
+                    };
+                }
+            }
+
+            // 最後の行を追加
+            rows.push(currentRow);
+
+            return rows;
+        }
+
+        /**
+         * 行間のギャップを計算
+         * @param {Array} rows - 行の配列
+         * @returns {Array} ギャップの配列 [{startY, endY, centerY, height}]
+         */
+        function _findRowGaps(rows) {
+            const gaps = [];
+
+            for (let i = 0; i < rows.length - 1; i++) {
+                const currentRow = rows[i];
+                const nextRow = rows[i + 1];
+
+                const gapStart = currentRow.bottom;
+                const gapEnd = nextRow.top;
+                const gapHeight = gapEnd - gapStart;
+
+                if (gapHeight > 0) {
+                    gaps.push({
+                        startY: gapStart,
+                        endY: gapEnd,
+                        centerY: (gapStart + gapEnd) / 2,
+                        height: gapHeight
+                    });
+                }
+            }
+
+            return gaps;
+        }
+
+        /**
+         * 指定されたY座標から最も近い行間ギャップを見つける
+         * @param {number} targetY - 基準Y座標
+         * @param {Array} gaps - ギャップの配列
+         * @param {number} minGapHeight - 最小ギャップ高さ
+         * @param {string} direction - 'above'（上方向）または'below'（下方向）
+         * @returns {number|null} ギャップの中央Y座標（見つからない場合はnull）
+         */
+        function _findNearestSuitableGap(targetY, gaps, minGapHeight, direction) {
+            // 十分な高さを持つギャップをフィルタ
+            const suitableGaps = gaps.filter(gap => gap.height >= minGapHeight);
+
+            if (suitableGaps.length === 0) {
+                return null;
+            }
+
+            // 方向に応じてギャップを選択
+            let candidateGaps;
+            if (direction === 'above') {
+                // targetYより上のギャップ（centerYがtargetYより小さい）
+                candidateGaps = suitableGaps.filter(gap => gap.centerY < targetY);
+            } else {
+                // targetYより下のギャップ（centerYがtargetYより大きい）
+                candidateGaps = suitableGaps.filter(gap => gap.centerY > targetY);
+            }
+
+            if (candidateGaps.length === 0) {
+                return null;
+            }
+
+            // targetYに最も近いギャップを選択
+            candidateGaps.sort((a, b) => {
+                const distA = Math.abs(a.centerY - targetY);
+                const distB = Math.abs(b.centerY - targetY);
+                return distA - distB;
+            });
+
+            return candidateGaps[0].centerY;
+        }
+
+        /**
          * 水平セグメントがノードと衝突する場合にY座標を調整（ローカル）
+         * ノード行間の空間に配置する
          * @param {number} x1 - 水平線開始X座標
          * @param {number} y - 水平線Y座標
          * @param {number} x2 - 水平線終了X座標
@@ -249,12 +364,42 @@ function getEdgeRouter() {
             const topMost = Math.min(...pathIntersectingNodes.map(n => n.top));
             const bottomMost = Math.max(...pathIntersectingNodes.map(n => n.bottom));
 
+            // X範囲内のノードのみをフィルタリング（行計算用）
+            const minX = Math.min(x1, x2);
+            const maxX = Math.max(x1, x2);
+            const nodesInXRange = nodeBounds.filter(node => {
+                // ノードのX範囲がセグメントのX範囲と重なっているか
+                return !(node.right < minX || node.left > maxX);
+            });
+
+            // X範囲内のノードを行にグループ化
+            const rows = _groupNodesIntoRows(nodesInXRange);
+
+            // 行間のギャップを計算
+            const gaps = _findRowGaps(rows);
+
+            // 最小ギャップ高さ（ノードパディング×2 + エッジ線幅の余裕）
+            const minGapHeight = nodePadding * 4;
+
             // 水平線のY座標を調整（ノードを避ける）
-            let adjustedY;
+            let adjustedY = null;
+
             if (y < topMost) {
-                adjustedY = topMost - nodePadding;
+                // 水平線が衝突ノードより上にある場合
+                // topMostから上方向で最も近いギャップを探す
+                adjustedY = _findNearestSuitableGap(topMost, gaps, minGapHeight, 'above');
+                if (adjustedY === null) {
+                    // 適切なギャップがない場合は、従来の方法
+                    adjustedY = topMost - nodePadding;
+                }
             } else if (y >= topMost && y <= bottomMost) {
-                adjustedY = bottomMost + nodePadding;
+                // 水平線が衝突ノード範囲内にある場合
+                // bottomMostから下方向で最も近いギャップを探す
+                adjustedY = _findNearestSuitableGap(bottomMost, gaps, minGapHeight, 'below');
+                if (adjustedY === null) {
+                    // 適切なギャップがない場合は、従来の方法
+                    adjustedY = bottomMost + nodePadding;
+                }
             } else {
                 return null;
             }
