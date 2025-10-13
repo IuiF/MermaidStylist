@@ -813,13 +813,8 @@ function getEdgeRouter() {
                     verticalSegmentX = fromPos.x + fromPos.width + EDGE_CONSTANTS.DEFAULT_VERTICAL_OFFSET;
                 }
 
-                // 最終セグメントY座標調整チェック
-                const filteredBoundsFinal = nodeBounds.filter(n => {
-                    if (n.id === conn.to) {
-                        return verticalSegmentX < n.left;
-                    }
-                    return true;
-                });
+                // 最終セグメントY座標調整チェック（ターゲットノードは除外）
+                const filteredBoundsFinal = nodeBounds.filter(n => n.id !== conn.to);
                 const adjustedY2 = _adjustHorizontalSegmentY(verticalSegmentX, y2, x2, filteredBoundsFinal);
                 if (adjustedY2 !== null) {
                     const edgeKey = createEdgeKey(conn.from, conn.to);
@@ -928,13 +923,8 @@ function getEdgeRouter() {
                         segments.push(new Segment('horizontal', new Point(secondVerticalX, y2), new Point(x2, y2)));
                     } else {
                         // 3セグメントルーティング（H-V-H）
-                        // 最終セグメントY座標調整（ターゲットノードの扱いに注意）
-                        const filteredBoundsFinal = nodeBounds.filter(n => {
-                            if (n.id === conn.to) {
-                                return verticalSegmentX < n.left;
-                            }
-                            return true;
-                        });
+                        // 最終セグメントY座標調整（ターゲットノードは除外）
+                        const filteredBoundsFinal = nodeBounds.filter(n => n.id !== conn.to);
                         const adjustedY2 = _adjustHorizontalSegmentY(verticalSegmentX, y2, x2, filteredBoundsFinal);
                         if (adjustedY2 !== null) {
                             y2 = adjustedY2;
