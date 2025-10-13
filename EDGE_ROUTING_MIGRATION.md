@@ -54,17 +54,17 @@ renderer.js (メイン)
   - calculateConnectionDepth（エッジ深さ計算）
   - createEdgeKey（既存）
 
-### フェーズ2: 垂直セグメント計算（2-3日）一部完了
+### フェーズ2: 垂直セグメント計算（2-3日）✓ 完了
 - [x] depth-utils.jsの基礎部分を移植
   - calculateDepthBounds（深さ境界の計算）
   - groupParentsByDepth（深さごとのグルーピング）
-- [ ] edge-spacing-calculator.jsの移植
-  - 等間隔配置計算
-  - 長距離エッジのカウント
-- [ ] vertical-segment-calculator.jsのコア機能移植
-  - 親ごとの垂直セグメントX座標計算
-  - クラスタリングロジック
-  - 衝突回避オフセット計算
+- [x] edge-spacing-calculator.jsの移植
+  - countEdgesPassingThroughDepth（通過エッジ数カウント）
+  - calculateEvenSpacing（等間隔配置計算）
+- [x] vertical-segment-calculator.jsのコア機能移植
+  - calculateVerticalSegmentX（垂直セグメントX座標統合計算）
+  - clusterParentsByXPosition（クラスタリングロジック）
+  - routeEdges関数での使用
 
 ### フェーズ3: Y座標調整（1-2日）
 - [ ] path-y-adjuster.jsの移植
@@ -116,6 +116,8 @@ renderer.js (メイン)
 ## 現在の状態
 
 - **開始日**: 2025-10-13
-- **現在のフェーズ**: フェーズ2 - 垂直セグメント計算（一部完了）
-- **完了したフェーズ**: フェーズ1 - 基盤整備
-- **次のアクション**: フェーズ2の残り実装（等間隔配置計算、クラスタリング）
+- **現在のフェーズ**: フェーズ3準備中
+- **完了したフェーズ**:
+  - フェーズ1 - 基盤整備 ✓
+  - フェーズ2 - 垂直セグメント計算 ✓
+- **次のアクション**: フェーズ3（Y座標調整）またはフェーズ4（エッジ交差検出）の実装判断

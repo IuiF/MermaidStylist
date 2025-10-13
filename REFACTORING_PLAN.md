@@ -490,6 +490,14 @@ if (USE_NEW_LAYOUT) {
    - groupParentsByDepth関数を実装（親ノードグループ化）
    - EDGE_ROUTING_MIGRATION.mdに詳細計画を作成
 
+15. **エッジルーティング高度化 - フェーズ2** (完了)
+   - countEdgesPassingThroughDepth関数を実装（通過エッジ数カウント）
+   - calculateEvenSpacing関数を実装（等間隔配置計算）
+   - clusterParentsByXPosition関数を実装（クラスタリングロジック）
+   - calculateVerticalSegmentX関数を実装（垂直セグメント統合計算）
+   - routeEdges関数で新しい垂直セグメント計算を使用
+   - 動作確認完了（test-complex-ultimate.mmdで検証）
+
 ### 現在の実装状況
 
 1. **ノード配置**: V2システム実装完了、正常動作
