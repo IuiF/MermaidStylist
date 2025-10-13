@@ -573,8 +573,8 @@ function getEdgeRouter() {
         }
 
         /**
-         * 親ごとの垂直セグメントX座標を計算（統一版）
-         * 同じクラスタ内の全ての親に同じX座標を割り当てて線を重ねる
+         * 親ごとの垂直セグメントX座標を計算（親別版）
+         * 異なる親には異なるX座標を割り当てて識別しやすくする
          * @param {Map} nodePositions - ノード位置マップ
          * @param {Array} connections - 接続配列
          * @param {Map} nodeDepths - ノードの深さマップ
@@ -592,6 +592,9 @@ function getEdgeRouter() {
 
             // 親をdepthごとにグループ化
             const parentsByDepth = groupParentsByDepth(connections, nodeDepths);
+
+            // 各depthを通過する全エッジ数をカウント
+            const edgesPassingThroughDepth = countEdgesPassingThroughDepth(connections, nodeDepths);
 
             // 各depthの親情報を構築
             parentsByDepth.forEach((parentIds, depth) => {
@@ -627,21 +630,13 @@ function getEdgeRouter() {
                     });
                     const clusterMinLeft = clusterChildXs.length > 0 ? Math.min(...clusterChildXs) : depthMinChildLeft.get(depth);
 
-                    // 統一X座標を計算（クラスタ内の全親で共有）
-                    const unifiedX = (clusterMaxRight + clusterMinLeft) / 2;
+                    // 等間隔配置を計算
+                    const totalEdges = edgesPassingThroughDepth.get(depth) || cluster.length;
+                    const spacing = calculateEvenSpacing(cluster, totalEdges, clusterMaxRight, clusterMinLeft);
 
-                    // 最小オフセット制約を確認
-                    let finalX = unifiedX;
-                    cluster.forEach(p => {
-                        const minX = p.x1 + EDGE_CONSTANTS.MIN_OFFSET;
-                        if (finalX < minX) {
-                            finalX = minX;
-                        }
-                    });
-
-                    // クラスタ内の全ての親に同じX座標を割り当て
-                    cluster.forEach(p => {
-                        result.set(p.parentId, finalX);
+                    // 各親に割り当て
+                    spacing.forEach((x, parentId) => {
+                        result.set(parentId, x);
                     });
                 });
             });
@@ -650,15 +645,15 @@ function getEdgeRouter() {
         }
 
         /**
-         * depth単位で衝突回避オフセットを集約
-         * 同じdepthの全親に最大オフセットを適用することで垂直セグメントを揃える
+         * 親ごとに衝突回避オフセットを計算
+         * 各親に個別のオフセットを適用
          * @param {Map} nodePositions - ノード位置マップ
          * @param {Array} connections - 接続配列
          * @param {Map} nodeDepths - ノードの深さマップ
          * @param {Map} baseVerticalSegmentX - 親ID -> 基本X座標のマップ
          * @param {Array} nodeBounds - ノードバウンディングボックス配列
          * @param {Array} labelBounds - ラベルバウンディングボックス配列
-         * @returns {Map} parentId -> 集約されたオフセット値のマップ
+         * @returns {Map} parentId -> オフセット値のマップ
          */
         function _aggregateOffsetsByDepth(nodePositions, connections, nodeDepths, baseVerticalSegmentX, nodeBounds, labelBounds) {
             const parentMaxOffset = new Map();
@@ -666,10 +661,8 @@ function getEdgeRouter() {
             // 親をdepthごとにグループ化
             const parentsByDepth = groupParentsByDepth(connections, nodeDepths);
 
-            // depthごとに最大オフセットを計算
+            // 親ごとにオフセットを計算
             parentsByDepth.forEach((parentIds, depth) => {
-                let depthMaxOffset = 0;
-
                 parentIds.forEach(parentId => {
                     const baseVerticalX = baseVerticalSegmentX.get(parentId);
                     if (baseVerticalX === undefined) return;
@@ -697,12 +690,8 @@ function getEdgeRouter() {
                         parentOffset = Math.max(parentOffset, totalOffset);
                     });
 
-                    depthMaxOffset = Math.max(depthMaxOffset, parentOffset);
-                });
-
-                // 同じdepthの全親に同じオフセットを適用
-                parentIds.forEach(parentId => {
-                    parentMaxOffset.set(parentId, depthMaxOffset);
+                    // 各親に個別のオフセットを適用
+                    parentMaxOffset.set(parentId, parentOffset);
                 });
             });
 
