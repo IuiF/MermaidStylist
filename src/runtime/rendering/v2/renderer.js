@@ -13,7 +13,7 @@ function getRenderer() {
             drawNodes(layoutResult);
             console.log('[V2 Renderer] Nodes drawn');
 
-            drawEdges(layoutResult);
+            drawEdges(layoutResult, connections);
             console.log('[V2 Renderer] Edges drawn');
 
             drawLabels(layoutResult, connections);

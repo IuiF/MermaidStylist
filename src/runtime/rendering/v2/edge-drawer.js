@@ -3,7 +3,7 @@ function getEdgeDrawer() {
         /**
          * LayoutResultからエッジを描画
          */
-        function drawEdges(layoutResult) {
+        function drawEdges(layoutResult, connections) {
             const svgLayer = svgHelpers.getEdgeLayer();
             if (!svgLayer) {
                 console.error('SVG layer element not found');
@@ -24,7 +24,7 @@ function getEdgeDrawer() {
 
                 const pathData = renderEdgeRoute(route);
 
-                const conn = allConnections.find(c => c.from === from && c.to === to);
+                const conn = connections.find(c => c.from === from && c.to === to);
                 if (!conn) return;
 
                 const path = svgHelpers.createPath(pathData, {

@@ -98,6 +98,21 @@ function getOrchestrator() {
                             element.classList.add('hidden');
                         }
                     }
+
+                    const nodeElement = document.getElementById(node.id);
+                    if (nodeElement) {
+                        const collapseButton = Array.from(nodeElement.children).find(el =>
+                            el.classList && el.classList.contains('collapse-button')
+                        );
+
+                        if (collapseHandler.isCollapsed(node.id)) {
+                            nodeElement.classList.add('collapsed-node');
+                            if (collapseButton) collapseButton.textContent = '▲';
+                        } else {
+                            nodeElement.classList.remove('collapsed-node');
+                            if (collapseButton) collapseButton.textContent = '▼';
+                        }
+                    }
                 });
 
                 this.state.allConnections.forEach(conn => {
@@ -116,21 +131,6 @@ function getOrchestrator() {
                         }
                     });
                 });
-
-                const nodeElement = document.getElementById(node.id);
-                if (nodeElement) {
-                    const collapseButton = Array.from(nodeElement.children).find(el =>
-                        el.classList && el.classList.contains('collapse-button')
-                    );
-
-                    if (collapseHandler.isCollapsed(node.id)) {
-                        nodeElement.classList.add('collapsed-node');
-                        if (collapseButton) collapseButton.textContent = '▲';
-                    } else {
-                        nodeElement.classList.remove('collapsed-node');
-                        if (collapseButton) collapseButton.textContent = '▼';
-                    }
-                }
             }
         };
 
