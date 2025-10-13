@@ -63,10 +63,26 @@ function getEdgeRouter() {
         /**
          * エッジルート間の交差を検出
          * @param {Map} edgeRoutes - エッジルートマップ
+         * @param {Map} nodePositions - ノード位置マップ
+         * @param {Array} connections - 接続配列
          * @returns {Map} エッジキー -> 交差点配列のマップ
          */
-        function detectEdgeCrossings(edgeRoutes) {
+        function detectEdgeCrossings(edgeRoutes, nodePositions, connections) {
             const crossings = new Map();
+
+            // エッジごとの開始/終了Y座標を記録
+            const edgeYCoords = new Map();
+            connections.forEach(conn => {
+                const fromPos = nodePositions.get(conn.from);
+                const toPos = nodePositions.get(conn.to);
+                if (fromPos && toPos) {
+                    const key = createEdgeKey(conn.from, conn.to);
+                    edgeYCoords.set(key, {
+                        startY: fromPos.y + fromPos.height / 2,
+                        endY: toPos.y + toPos.height / 2
+                    });
+                }
+            });
 
             // 全エッジの組み合わせをチェック
             const edgeKeys = Array.from(edgeRoutes.keys());
@@ -74,10 +90,24 @@ function getEdgeRouter() {
             for (let i = 0; i < edgeKeys.length; i++) {
                 const key1 = edgeKeys[i];
                 const route1 = edgeRoutes.get(key1);
+                const yCoords1 = edgeYCoords.get(key1);
 
                 for (let j = 0; j < route1.segments.length; j++) {
                     const seg1 = route1.segments[j];
                     if (seg1.type !== 'horizontal') continue;
+
+                    // 中間水平セグメント（Y調整済み）は交差検出から除外
+                    // エッジの開始Y/終了Yと異なるY座標の水平セグメントは除外
+                    if (yCoords1) {
+                        const segY = seg1.start.y;
+                        const epsilon = 0.5;
+                        const isStartY = Math.abs(segY - yCoords1.startY) < epsilon;
+                        const isEndY = Math.abs(segY - yCoords1.endY) < epsilon;
+                        if (!isStartY && !isEndY) {
+                            // 中間セグメント（Y調整済み）なので交差検出から除外
+                            continue;
+                        }
+                    }
 
                     for (let k = 0; k < edgeKeys.length; k++) {
                         if (i === k) continue; // 同じエッジは除外
@@ -842,7 +872,7 @@ function getEdgeRouter() {
             });
 
             // エッジ交差を検出
-            const crossings = detectEdgeCrossings(edgeRoutes);
+            const crossings = detectEdgeCrossings(edgeRoutes, nodePositions, connections);
 
             // 交差があるエッジのセグメントを分割してジャンプアークを挿入
             if (crossings.size > 0) {
