@@ -404,7 +404,7 @@ if (USE_NEW_LAYOUT) {
 - [x] 既存機能がすべて動作する
 - [x] V2システムがV1より高速（12%高速化達成）
 - [x] V2システムがデフォルトで有効
-- [ ] コード行数が削減されている（並行実装中）
+- [x] コード行数が削減されている（470行削減）
 - [ ] グローバル変数が削減されている（window.layoutLevelInfoは依然として使用中）
 
 ## 9. 進捗状況
@@ -458,6 +458,12 @@ if (USE_NEW_LAYOUT) {
    - redraw-helpers.jsをV2専用に簡略化
    - html.jsから切り替え機能を削除
 
+10. **V1ファイルの削除** (完了)
+   - horizontal-layout.jsを削除（470行削減）
+   - debug-layout.jsを削除（古い開発用スクリプト）
+   - build-webapp.jsからhorizontal-layout参照を削除
+   - html.jsからhorizontal-layoutインポートを削除
+
 ### 現在の実装状況
 
 1. **ノード配置**: V2システム実装完了、正常動作
@@ -487,10 +493,10 @@ if (USE_NEW_LAYOUT) {
    - redraw-helpers.jsをV2専用に簡略化 ✓
    - html.jsから切り替え機能を削除 ✓
 
-4. **未使用V1ファイルの削除** (次のステップ)
-   - horizontal-layout.jsの削除検討
-   - V1レイアウト関連の未使用コード特定
-   - 依存関係の確認と整理
+4. **未使用V1ファイルの削除** ✓ (完了)
+   - horizontal-layout.jsを削除 ✓
+   - debug-layout.jsを削除 ✓
+   - 依存関係の確認と整理 ✓
 
 #### 中期（推奨）
 1. **エッジルーティングの完全移植**
