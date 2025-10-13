@@ -1,5 +1,9 @@
 function getHighlightManager() {
     return `
+        const HIGHLIGHT_CONSTANTS = {
+            DEFAULT_DURATION: 2000    // ハイライトのデフォルト持続時間(ms)
+        };
+
         const highlightManager = {
             currentHighlightedLabel: null,
             currentHighlightedNodeId: null,
@@ -40,7 +44,7 @@ function getHighlightManager() {
                 }
             },
 
-            highlightOriginalNode: function(originalNodeId, duration = 2000) {
+            highlightOriginalNode: function(originalNodeId, duration = HIGHLIGHT_CONSTANTS.DEFAULT_DURATION) {
                 // 既存のハイライトをクリア
                 if (this.currentHighlightTimeout) {
                     clearTimeout(this.currentHighlightTimeout);
