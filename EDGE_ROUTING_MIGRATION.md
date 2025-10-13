@@ -45,21 +45,22 @@ renderer.js (メイン)
 
 ## 段階的実装計画
 
-### フェーズ1: 基盤整備（1-2日）
-- [ ] types.jsにEdgeRoute関連の型を追加
+### フェーズ1: 基盤整備（1-2日）✓ 完了
+- [x] types.jsにEdgeRoute関連の型を追加
   - `Segment`型の拡張（curve, arcパラメータ）
-  - `EdgeLayoutData`型の定義
-- [ ] 共通ユーティリティの移植
-  - connectionUtils（エッジキー生成、深さ計算等）
-  - 基本的なノード情報取得
+  - `ArcParams`型の定義
+- [x] 共通ユーティリティの移植
+  - calculateNodeDepths（BFSベース階層計算）
+  - calculateConnectionDepth（エッジ深さ計算）
+  - createEdgeKey（既存）
 
-### フェーズ2: 垂直セグメント計算（2-3日）
+### フェーズ2: 垂直セグメント計算（2-3日）一部完了
+- [x] depth-utils.jsの基礎部分を移植
+  - calculateDepthBounds（深さ境界の計算）
+  - groupParentsByDepth（深さごとのグルーピング）
 - [ ] edge-spacing-calculator.jsの移植
   - 等間隔配置計算
   - 長距離エッジのカウント
-- [ ] depth-utils.jsの移植
-  - 深さ境界の計算
-  - 深さごとのグルーピング
 - [ ] vertical-segment-calculator.jsのコア機能移植
   - 親ごとの垂直セグメントX座標計算
   - クラスタリングロジック
@@ -115,5 +116,6 @@ renderer.js (メイン)
 ## 現在の状態
 
 - **開始日**: 2025-10-13
-- **現在のフェーズ**: フェーズ0 - 計画立案完了
-- **次のアクション**: フェーズ1の開始判断
+- **現在のフェーズ**: フェーズ2 - 垂直セグメント計算（一部完了）
+- **完了したフェーズ**: フェーズ1 - 基盤整備
+- **次のアクション**: フェーズ2の残り実装（等間隔配置計算、クラスタリング）

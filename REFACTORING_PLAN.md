@@ -481,6 +481,15 @@ if (USE_NEW_LAYOUT) {
    - renderer.jsからwindow.layoutLevelInfo後方互換性コードを削除
    - 単一のデータソース(window.currentLayoutResult.metadata)に統一
 
+14. **エッジルーティング高度化 - フェーズ1** (完了)
+   - types.jsにArcParams型を追加
+   - Segment型にarcParamsサポートを追加
+   - calculateNodeDepths関数を実装（BFSベース階層計算）
+   - calculateConnectionDepth関数を実装（エッジ深さ計算）
+   - calculateDepthBounds関数を実装（階層境界計算）
+   - groupParentsByDepth関数を実装（親ノードグループ化）
+   - EDGE_ROUTING_MIGRATION.mdに詳細計画を作成
+
 ### 現在の実装状況
 
 1. **ノード配置**: V2システム実装完了、正常動作
