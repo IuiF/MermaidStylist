@@ -11,6 +11,18 @@
 
 function getRenderOrchestrator() {
     return `
+        const NODE_RENDER_CONSTANTS = {
+            PADDING: 12,
+            COLLAPSE_BUTTON_WIDTH: 15,
+            COLLAPSE_BUTTON_OFFSET: 5,
+            BASE_HEIGHT: 28,
+            BORDER_RADIUS: 5,
+            FONT_SIZE: 12,
+            FONT_FAMILY: 'Arial, sans-serif',
+            DASHED_STROKE: '5,5',
+            DASHED_OPACITY: '0.6'
+        };
+
         /**
          * 描画プロセスのメイン関数
          * すべての描画処理をこの関数から順序立てて実行する
@@ -77,12 +89,12 @@ function getRenderOrchestrator() {
             });
 
             // テキストサイズを測定（HTMLタグ対応）
-            const textSize = svgHelpers.measureRichText(node.label, 12);
+            const textSize = svgHelpers.measureRichText(node.label, NODE_RENDER_CONSTANTS.FONT_SIZE);
 
-            const padding = 12;
-            const buttonWidth = hasChildren ? 15 : 0;
+            const padding = NODE_RENDER_CONSTANTS.PADDING;
+            const buttonWidth = hasChildren ? NODE_RENDER_CONSTANTS.COLLAPSE_BUTTON_WIDTH : 0;
             const boxWidth = textSize.width + padding * 2 + buttonWidth;
-            const baseHeight = 28;
+            const baseHeight = NODE_RENDER_CONSTANTS.BASE_HEIGHT;
             const boxHeight = Math.max(baseHeight, textSize.height + padding);
 
             // 背景矩形
@@ -90,14 +102,14 @@ function getRenderOrchestrator() {
                 class: isDashed ? 'node-rect dashed-rect' : 'node-rect',
                 width: boxWidth,
                 height: boxHeight,
-                rx: 5,
-                ry: 5
+                rx: NODE_RENDER_CONSTANTS.BORDER_RADIUS,
+                ry: NODE_RENDER_CONSTANTS.BORDER_RADIUS
             });
 
             // 点線ノードの場合はスタイルを追加
             if (isDashed) {
-                rect.style.strokeDasharray = '5,5';
-                rect.style.opacity = '0.6';
+                rect.style.strokeDasharray = NODE_RENDER_CONSTANTS.DASHED_STROKE;
+                rect.style.opacity = NODE_RENDER_CONSTANTS.DASHED_OPACITY;
             }
 
             // テキスト（HTMLタグ対応）
@@ -106,12 +118,12 @@ function getRenderOrchestrator() {
                 x: padding,
                 y: boxHeight / 2,
                 'dominant-baseline': 'central',
-                'font-size': '12',
-                'font-family': 'Arial, sans-serif'
+                'font-size': NODE_RENDER_CONSTANTS.FONT_SIZE.toString(),
+                'font-family': NODE_RENDER_CONSTANTS.FONT_FAMILY
             });
 
             if (isDashed) {
-                text.style.opacity = '0.6';
+                text.style.opacity = NODE_RENDER_CONSTANTS.DASHED_OPACITY;
             }
 
             g.appendChild(rect);
@@ -124,7 +136,7 @@ function getRenderOrchestrator() {
             if (hasChildren) {
                 const button = svgHelpers.createText('▼', {
                     class: 'collapse-button',
-                    x: boxWidth - padding - 5,
+                    x: boxWidth - padding - NODE_RENDER_CONSTANTS.COLLAPSE_BUTTON_OFFSET,
                     y: boxHeight / 2,
                     'dominant-baseline': 'central'
                 });
