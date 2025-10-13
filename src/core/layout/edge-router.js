@@ -96,19 +96,6 @@ function getEdgeRouter() {
                     const seg1 = route1.segments[j];
                     if (seg1.type !== 'horizontal') continue;
 
-                    // 中間水平セグメント（Y調整済み）は交差検出から除外
-                    // エッジの開始Y/終了Yと異なるY座標の水平セグメントは除外
-                    if (yCoords1) {
-                        const segY = seg1.start.y;
-                        const epsilon = 0.5;
-                        const isStartY = Math.abs(segY - yCoords1.startY) < epsilon;
-                        const isEndY = Math.abs(segY - yCoords1.endY) < epsilon;
-                        if (!isStartY && !isEndY) {
-                            // 中間セグメント（Y調整済み）なので交差検出から除外
-                            continue;
-                        }
-                    }
-
                     for (let k = 0; k < edgeKeys.length; k++) {
                         if (i === k) continue; // 同じエッジは除外
 
