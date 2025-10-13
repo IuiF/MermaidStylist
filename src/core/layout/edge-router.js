@@ -1045,26 +1045,35 @@ function getEdgeRouter() {
                         // 5-7セグメントルーティング（H-V-H-V-H）
                         const adjustedY2 = yAdjustment.adjustedY;
 
-                        // セグメント1: 初期水平線
-                        segments.push(new Segment('horizontal', new Point(x1, y1), new Point(verticalSegmentX, y1)));
-
-                        // セグメント2: 第1垂直線
-                        segments.push(new Segment('vertical', new Point(verticalSegmentX, y1), new Point(verticalSegmentX, adjustedY2)));
-
-                        // セグメント3: 中間水平線
-                        segments.push(new Segment('horizontal', new Point(verticalSegmentX, adjustedY2), new Point(secondVerticalX, adjustedY2)));
-
-                        // セグメント4: 第2垂直線
-                        segments.push(new Segment('vertical', new Point(secondVerticalX, adjustedY2), new Point(secondVerticalX, y2)));
-
-                        // セグメント5: 最終水平線（ターゲットノードを除外してノード衝突チェック）
+                        // 最終水平線のY座標調整チェック（ターゲットノードを除外）
                         const filteredBoundsFinal5Seg = nodeBounds.filter(n => n.id !== conn.to);
                         const adjustedFinalY2 = _adjustHorizontalSegmentY(secondVerticalX, y2, x2, filteredBoundsFinal5Seg);
                         const finalY2 = adjustedFinalY2 !== null ? adjustedFinalY2 : y2;
 
-                        // セグメント4のY座標を最終Y座標に合わせて再調整
-                        segments[segments.length - 1] = new Segment('vertical', new Point(secondVerticalX, adjustedY2), new Point(secondVerticalX, finalY2));
-                        segments.push(new Segment('horizontal', new Point(secondVerticalX, finalY2), new Point(x2, finalY2)));
+                        // adjustedY2とfinalY2が同じ場合、5セグメントは不要（3セグメントにフォールバック）
+                        const epsilon = 1.0;
+                        if (Math.abs(adjustedY2 - finalY2) < epsilon) {
+                            // 3セグメントルーティング（H-V-H）
+                            segments.push(new Segment('horizontal', new Point(x1, y1), new Point(verticalSegmentX, y1)));
+                            segments.push(new Segment('vertical', new Point(verticalSegmentX, y1), new Point(verticalSegmentX, finalY2)));
+                            segments.push(new Segment('horizontal', new Point(verticalSegmentX, finalY2), new Point(x2, finalY2)));
+                        } else {
+                            // 5セグメントルーティング（H-V-H-V-H）
+                            // セグメント1: 初期水平線
+                            segments.push(new Segment('horizontal', new Point(x1, y1), new Point(verticalSegmentX, y1)));
+
+                            // セグメント2: 第1垂直線
+                            segments.push(new Segment('vertical', new Point(verticalSegmentX, y1), new Point(verticalSegmentX, adjustedY2)));
+
+                            // セグメント3: 中間水平線
+                            segments.push(new Segment('horizontal', new Point(verticalSegmentX, adjustedY2), new Point(secondVerticalX, adjustedY2)));
+
+                            // セグメント4: 第2垂直線
+                            segments.push(new Segment('vertical', new Point(secondVerticalX, adjustedY2), new Point(secondVerticalX, finalY2)));
+
+                            // セグメント5: 最終水平線
+                            segments.push(new Segment('horizontal', new Point(secondVerticalX, finalY2), new Point(x2, finalY2)));
+                        }
                     } else {
                         // 3セグメントルーティング（H-V-H）
                         // 最終セグメントY座標調整（ターゲットノードは除外）
