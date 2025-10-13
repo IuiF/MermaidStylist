@@ -711,70 +711,84 @@ function getEdgeRouter() {
 
         /**
          * 衝突回避が必要なエッジの2本目の垂直セグメントX座標を計算
-         * 異なる親から出ているエッジは異なるX座標で折れる（利用可能な幅を等分）
+         * 異なる親から出ているエッジは異なるX座標で折れる（親階層右端と子階層左端の間で等分）
          * @param {Array} collisionEdges - 衝突回避エッジ情報配列
          * @param {Map} nodeDepths - ノードID -> depth のマップ
          * @param {Map} nodePositions - ノード位置マップ
+         * @param {Map} depthMaxParentRight - 階層 -> 親ノードの最大右端X座標
+         * @param {Map} depthMinChildLeft - 階層 -> 子ノードの最小左端X座標
          * @returns {Map} エッジキー -> 2本目の垂直セグメントX座標のマップ
          */
-        function _calculateSecondVerticalSegmentX(collisionEdges, nodeDepths, nodePositions) {
+        function _calculateSecondVerticalSegmentX(collisionEdges, nodeDepths, nodePositions, depthMaxParentRight, depthMinChildLeft) {
             const edgeToSecondVerticalX = new Map();
 
             if (collisionEdges.length === 0) {
                 return edgeToSecondVerticalX;
             }
 
-            // 親ごとにエッジをグループ化
-            const edgesByParent = new Map();
+            // depthごとにエッジをグループ化
+            const edgesByDepth = new Map();
             collisionEdges.forEach(edge => {
-                const parts = edge.edgeKey.split('->');
-                const parentId = parts[0];
-
-                if (!edgesByParent.has(parentId)) {
-                    edgesByParent.set(parentId, []);
+                const depth = edge.fromDepth;
+                if (!edgesByDepth.has(depth)) {
+                    edgesByDepth.set(depth, []);
                 }
-                edgesByParent.get(parentId).push(edge);
+                edgesByDepth.get(depth).push(edge);
             });
 
-            // 親をY座標でソートしてインデックスを割り当て
-            const parentInfos = [];
-            edgesByParent.forEach((edges, parentId) => {
-                const pos = nodePositions.get(parentId);
-                if (pos) {
-                    parentInfos.push({
-                        parentId: parentId,
-                        yPosition: pos.y + pos.height / 2,
-                        edges: edges
-                    });
+            // 各depthグループについて処理
+            edgesByDepth.forEach((depthEdges, depth) => {
+                // この階層の範囲を取得
+                const startX = depthMaxParentRight.get(depth);
+                const endX = depthMinChildLeft.get(depth);
+
+                if (startX === undefined || endX === undefined) {
+                    return;
                 }
-            });
-            parentInfos.sort((a, b) => a.yPosition - b.yPosition);
 
-            const parentCount = parentInfos.length;
-            const distanceRatio = EDGE_CONSTANTS.SECOND_VERTICAL_DISTANCE_RATIO;
+                const availableWidth = endX - startX;
 
-            // 各親グループに対して位置を計算
-            parentInfos.forEach((parentInfo, parentIndex) => {
-                const edges = parentInfo.edges;
+                // 親ごとにエッジをグループ化
+                const edgesByParent = new Map();
+                depthEdges.forEach(edge => {
+                    const parts = edge.edgeKey.split('->');
+                    const parentId = parts[0];
 
-                // この親グループの利用可能な距離を計算
-                const baseDistances = edges.map(edge => edge.endX - edge.p4x);
-                const avgBaseDistance = baseDistances.reduce((sum, d) => sum + d, 0) / baseDistances.length;
+                    if (!edgesByParent.has(parentId)) {
+                        edgesByParent.set(parentId, []);
+                    }
+                    edgesByParent.get(parentId).push(edge);
+                });
 
-                // 利用可能な幅（距離比率を適用）
-                const availableWidth = avgBaseDistance * distanceRatio;
+                // 親をY座標でソートしてインデックスを割り当て
+                const parentInfos = [];
+                edgesByParent.forEach((edges, parentId) => {
+                    const pos = nodePositions.get(parentId);
+                    if (pos) {
+                        parentInfos.push({
+                            parentId: parentId,
+                            yPosition: pos.y + pos.height / 2,
+                            edges: edges
+                        });
+                    }
+                });
+                parentInfos.sort((a, b) => a.yPosition - b.yPosition);
+
+                const parentCount = parentInfos.length;
 
                 // 親の数で等分（両端のマージンを含めてparentCount+1で割る）
                 const spacing = availableWidth / (parentCount + 1);
 
-                // 各親のオフセットを計算（1から始まるインデックス）
-                const parentOffset = spacing * (parentIndex + 1);
+                // 各親グループに対して位置を計算
+                parentInfos.forEach((parentInfo, parentIndex) => {
+                    const edges = parentInfo.edges;
 
-                edges.forEach(edge => {
-                    // 各エッジに対して第2垂直セグメントX座標を計算
-                    const secondVerticalX = edge.endX - parentOffset;
+                    // この親の2本目垂直セグメントX座標
+                    const secondVerticalX = startX + spacing * (parentIndex + 1);
 
-                    edgeToSecondVerticalX.set(edge.edgeKey, secondVerticalX);
+                    edges.forEach(edge => {
+                        edgeToSecondVerticalX.set(edge.edgeKey, secondVerticalX);
+                    });
                 });
             });
 
@@ -788,6 +802,11 @@ function getEdgeRouter() {
 
             // ノード深さを計算
             const nodeDepths = calculateNodeDepths(connections);
+
+            // 階層ごとの親の右端と子の左端を計算
+            const { depthMaxParentRight, depthMinChildLeft } = calculateDepthBounds(
+                nodePositions, connections, nodeDepths, levelXPositions, levelMaxWidths
+            );
 
             // ノード境界情報を構築
             const nodeBounds = [];
@@ -882,7 +901,9 @@ function getEdgeRouter() {
             });
 
             // 第2段階：2本目の垂直セグメントX座標を計算
-            const edgeToSecondVerticalX = _calculateSecondVerticalSegmentX(collisionEdges, nodeDepths, nodePositions);
+            const edgeToSecondVerticalX = _calculateSecondVerticalSegmentX(
+                collisionEdges, nodeDepths, nodePositions, depthMaxParentRight, depthMinChildLeft
+            );
 
             // セグメント生成
             connections.forEach(conn => {

@@ -151,16 +151,18 @@ function getCollisionUtils() {
 
             /**
              * 衝突回避が必要なエッジの2本目の垂直セグメントX座標を計算
-             * 異なる親から出ているエッジは異なるX座標で折れる（利用可能な幅を等分）
+             * 異なる親から出ているエッジは異なるX座標で折れる（親階層右端と子階層左端の間で等分）
              * @param {Array} edgeInfos - エッジ情報配列
              * @param {Object} edgeToYAdjustment - エッジキー -> Y調整情報のマップ
              * @param {Object} edgeToFinalVerticalX - エッジキー -> 最終垂直X座標のマップ
              * @param {Object} parentFinalVerticalSegmentX - 親ID -> 垂直セグメントX座標のマップ
              * @param {Object} nodeDepthMap - ノードID -> depth のマップ
              * @param {Object} parentYPositions - 親ID -> Y座標のマップ
+             * @param {Object} depthMaxParentRight - 階層 -> 親ノードの最大右端X座標のマップ
+             * @param {Object} depthMinChildLeft - 階層 -> 子ノードの最小左端X座標のマップ
              * @returns {Object} エッジキー -> 2本目の垂直セグメントX座標のマップ
              */
-            calculateSecondVerticalSegmentX: function(edgeInfos, edgeToYAdjustment, edgeToFinalVerticalX, parentFinalVerticalSegmentX, nodeDepthMap, parentYPositions) {
+            calculateSecondVerticalSegmentX: function(edgeInfos, edgeToYAdjustment, edgeToFinalVerticalX, parentFinalVerticalSegmentX, nodeDepthMap, parentYPositions, depthMaxParentRight, depthMinChildLeft) {
                 const edgeToSecondVerticalX = {};
 
                 // 衝突回避が必要なエッジのみを抽出
@@ -190,65 +192,79 @@ function getCollisionUtils() {
                     return edgeToSecondVerticalX;
                 }
 
-                // 親ごとにエッジをグループ化
-                const edgesByParent = {};
+                // depthごとにエッジをグループ化
+                const edgesByDepth = {};
                 collisionEdges.forEach(edge => {
-                    const parentId = edge.parentId;
-                    if (!edgesByParent[parentId]) {
-                        edgesByParent[parentId] = [];
+                    const depth = edge.fromDepth;
+                    if (!edgesByDepth[depth]) {
+                        edgesByDepth[depth] = [];
                     }
-                    edgesByParent[parentId].push(edge);
+                    edgesByDepth[depth].push(edge);
                 });
 
-                // 親をY座標でソートしてインデックスを割り当て
-                const parentInfos = [];
-                Object.keys(edgesByParent).forEach(parentId => {
-                    const edges = edgesByParent[parentId];
-                    const yPosition = parentYPositions[parentId] || 0;
-                    parentInfos.push({
-                        parentId: parentId,
-                        yPosition: yPosition,
-                        edges: edges
+                // 各depthグループについて処理
+                Object.keys(edgesByDepth).forEach(depthStr => {
+                    const depth = parseInt(depthStr);
+                    const depthEdges = edgesByDepth[depth];
+
+                    // この階層の範囲を取得
+                    const startX = depthMaxParentRight[depth];
+                    const endX = depthMinChildLeft[depth];
+
+                    if (startX === undefined || endX === undefined) {
+                        return;
+                    }
+
+                    const availableWidth = endX - startX;
+
+                    // 親ごとにエッジをグループ化
+                    const edgesByParent = {};
+                    depthEdges.forEach(edge => {
+                        const parentId = edge.parentId;
+                        if (!edgesByParent[parentId]) {
+                            edgesByParent[parentId] = [];
+                        }
+                        edgesByParent[parentId].push(edge);
                     });
-                });
-                parentInfos.sort((a, b) => a.yPosition - b.yPosition);
 
-                const parentCount = parentInfos.length;
-                const distanceRatio = COLLISION_UTILS_CONSTANTS.SECOND_VERTICAL_DISTANCE_RATIO;
+                    // 親をY座標でソートしてインデックスを割り当て
+                    const parentInfos = [];
+                    Object.keys(edgesByParent).forEach(parentId => {
+                        const edges = edgesByParent[parentId];
+                        const yPosition = parentYPositions[parentId] || 0;
+                        parentInfos.push({
+                            parentId: parentId,
+                            yPosition: yPosition,
+                            edges: edges
+                        });
+                    });
+                    parentInfos.sort((a, b) => a.yPosition - b.yPosition);
 
-                // 各親グループに対して位置を計算
-                parentInfos.forEach((parentInfo, parentIndex) => {
-                    const edges = parentInfo.edges;
-
-                    // この親グループの利用可能な距離を計算
-                    const baseDistances = edges.map(edge => edge.endX - edge.p4x);
-                    const avgBaseDistance = baseDistances.reduce((sum, d) => sum + d, 0) / baseDistances.length;
-
-                    // 利用可能な幅（距離比率を適用）
-                    const availableWidth = avgBaseDistance * distanceRatio;
+                    const parentCount = parentInfos.length;
 
                     // 親の数で等分（両端のマージンを含めてparentCount+1で割る）
                     const spacing = availableWidth / (parentCount + 1);
 
-                    // 各親のオフセットを計算（1から始まるインデックス）
-                    const parentOffset = spacing * (parentIndex + 1);
+                    // 各親グループに対して位置を計算
+                    parentInfos.forEach((parentInfo, parentIndex) => {
+                        const edges = parentInfo.edges;
 
-                    edges.forEach(edge => {
-                        // 各エッジに対して第2垂直セグメントX座標を計算
-                        const secondVerticalX = edge.endX - parentOffset;
+                        // この親の2本目垂直セグメントX座標
+                        const secondVerticalX = startX + spacing * (parentIndex + 1);
 
-                        edgeToSecondVerticalX[edge.edgeKey] = secondVerticalX;
+                        edges.forEach(edge => {
+                            edgeToSecondVerticalX[edge.edgeKey] = secondVerticalX;
 
-                        if (window.DEBUG_CONNECTIONS) {
-                            console.log('[CollisionUtils]', edge.edgeKey,
-                                'parent:', edge.parentId, 'index:', parentIndex,
-                                'p4x:', edge.p4x.toFixed(1),
-                                'endX:', edge.endX.toFixed(1),
-                                'availableWidth:', availableWidth.toFixed(1),
-                                'spacing:', spacing.toFixed(1),
-                                'parentOffset:', parentOffset.toFixed(1),
-                                'secondVerticalX:', secondVerticalX.toFixed(1));
-                        }
+                            if (window.DEBUG_CONNECTIONS) {
+                                console.log('[CollisionUtils]', edge.edgeKey,
+                                    'parent:', edge.parentId, 'index:', parentIndex, 'depth:', depth,
+                                    'startX:', startX.toFixed(1),
+                                    'endX:', endX.toFixed(1),
+                                    'availableWidth:', availableWidth.toFixed(1),
+                                    'spacing:', spacing.toFixed(1),
+                                    'secondVerticalX:', secondVerticalX.toFixed(1));
+                            }
+                        });
                     });
                 });
 
