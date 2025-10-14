@@ -487,6 +487,31 @@ function getEdgeRouter() {
         }
 
         /**
+         * 垂直セグメントの衝突回避オフセットを計算（ノード+ラベル統合版）
+         *
+         * 設計原則:
+         * - すべての垂直セグメント（第1・第2）で同じロジックを使用
+         * - ノードとラベル両方の衝突を考慮
+         * - DRY原則に従い、衝突回避ロジックを一箇所に集約
+         *
+         * @param {number} x - X座標
+         * @param {number} y1 - 開始Y座標
+         * @param {number} y2 - 終了Y座標
+         * @param {Array} nodeBounds - ノードのバウンディングボックス配列
+         * @param {Array} labelBounds - ラベルのバウンディングボックス配列
+         * @returns {number} オフセット値
+         */
+        function _calculateVerticalSegmentCollisionOffset(x, y1, y2, nodeBounds, labelBounds) {
+            // ノード回避オフセットを計算
+            const nodeOffset = _calculateNodeAvoidanceOffset(x, y1, y2, nodeBounds);
+
+            // ラベル回避オフセットを計算（ノードオフセット適用後のX座標で）
+            const labelOffset = _calculateLabelAvoidanceOffset(x + nodeOffset, y1, y2, labelBounds);
+
+            return nodeOffset + labelOffset;
+        }
+
+        /**
          * ノードの階層（depth）を計算
          * @param {Array} connections - 接続情報の配列
          * @returns {Map} ノードIDをキーとした階層マップ
@@ -908,13 +933,8 @@ function getEdgeRouter() {
                         const y1 = fromPos.y + fromPos.height / 2;
                         const y2 = toPos.y + toPos.height / 2;
 
-                        // ノード回避オフセットを計算
-                        const nodeOffset = _calculateNodeAvoidanceOffset(baseVerticalX, y1, y2, nodeBounds);
-
-                        // ラベル回避オフセットを計算
-                        const labelOffset = _calculateLabelAvoidanceOffset(baseVerticalX + nodeOffset, y1, y2, labelBounds);
-
-                        const totalOffset = nodeOffset + labelOffset;
+                        // 統一された衝突回避オフセットを計算（ノード+ラベル）
+                        const totalOffset = _calculateVerticalSegmentCollisionOffset(baseVerticalX, y1, y2, nodeBounds, labelBounds);
                         parentOffset = Math.max(parentOffset, totalOffset);
                     });
 
@@ -933,20 +953,24 @@ function getEdgeRouter() {
          * 1. 2本目の垂直セグメントX座標は1本目（p4x）以上である必要がある
          * 2. 2本目の垂直セグメントX座標は終点ノード左端（endX）より小さい必要がある
          * 3. Y座標が近い親ノード（クラスタ）は独立して処理される
+         * 4. ノードとラベル両方の衝突を考慮（第1垂直セグメントと統一）
          *
          * アプローチ:
          * - 親ノードをY座標でクラスタリング
          * - 各クラスタごとに実際のp4xとendXから有効範囲を計算
          * - クラスタ内で親ノードを等間隔に配置
+         * - 統一された衝突回避ロジックを使用（ノード+ラベル）
          *
          * @param {Array} collisionEdges - 衝突回避エッジ情報配列
          * @param {Map} nodeDepths - ノードID -> depth のマップ
          * @param {Map} nodePositions - ノード位置マップ
          * @param {Map} depthMaxParentRight - 階層 -> 親ノードの最大右端X座標（未使用）
          * @param {Map} depthMinChildLeft - 階層 -> 子ノードの最小左端X座標（未使用）
+         * @param {Array} nodeBounds - ノードバウンディングボックス配列
+         * @param {Array} labelBounds - ラベルバウンディングボックス配列
          * @returns {Map} エッジキー -> 2本目の垂直セグメントX座標のマップ
          */
-        function _calculateSecondVerticalSegmentX(collisionEdges, nodeDepths, nodePositions, depthMaxParentRight, depthMinChildLeft) {
+        function _calculateSecondVerticalSegmentX(collisionEdges, nodeDepths, nodePositions, depthMaxParentRight, depthMinChildLeft, nodeBounds, labelBounds) {
             const edgeToSecondVerticalX = new Map();
 
             if (collisionEdges.length === 0) {
@@ -959,6 +983,7 @@ function getEdgeRouter() {
             collisionEdges.forEach(edge => {
                 const parts = edge.edgeKey.split('->');
                 const parentId = parts[0];
+                const childId = parts[1];
 
                 if (!parentGroups.has(parentId)) {
                     parentGroups.set(parentId, {
@@ -970,6 +995,11 @@ function getEdgeRouter() {
                 }
 
                 const group = parentGroups.get(parentId);
+
+                // エッジ情報に子ノードの位置情報を追加
+                const toPos = nodePositions.get(childId);
+                edge.targetY = toPos ? toPos.y + toPos.height / 2 : 0;
+
                 group.edges.push(edge);
 
                 // この親から出るエッジの有効範囲を計算
@@ -993,11 +1023,40 @@ function getEdgeRouter() {
 
                 // グループ専用の範囲で中央付近を計算
                 const availableWidth = groupEndX - groupStartX;
-                const secondVerticalX = groupStartX + availableWidth / 2;
+                let secondVerticalX = groupStartX + availableWidth / 2;
+
+                // ノードとラベルの衝突をチェックして、必要ならオフセットを追加
+                let maxOffset = 0;
+                group.edges.forEach(edge => {
+                    // 第2垂直セグメントのY範囲を取得
+                    // 中間水平セグメントのY座標（adjustedY）から終点Y座標（targetY）まで
+                    const parts = edge.edgeKey.split('->');
+                    const fromId = parts[0];
+                    const toId = parts[1];
+
+                    const fromPos = nodePositions.get(fromId);
+                    const toPos = nodePositions.get(toId);
+                    if (!fromPos || !toPos) return;
+
+                    const y1 = fromPos.y + fromPos.height / 2;
+                    const y2 = toPos.y + toPos.height / 2;
+
+                    // ターゲットノードを除外したノード境界でオフセット計算
+                    const filteredBounds = nodeBounds.filter(n => n.id !== toId);
+                    // 統一された衝突回避オフセットを計算（ノード+ラベル）
+                    const offset = _calculateVerticalSegmentCollisionOffset(secondVerticalX, y1, y2, filteredBounds, labelBounds);
+                    maxOffset = Math.max(maxOffset, offset);
+                });
+
+                // 最大オフセットを適用
+                secondVerticalX += maxOffset;
 
                 // 各エッジに割り当て
                 group.edges.forEach(edge => {
                     edgeToSecondVerticalX.set(edge.edgeKey, secondVerticalX);
+                    if (window.DEBUG_CONNECTIONS && edge.edgeKey === 'B2->D5') {
+                        console.log('[2ndVertX calc] B2->D5: baseX=' + (secondVerticalX - maxOffset).toFixed(1) + ', offset=' + maxOffset.toFixed(1) + ', final=' + secondVerticalX.toFixed(1));
+                    }
                 });
             });
 
@@ -1069,6 +1128,9 @@ function getEdgeRouter() {
                 // 最終セグメントY座標調整チェック（ターゲットノードは除外）
                 const filteredBoundsFinal = nodeBounds.filter(n => n.id !== conn.to);
                 const adjustedY2 = _adjustHorizontalSegmentY(verticalSegmentX, y2, x2, filteredBoundsFinal);
+                if (window.DEBUG_CONNECTIONS && conn.from === 'B2' && conn.to === 'D5') {
+                    console.log('[Pre-calc] B2->D5: vertX=' + verticalSegmentX.toFixed(1) + ', y2=' + y2.toFixed(1) + ', x2=' + x2.toFixed(1) + ', adjY2=' + (adjustedY2 !== null ? adjustedY2.toFixed(1) : 'null'));
+                }
                 if (adjustedY2 !== null) {
                     const edgeKey = createEdgeKey(conn.from, conn.to);
                     edgeToYAdjustment.set(edgeKey, {
@@ -1111,7 +1173,7 @@ function getEdgeRouter() {
 
             // 第2段階：2本目の垂直セグメントX座標を計算
             const edgeToSecondVerticalX = _calculateSecondVerticalSegmentX(
-                collisionEdges, nodeDepths, nodePositions, depthMaxParentRight, depthMinChildLeft
+                collisionEdges, nodeDepths, nodePositions, depthMaxParentRight, depthMinChildLeft, nodeBounds, labelBoundsArray
             );
 
             // セグメント生成
@@ -1161,8 +1223,14 @@ function getEdgeRouter() {
                     if (needsSecondVertical && secondVerticalX !== undefined) {
                         // 5-7セグメントルーティング（H-V-H-V-H）
                         // 中間水平セグメントのY座標を、正しいX範囲（verticalSegmentX -> secondVerticalX）で元のy2から再計算
+                        if (window.DEBUG_CONNECTIONS && edgeKey === 'B2->D5') {
+                            console.log('[5-seg] B2->D5: vertX=' + verticalSegmentX.toFixed(1) + ', 2ndVertX=' + secondVerticalX.toFixed(1) + ', y2=' + y2.toFixed(1) + ', preAdjY=' + yAdjustment.adjustedY.toFixed(1));
+                        }
                         const filteredBoundsMiddle = nodeBounds.filter(n => n.id !== conn.to);
                         const recalculatedY2 = _adjustHorizontalSegmentY(verticalSegmentX, y2, secondVerticalX, filteredBoundsMiddle);
+                        if (window.DEBUG_CONNECTIONS && edgeKey === 'B2->D5') {
+                            console.log('[5-seg] B2->D5: recalcY2=' + (recalculatedY2 !== null ? recalculatedY2.toFixed(1) : 'null'));
+                        }
                         const adjustedY2 = recalculatedY2 !== null ? recalculatedY2 : yAdjustment.adjustedY;
 
                         // 2本目の垂直セグメントは常にターゲットのcenterYに戻る
