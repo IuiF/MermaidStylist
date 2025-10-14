@@ -384,21 +384,38 @@ function getEdgeRouter() {
             // 水平線のY座標を調整（ノードを避ける）
             let adjustedY = null;
 
+            if (window.DEBUG_CONNECTIONS) {
+                console.log('[_adjustHorizontalSegmentY] y=' + y + ', topMost=' + topMost + ', bottomMost=' + bottomMost + ', gaps count=' + gaps.length + ', minGapHeight=' + minGapHeight);
+                console.log('[_adjustHorizontalSegmentY] gaps:', gaps.map(g => 'centerY=' + g.centerY + ',height=' + g.height));
+            }
+
             if (y < topMost) {
                 // 水平線が衝突ノードより上にある場合
                 // topMostから上方向で最も近いギャップを探す
                 adjustedY = _findNearestSuitableGap(topMost, gaps, minGapHeight, 'above');
+                if (window.DEBUG_CONNECTIONS) {
+                    console.log('[_adjustHorizontalSegmentY] direction=above, result=' + adjustedY);
+                }
                 if (adjustedY === null) {
                     // 適切なギャップがない場合は、従来の方法
                     adjustedY = topMost - nodePadding;
+                    if (window.DEBUG_CONNECTIONS) {
+                        console.log('[_adjustHorizontalSegmentY] fallback above: adjustedY=' + adjustedY);
+                    }
                 }
             } else if (y >= topMost && y <= bottomMost) {
                 // 水平線が衝突ノード範囲内にある場合
                 // bottomMostから下方向で最も近いギャップを探す
                 adjustedY = _findNearestSuitableGap(bottomMost, gaps, minGapHeight, 'below');
+                if (window.DEBUG_CONNECTIONS) {
+                    console.log('[_adjustHorizontalSegmentY] direction=below, result=' + adjustedY);
+                }
                 if (adjustedY === null) {
                     // 適切なギャップがない場合は、従来の方法
                     adjustedY = bottomMost + nodePadding;
+                    if (window.DEBUG_CONNECTIONS) {
+                        console.log('[_adjustHorizontalSegmentY] fallback below: adjustedY=' + adjustedY);
+                    }
                 }
             } else {
                 return null;
@@ -1143,7 +1160,10 @@ function getEdgeRouter() {
 
                     if (needsSecondVertical && secondVerticalX !== undefined) {
                         // 5-7セグメントルーティング（H-V-H-V-H）
-                        const adjustedY2 = yAdjustment.adjustedY;
+                        // 中間水平セグメントのY座標を、正しいX範囲（verticalSegmentX -> secondVerticalX）で元のy2から再計算
+                        const filteredBoundsMiddle = nodeBounds.filter(n => n.id !== conn.to);
+                        const recalculatedY2 = _adjustHorizontalSegmentY(verticalSegmentX, y2, secondVerticalX, filteredBoundsMiddle);
+                        const adjustedY2 = recalculatedY2 !== null ? recalculatedY2 : yAdjustment.adjustedY;
 
                         // 2本目の垂直セグメントは常にターゲットのcenterYに戻る
                         const finalY2 = y2;
