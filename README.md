@@ -1,4 +1,4 @@
-# MermaidTreeStylist
+# MermaidStylist
 
 Mermaid木構造図をインタラクティブなHTMLに変換するツール
 
