@@ -35,7 +35,37 @@ function buildEmbeddedCode() {
         .replace(/module\.exports = \{[^}]+\};?/g, '');
     const getVerticalLayout = fs.readFileSync('./src/core/layouts/vertical-layout.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
-    const getConnectionRenderer = fs.readFileSync('./src/runtime/rendering/connections/renderer.js', 'utf8')
+    const getConnectionConstants = fs.readFileSync('./src/runtime/rendering/connections/constants.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getConnectionUtils = fs.readFileSync('./src/runtime/rendering/connections/utils.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getCollectors = fs.readFileSync('./src/runtime/rendering/connections/collectors.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getDepthUtils = fs.readFileSync('./src/runtime/rendering/connections/depth-utils.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getCollisionUtils = fs.readFileSync('./src/runtime/rendering/connections/collision-utils.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getPathYAdjuster = fs.readFileSync('./src/runtime/rendering/connections/path-y-adjuster.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getPathGenerator = fs.readFileSync('./src/runtime/rendering/connections/path-generator.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getEdgeSpacingCalculator = fs.readFileSync('./src/runtime/rendering/connections/edge-spacing-calculator.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getConnectionLabels = fs.readFileSync('./src/runtime/rendering/connections/labels.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getVerticalSegmentCalculator = fs.readFileSync('./src/runtime/rendering/connections/vertical-segment-calculator.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getEdgeCrossingDetector = fs.readFileSync('./src/runtime/rendering/connections/edge-crossing-detector.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    let getConnectionRenderer = fs.readFileSync('./src/runtime/rendering/connections/renderer.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    // renderer.jsのrequire文を削除
+    getConnectionRenderer = getConnectionRenderer
+        .replace(/\s*const connectionLabels = require\('\.\/labels'\)\.getConnectionLabels\(\);\s*/g, '\n')
+        .replace(/\s*const verticalSegmentCalculator = require\('\.\/vertical-segment-calculator'\)\.getVerticalSegmentCalculator\(\);\s*/g, '\n')
+        .replace(/\s*const edgeCrossingDetector = require\('\.\/edge-crossing-detector'\)\.getEdgeCrossingDetector\(\);\s*/g, '\n')
+        .replace(/return connectionLabels \+ verticalSegmentCalculator \+ edgeCrossingDetector \+ `/g, 'return `');
+    const getRedrawHelpers = fs.readFileSync('./src/runtime/rendering/redraw-helpers.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
     const getShadowManager = fs.readFileSync('./src/runtime/rendering/effects/shadow-manager.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
@@ -49,8 +79,29 @@ function buildEmbeddedCode() {
         .replace(/module\.exports = \{[^}]+\};?/g, '');
     const getPathHighlighter = fs.readFileSync('./src/runtime/state/path-highlighter.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getEdgeHighlighter = fs.readFileSync('./src/runtime/state/edge-highlighter.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
     const getContextMenu = fs.readFileSync('./src/runtime/ui/context-menu.js', 'utf8')
         .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getRenderOrchestrator = fs.readFileSync('./src/runtime/core/render-orchestrator.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getTypes = fs.readFileSync('./src/core/layout/types.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getNodePlacer = fs.readFileSync('./src/core/layout/node-placer.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getCollisionResolver = fs.readFileSync('./src/core/layout/collision-resolver.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    const getEdgeRouter = fs.readFileSync('./src/core/layout/edge-router.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    let getLayoutEngine = fs.readFileSync('./src/core/layout/layout-engine.js', 'utf8')
+        .replace(/module\.exports = \{[^}]+\};?/g, '');
+    // layout-engine.jsのrequire文を削除
+    getLayoutEngine = getLayoutEngine
+        .replace(/\s*const types = require\('\.\/types'\)\.getTypes\(\);\s*/g, '\n')
+        .replace(/\s*const nodePlacer = require\('\.\/node-placer'\)\.getNodePlacer\(\);\s*/g, '\n')
+        .replace(/\s*const collisionResolver = require\('\.\/collision-resolver'\)\.getCollisionResolver\(\);\s*/g, '\n')
+        .replace(/\s*const edgeRouter = require\('\.\/edge-router'\)\.getEdgeRouter\(\);\s*/g, '\n')
+        .replace(/return types \+ nodePlacer \+ collisionResolver \+ edgeRouter \+ `/g, 'return `');
 
     code += '// テンプレートとユーティリティ\n';
     code += getBaseTemplate + '\n';
@@ -61,15 +112,44 @@ function buildEmbeddedCode() {
     code += '// レイアウト\n';
     code += getVerticalLayout + '\n\n';
 
-    code += '// 機能\n';
-    code += getConnectionRenderer + '\n';
-    code += getShadowManager + '\n';
+    code += '// 接続描画機能\n';
+    code += getConnectionConstants + '\n';
+    code += getConnectionUtils + '\n';
+    code += getCollectors + '\n';
+    code += getDepthUtils + '\n';
+    code += getCollisionUtils + '\n';
+    code += getPathYAdjuster + '\n';
+    code += getPathGenerator + '\n';
+    code += getEdgeSpacingCalculator + '\n';
+    code += getConnectionLabels + '\n';
+    code += getVerticalSegmentCalculator + '\n';
+    code += getEdgeCrossingDetector + '\n';
+    code += getConnectionRenderer + '\n\n';
+
+    code += '// レンダリング機能\n';
+    code += getRedrawHelpers + '\n';
+    code += getShadowManager + '\n\n';
+
+    code += '// 状態管理\n';
     code += getCollapseManager + '\n';
-    code += getLayoutSwitcher + '\n';
-    code += getViewportManager + '\n';
     code += getHighlightManager + '\n';
     code += getPathHighlighter + '\n';
+    code += getEdgeHighlighter + '\n\n';
+
+    code += '// UI機能\n';
+    code += getLayoutSwitcher + '\n';
+    code += getViewportManager + '\n';
     code += getContextMenu + '\n\n';
+
+    code += '// コアシステム\n';
+    code += getRenderOrchestrator + '\n\n';
+
+    code += '// V2レイアウトエンジン\n';
+    code += getTypes + '\n';
+    code += getNodePlacer + '\n';
+    code += getCollisionResolver + '\n';
+    code += getEdgeRouter + '\n';
+    code += getLayoutEngine + '\n\n';
 
     // 4. html.jsのgenerateHTML, getJavaScriptContent, generateErrorHTML
     const htmlContent = fs.readFileSync('./src/core/generators/html.js', 'utf8');
