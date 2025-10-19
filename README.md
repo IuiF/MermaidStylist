@@ -48,16 +48,21 @@ cli/                 # CLIツール
 └── utils/
 scripts/             # ビルド・デバッグスクリプト
 ├── build-webapp.js
-├── debug-layout.js
 └── debug/
 src/
 ├── core/            # ビルド時実行 (Node.js)
 │   ├── parsers/     # Mermaidパーサー
 │   ├── generators/  # HTML生成
-│   ├── layouts/     # レイアウトアルゴリズム
+│   ├── layout/      # レイアウトシステム (新)
+│   ├── layouts/     # レイアウトアルゴリズム (旧)
 │   └── validators/  # 木構造バリデーション
 ├── runtime/         # ブラウザ実行
+│   ├── core/        # レンダリング制御
+│   ├── interaction/ # ユーザー操作
 │   ├── rendering/   # 描画エンジン
+│   │   ├── connections/  # 接続線描画 (旧)
+│   │   ├── effects/      # 視覚効果
+│   │   └── v2/           # 描画システム (新)
 │   ├── state/       # 状態管理
 │   └── ui/          # UIコントロール
 ├── shared/          # 共通ユーティリティ
